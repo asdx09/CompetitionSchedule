@@ -1,0 +1,7 @@
+<div class="alert-container">
+  @for (alert of alerts; track alert) {
+    <div [ngClass]="alert.type" class="alert">
+      {{ alert.message }} <span class="material-icons">error</span>
+    </div>
+  }
+</div>

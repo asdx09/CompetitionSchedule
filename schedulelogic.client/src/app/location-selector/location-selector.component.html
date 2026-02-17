@@ -1,0 +1,23 @@
+<div class="box">
+  <button (click)="NewLocation()">Add New Location</button>
+  @if (data.data.locationTable.length) {
+    <div>
+      @for (item of getLocationsForEventType(data.index); track item; let i = $index) {
+        <div class="ListItem">
+          <select [(ngModel)]="item.locationId">
+            @for (type of data.data.locations; track type) {
+              <option [ngValue]="type.locationId">
+                {{ type.locationName }}
+              </option>
+            }
+          </select>
+          <button (click)="removeLocation(item.locationTableId!)">REMOVE</button>
+        </div>
+      }
+    </div>
+  }
+  @if (!getLocationsForEventType(data.index).length) {
+    <p>No locations for this event type yet.</p>
+  }
+  <button (click)="closeDialog()">OK</button>
+</div>

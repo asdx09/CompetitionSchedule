@@ -1,0 +1,48 @@
+#splash {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+#splash .logo {
+  width: 120px;
+  margin-bottom: 20px;
+}
+
+#splash .loader {
+  width: 50px;
+  height: 50px;
+  border: 10px solid #ccc;
+  border-top-color: rgb(255, 25, 255);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.custom-dialog-radius .mat-mdc-dialog-container .mdc-dialog__surface {
+  border-radius: 20px !important;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+}
+
+:host {
+  display: block;
+  min-height: 100%;
+}

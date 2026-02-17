@@ -1,0 +1,526 @@
+<div class="background">
+
+  <div class="box" [ngStyle]="{'left': selection < 0 ? '150%' : selection > 0 ? '-50%' : '50%'}">
+    <div class="leftbox">
+      <div class="container">
+        <h1>WIZARD</h1>
+        <p>Let's get started!</p>
+        <input type="file" accept=".xlsx, .xls" (change)="onFileSelected($event)"/>
+      </div>
+    </div>
+    <div class="rightbox">
+      <img src="/wizard/1.png">
+    </div>
+  </div>
+
+  <div class="box" [ngStyle]="{'left': selection < 1 ? '150%' : selection > 1 ? '-50%' : '50%'}">
+    <div class="leftbox">
+      <div class="container">
+        <h1>NAME</h1>
+        <div class="input-container">
+          <input type="text" name="text" id="input" required="" [(ngModel)]="Data.eventData.eventName">
+          <label for="input" class="label">COMPETITION NAME</label>
+          <div class="underline"></div>
+        </div>
+
+      </div>
+      <div class="buttonbox">
+        <button (click)="Next()"><span>NEXT</span></button>
+      </div>
+    </div>
+    <div class="rightbox">
+      <img src="/wizard/2.png">
+    </div>
+  </div>
+
+
+  <div class="box" [ngStyle]="{'left': selection < 2 ? '150%' : selection > 2 ? '-50%' : '50%'}">
+    <div class="leftbox">
+      <div class="container">
+        <h1>DATES</h1>
+        Start:
+        <input type="date" [ngModel]="getDateString(Data.eventData.startDate)" (ngModelChange)="updateDate(Data.eventData, $event, 'startDate')">
+        <input type="time" [ngModel]="getTimeString(Data.eventData.startDate)" (ngModelChange)="updateTime(Data.eventData, $event, 'startDate')">
+        <br>End:
+          <input type="date" [ngModel]="getDateString(Data.eventData.endDate)" (ngModelChange)="updateDate(Data.eventData, $event, 'endDate')">
+          <input type="time" [ngModel]="getTimeString(Data.eventData.endDate)" (ngModelChange)="updateTime(Data.eventData, $event, 'endDate')">
+          <br>Base Pause Time:
+            <input type="number" [(ngModel)]="Data.eventData.basePauseTime">
+            <br>Location Pause Time:
+              <input type="number" [(ngModel)]="Data.eventData.locationPauseTime">
+            </div>
+            <div class="buttonbox">
+              <button (click)="Back()"><span>BACK</span></button>
+              <button (click)="Next()"><span>NEXT</span></button>
+            </div>
+          </div>
+          <div class="rightbox">
+            <img src="/wizard/3.png">
+          </div>
+        </div>
+
+        <div class="box" [ngStyle]="{'left': selection < 3 ? '150%' : selection > 3 ? '-50%' : '50%'}">
+          <div class="leftbox">
+            <div class="container">
+              <h1>LOCATIONS</h1>
+              <select [(ngModel)]="selectedLocationSheet" (change)="onLocationSheetSelected($event)">
+                <option [ngValue]="null" disabled>Select</option>
+                @for (sheet of sheetNames; track sheet) {
+                  <option [value]="sheet">
+                    {{ sheet }}
+                  </option>
+                }
+              </select><br>
+              ID Column:
+              @if (selectedLocationSheet != null) {
+                <select [(ngModel)]="location_SelectedIdColumn">
+                  <option [ngValue]="null" disabled>Select</option>
+                  @for (col of locationSheetColumns; track col) {
+                    <option [value]="col">
+                      {{ col }}
+                    </option>
+                  }
+                </select>
+                }<br>
+                Name Column:
+                @if (selectedLocationSheet != null) {
+                  <select [(ngModel)]="location_SelectedNameColumn">
+                    <option [ngValue]="null" disabled>Select</option>
+                    @for (col of locationSheetColumns; track col) {
+                      <option [value]="col">
+                        {{ col }}
+                      </option>
+                    }
+                  </select>
+                  }<br>
+                  Slot Column:
+                  @if (selectedLocationSheet != null) {
+                    <select [(ngModel)]="location_SelectedSlotColumn">
+                      <option [ngValue]="null" disabled>Select</option>
+                      @for (col of locationSheetColumns; track col) {
+                        <option [value]="col">
+                          {{ col }}
+                        </option>
+                      }
+                    </select>
+                  }
+                </div>
+                <div class="buttonbox">
+                  <button (click)="Back()"><span>BACK</span></button>
+                  <button (click)="Next()"><span>SKIP</span></button>
+                  <button (click)="Next(1)"><span>NEXT</span></button>
+                </div>
+              </div>
+              <div class="rightbox">
+                <img src="/wizard/4.png">
+              </div>
+            </div>
+
+
+            <div class="box" [ngStyle]="{'left': selection < 4 ? '150%' : selection > 4 ? '-50%' : '50%'}">
+              <div class="leftbox">
+                <div class="container">
+                  <h1>EVENT TYPES</h1>
+                  <select [(ngModel)]="selectedEventTypeSheet" (change)="onEventTypeSheetSelected($event)">
+                    <option [ngValue]="null" disabled>Select</option>
+                    @for (sheet of sheetNames; track sheet) {
+                      <option [value]="sheet">
+                        {{ sheet }}
+                      </option>
+                    }
+                  </select><br>
+                  ID Column:
+                  @if (selectedEventTypeSheet != null) {
+                    <select [(ngModel)]="eventType_SelectedIdColumn">
+                      <option [ngValue]="null" disabled>Select</option>
+                      @for (col of eventTypeSheetColumns; track col) {
+                        <option [value]="col">
+                          {{ col }}
+                        </option>
+                      }
+                    </select>
+                    }<br>
+                    Name Column:
+                    @if (selectedEventTypeSheet != null) {
+                      <select [(ngModel)]="eventType_SelectedNameColumn">
+                        <option [ngValue]="null" disabled>Select</option>
+                        @for (col of eventTypeSheetColumns; track col) {
+                          <option [value]="col">
+                            {{ col }}
+                          </option>
+                        }
+                      </select>
+                      }<br>
+                      Locations Column:
+                      @if (selectedEventTypeSheet != null) {
+                        <select [(ngModel)]="eventType_SelectedLocationsColumn">
+                          <option [ngValue]="null" disabled>Select</option>
+                          @for (col of eventTypeSheetColumns; track col) {
+                            <option [value]="col">
+                              {{ col }}
+                            </option>
+                          }
+                        </select>
+                        }<br>
+                        Time Column:
+                        @if (selectedEventTypeSheet != null) {
+                          <select [(ngModel)]="eventType_SelectedTimeColumn">
+                            <option [ngValue]="null" disabled>Select</option>
+                            @for (col of eventTypeSheetColumns; track col) {
+                              <option [value]="col">
+                                {{ col }}
+                              </option>
+                            }
+                          </select>
+                        }
+                      </div>
+                      <div class="buttonbox">
+                        <button (click)="Back()"><span>BACK</span></button>
+                        <button (click)="Next()"><span>SKIP</span></button>
+                        <button (click)="Next(2)"><span>NEXT</span></button>
+                      </div>
+                    </div>
+                    <div class="rightbox">
+                      <img src="/wizard/5.png">
+                    </div>
+                  </div>
+
+
+                  <div class="box" [ngStyle]="{'left': selection < 5 ? '150%' : selection > 5 ? '-50%' : '50%'}">
+                    <div class="leftbox">
+                      <div class="container">
+                        <h1>GROUPS</h1>
+                        <select [(ngModel)]="selectedGroupSheet" (change)="onGroupSheetSelected($event)">
+                          <option [ngValue]="null" disabled>Select</option>
+                          @for (sheet of sheetNames; track sheet) {
+                            <option [value]="sheet">
+                              {{ sheet }}
+                            </option>
+                          }
+                        </select><br>
+                        ID Column:
+                        @if (selectedGroupSheet != null) {
+                          <select [(ngModel)]="group_SelectedIdColumn">
+                            <option [ngValue]="null" disabled>Select</option>
+                            @for (col of groupSheetColumns; track col) {
+                              <option [value]="col">
+                                {{ col }}
+                              </option>
+                            }
+                          </select>
+                          }<br>
+                          Name Column:
+                          @if (selectedGroupSheet != null) {
+                            <select [(ngModel)]="group_SelectedNameColumn">
+                              <option [ngValue]="null" disabled>Select</option>
+                              @for (col of groupSheetColumns; track col) {
+                                <option [value]="col">
+                                  {{ col }}
+                                </option>
+                              }
+                            </select>
+                            }<br>
+                          </div>
+                          <div class="buttonbox">
+                            <button (click)="Back()"><span>BACK</span></button>
+                            <button (click)="Next()"><span>SKIP</span></button>
+                            <button (click)="Next(3)"><span>NEXT</span></button>
+                          </div>
+                        </div>
+                        <div class="rightbox">
+                          <img src="/wizard/6.png">
+                        </div>
+                      </div>
+
+
+                      <div class="box" [ngStyle]="{'left': selection < 6 ? '150%' : selection > 6 ? '-50%' : '50%'}">
+                        <div class="leftbox">
+                          <div class="container">
+                            <h1>PARTICIPANTS</h1>
+                            <select [(ngModel)]="selectedParticipantSheet" (change)="onParticipantSheetSelected($event)">
+                              <option [ngValue]="null" disabled>Select</option>
+                              @for (sheet of sheetNames; track sheet) {
+                                <option [value]="sheet">
+                                  {{ sheet }}
+                                </option>
+                              }
+                            </select><br>
+                            ID Column:
+                            @if (selectedGroupSheet != null) {
+                              <select [(ngModel)]="participant_SelectedIdColumn">
+                                <option [ngValue]="null" disabled>Select</option>
+                                @for (col of participantSheetColumns; track col) {
+                                  <option [value]="col">
+                                    {{ col }}
+                                  </option>
+                                }
+                              </select>
+                              }<br>
+                              Name Column:
+                              @if (selectedGroupSheet != null) {
+                                <select [(ngModel)]="participant_SelectedNameColumn">
+                                  <option [ngValue]="null" disabled>Select</option>
+                                  @for (col of participantSheetColumns; track col) {
+                                    <option [value]="col">
+                                      {{ col }}
+                                    </option>
+                                  }
+                                </select>
+                                }<br>
+                                Number Column:
+                                @if (selectedGroupSheet != null) {
+                                  <select [(ngModel)]="participant_SelectedNumberColumn">
+                                    <option [ngValue]="null" disabled>Select</option>
+                                    @for (col of participantSheetColumns; track col) {
+                                      <option [value]="col">
+                                        {{ col }}
+                                      </option>
+                                    }
+                                  </select>
+                                  }<br>
+                                  Group Column:
+                                  @if (selectedGroupSheet != null) {
+                                    <select [(ngModel)]="participant_SelectedGroupColumn">
+                                      <option [ngValue]="null" disabled>Select</option>
+                                      @for (col of participantSheetColumns; track col) {
+                                        <option [value]="col">
+                                          {{ col }}
+                                        </option>
+                                      }
+                                    </select>
+                                    }<br>
+                                  </div>
+                                  <div class="buttonbox">
+                                    <button (click)="Back()"><span>BACK</span></button>
+                                    <button (click)="Next()"><span>SKIP</span></button>
+                                    <button (click)="Next(4)"><span>NEXT</span></button>
+                                  </div>
+                                </div>
+                                <div class="rightbox">
+                                  <img src="/wizard/7.png">
+                                </div>
+                              </div>
+
+
+                              <div class="box" [ngStyle]="{'left': selection < 7 ? '150%' : selection > 7 ? '-50%' : '50%'}">
+                                <div class="leftbox">
+                                  <div class="container">
+                                    <h1>REGISTRATIONS</h1>
+                                    <select [(ngModel)]="selectedRegistrationSheet" (change)="onRegistrationSheetSelected($event)">
+                                      <option [ngValue]="null" disabled>Select</option>
+                                      @for (sheet of sheetNames; track sheet) {
+                                        <option [value]="sheet">
+                                          {{ sheet }}
+                                        </option>
+                                      }
+                                    </select><br>
+                                    ID Column:
+                                    @if (selectedRegistrationSheet != null) {
+                                      <select [(ngModel)]="registration_SelectedIdColumn">
+                                        <option [ngValue]="null" disabled>Select</option>
+                                        @for (col of registrationSheetColumns; track col) {
+                                          <option [value]="col">
+                                            {{ col }}
+                                          </option>
+                                        }
+                                      </select>
+                                      }<br>
+                                      Participant Column:
+                                      @if (selectedRegistrationSheet != null) {
+                                        <select [(ngModel)]="registration_SelectedParticipantColumn">
+                                          <option [ngValue]="null" disabled>Select</option>
+                                          @for (col of registrationSheetColumns; track col) {
+                                            <option [value]="col">
+                                              {{ col }}
+                                            </option>
+                                          }
+                                        </select>
+                                        }<br>
+                                        Event Type Column:
+                                        @if (selectedRegistrationSheet != null) {
+                                          <select [(ngModel)]="registration_SelectedEventTypeColumn">
+                                            <option [ngValue]="null" disabled>Select</option>
+                                            @for (col of registrationSheetColumns; track col) {
+                                              <option [value]="col">
+                                                {{ col }}
+                                              </option>
+                                            }
+                                          </select>
+                                          }<br>
+                                        </div>
+                                        <div class="buttonbox">
+                                          <button (click)="Back()"><span>BACK</span></button>
+                                          <button (click)="Next()"><span>SKIP</span></button>
+                                          <button (click)="Next(5)"><span>NEXT</span></button>
+                                        </div>
+                                      </div>
+                                      <div class="rightbox">
+                                        <img src="/wizard/8.png">
+                                      </div>
+                                    </div>
+
+
+                                    <div class="box" [ngStyle]="{'left': selection < 8 ? '150%' : selection > 8 ? '-50%' : '50%'}">
+                                      <div class="leftbox">
+                                        <div class="container">
+                                          <h1>CONSTRAINTS</h1>
+                                          <select [(ngModel)]="selectedConstraintSheet" (change)="onConstraintSheetSelected($event)">
+                                            <option [ngValue]="null" disabled>Select</option>
+                                            @for (sheet of sheetNames; track sheet) {
+                                              <option [value]="sheet">
+                                                {{ sheet }}
+                                              </option>
+                                            }
+                                          </select><br>
+                                          ID Column:
+                                          @if (selectedConstraintSheet != null) {
+                                            <select [(ngModel)]="constraint_SelectedIdColumn">
+                                              <option [ngValue]="null" disabled>Select</option>
+                                              @for (col of constraintSheetColumns; track col) {
+                                                <option [value]="col">
+                                                  {{ col }}
+                                                </option>
+                                              }
+                                            </select>
+                                            }<br>
+                                            Type Column:
+                                            @if (selectedConstraintSheet != null) {
+                                              <select [(ngModel)]="constraint_SelectedTypeColumn">
+                                                <option [ngValue]="null" disabled>Select</option>
+                                                @for (col of constraintSheetColumns; track col) {
+                                                  <option [value]="col">
+                                                    {{ col }}
+                                                  </option>
+                                                }
+                                              </select>
+                                              }<br>
+                                              Object Column:
+                                              @if (selectedConstraintSheet != null) {
+                                                <select [(ngModel)]="constraint_SelectedObjectColumn">
+                                                  <option [ngValue]="null" disabled>Select</option>
+                                                  @for (col of constraintSheetColumns; track col) {
+                                                    <option [value]="col">
+                                                      {{ col }}
+                                                    </option>
+                                                  }
+                                                </select>
+                                                }<br>
+                                                Start Column:
+                                                @if (selectedConstraintSheet != null) {
+                                                  <select [(ngModel)]="constraint_SelectedStartColumn">
+                                                    <option [ngValue]="null" disabled>Select</option>
+                                                    @for (col of constraintSheetColumns; track col) {
+                                                      <option [value]="col">
+                                                        {{ col }}
+                                                      </option>
+                                                    }
+                                                  </select>
+                                                  }<br>
+                                                  End Column:
+                                                  @if (selectedConstraintSheet != null) {
+                                                    <select [(ngModel)]="constraint_SelectedEndColumn">
+                                                      <option [ngValue]="null" disabled>Select</option>
+                                                      @for (col of constraintSheetColumns; track col) {
+                                                        <option [value]="col">
+                                                          {{ col }}
+                                                        </option>
+                                                      }
+                                                    </select>
+                                                    }<br>
+                                                  </div>
+                                                  <div class="buttonbox">
+                                                    <button (click)="Back()"><span>BACK</span></button>
+                                                    <button (click)="Next()"><span>SKIP</span></button>
+                                                    <button (click)="Next(6)"><span>NEXT</span></button>
+                                                  </div>
+                                                </div>
+                                                <div class="rightbox">
+                                                  <img src="/wizard/9.png">
+                                                </div>
+                                              </div>
+
+                                              <div class="box" [ngStyle]="{'left': selection < 9 ? '150%' : selection > 9 ? '-50%' : '50%'}">
+                                                <div class="leftbox">
+                                                  <div class="container">
+                                                    <h1>TRAVEL TIMES</h1>
+                                                    <select [(ngModel)]="selectedTravelTimeSheet" (change)="onPauseTableSheetSelected($event)">
+                                                      <option [ngValue]="null" disabled>Select</option>
+                                                      @for (sheet of sheetNames; track sheet) {
+                                                        <option [value]="sheet">
+                                                          {{ sheet }}
+                                                        </option>
+                                                      }
+                                                    </select><br>
+                                                    ID Column:
+                                                    @if (selectedTravelTimeSheet != null) {
+                                                      <select [(ngModel)]="travelTime_SelectedIdColumn">
+                                                        <option [ngValue]="null" disabled>Select</option>
+                                                        @for (col of travelTimeSheetColumns; track col) {
+                                                          <option [value]="col">
+                                                            {{ col }}
+                                                          </option>
+                                                        }
+                                                      </select>
+                                                      }<br>
+                                                      Location1 Column:
+                                                      @if (selectedTravelTimeSheet != null) {
+                                                        <select [(ngModel)]="travelTime_SelectedLocation1Column">
+                                                          <option [ngValue]="null" disabled>Select</option>
+                                                          @for (col of travelTimeSheetColumns; track col) {
+                                                            <option [value]="col">
+                                                              {{ col }}
+                                                            </option>
+                                                          }
+                                                        </select>
+                                                        }<br>
+                                                        Location2 Column:
+                                                        @if (selectedTravelTimeSheet != null) {
+                                                          <select [(ngModel)]="travelTime_SelectedLocation2Column">
+                                                            <option [ngValue]="null" disabled>Select</option>
+                                                            @for (col of travelTimeSheetColumns; track col) {
+                                                              <option [value]="col">
+                                                                {{ col }}
+                                                              </option>
+                                                            }
+                                                          </select>
+                                                          }<br>
+                                                          Time Column:
+                                                          @if (selectedTravelTimeSheet != null) {
+                                                            <select [(ngModel)]="travelTime_SelectedPauseColumn">
+                                                              <option [ngValue]="null" disabled>Select</option>
+                                                              @for (col of travelTimeSheetColumns; track col) {
+                                                                <option [value]="col">
+                                                                  {{ col }}
+                                                                </option>
+                                                              }
+                                                            </select>
+                                                            }<br>
+                                                          </div>
+                                                          <div class="buttonbox">
+                                                            <button (click)="Back()"><span>BACK</span></button>
+                                                            <button (click)="Next()"><span>SKIP</span></button>
+                                                            <button (click)="Next(7)"><span>NEXT</span></button>
+                                                          </div>
+                                                        </div>
+                                                        <div class="rightbox">
+                                                          <img src="/wizard/10.png">
+                                                        </div>
+                                                      </div>
+
+                                                      <div class="box" [ngStyle]="{'left': selection < 10 ? '150%' : selection > 10 ? '-50%' : '50%'}">
+                                                        <div class="leftbox">
+                                                          <div class="container">
+                                                            <h1>FINISH</h1>
+                                                          </div>
+                                                          <div class="buttonbox">
+                                                            <button (click)="Back()"><span>BACK</span></button>
+                                                            <button (click)="Generate()"><span>GENERATE</span></button>
+                                                          </div>
+                                                        </div>
+                                                        <div class="rightbox">
+                                                          <img src="/wizard/11.png">
+                                                        </div>
+                                                      </div>
+
+                                                    </div>
+

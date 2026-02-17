@@ -1,0 +1,17 @@
+<div class="background">
+  <h2>HOME</h2>
+  <button (click)="AddEvent()">Add New Event</button>
+  <div class="box">
+    @for (item of events; track item) {
+      <div class ="item" (click)="GoToEvent(item.event_ID)">
+        {{ item.eventName }}
+        <button (click)="DeleteEvent(item.event_ID, $event);">DELETE</button>
+      </div>
+    }
+    <div class ="item" (click)="GoToWizard()">
+      Create new event with WIZARD
+    </div>
+  </div>
+
+</div>
+

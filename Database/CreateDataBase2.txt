@@ -1,0 +1,170 @@
+USE ScheduleLogicDB;
+
+DECLARE @sql NVARCHAR(MAX) = N'';
+
+SELECT @sql += 'ALTER TABLE [' + SCHEMA_NAME(t.schema_id) + '].[' + t.name + '] DROP CONSTRAINT [' + fk.name + '];' + CHAR(13)
+FROM sys.foreign_keys fk
+JOIN sys.tables t ON fk.parent_object_id = t.object_id;
+SELECT @sql += 'DROP TABLE [' + SCHEMA_NAME(schema_id) + '].[' + name + '];' + CHAR(13)
+FROM sys.tables;
+
+EXEC sp_executesql @sql;
+
+CREATE TABLE "Users"(
+    "User_ID" BIGINT IDENTITY(1,1),
+    "Username" VARCHAR(255) NOT NULL,
+    "Email" VARCHAR(255) NOT NULL,
+    "Password" VARCHAR(255) NOT NULL,
+    "Validated" BIT NOT NULL,
+    "RegistrationDate" DATE NOT NULL
+);
+ALTER TABLE
+    "Users" ADD CONSTRAINT "users_user_id_primary" PRIMARY KEY("User_ID");
+CREATE TABLE "Event"(
+    "Event_ID" BIGINT IDENTITY(1,1),
+    "EventName" VARCHAR(255) NOT NULL,
+    "StartDate" DATETIME NOT NULL,
+    "EndDate" DATETIME NOT NULL,
+    "CreatedBy" BIGINT NULL,
+    "IsPrivate" BIT NOT NULL,
+    "LocationPauseTime" INT NOT NULL,
+    "BasePauseTime" INT NOT NULL,
+    "LocWeight" INT NOT NULL,
+    "TypeWeight" INT NOT NULL,
+    "CompWeight" INT NOT NULL,
+    "GroupWeight" INT NOT NULL
+);
+ALTER TABLE
+    "Event" ADD CONSTRAINT "event_event_id_primary" PRIMARY KEY("Event_ID");
+CREATE TABLE "EventType"(
+    "EventType_ID" BIGINT IDENTITY(1,1),
+    "Event_ID" BIGINT NOT NULL,
+    "TypeName" VARCHAR(255) NOT NULL,
+    "TimeRange" TIME NOT NULL
+);
+ALTER TABLE
+    "EventType" ADD CONSTRAINT "eventtype_eventtype_id_primary" PRIMARY KEY("EventType_ID");
+CREATE TABLE "Participant"(
+    "Participant_ID" BIGINT IDENTITY(1,1),
+    "CompetitorNumber" INT NOT NULL,
+    "ParticipantName" VARCHAR(255) NOT NULL,
+    "Event_ID" BIGINT NOT NULL,
+    "Group_ID" BIGINT NULL,
+);
+ALTER TABLE
+    "Participant" ADD CONSTRAINT "participant_participant_id_primary" PRIMARY KEY("Participant_ID");
+CREATE TABLE "Schedule"(
+    "Schedule_ID" BIGINT IDENTITY(1,1),
+    "EventType_ID" BIGINT NOT NULL,
+    "Participant_ID" BIGINT NOT NULL,
+    "Location_ID" BIGINT NOT NULL,
+    "StartTime" DATETIME NOT NULL,
+    "EndTime" DATETIME NOT NULL,
+    "Slot" INT NOT NULL,
+);
+ALTER TABLE
+    "Schedule" ADD CONSTRAINT "schedule_schedule_id_primary" PRIMARY KEY("Schedule_ID");
+CREATE TABLE "Group"(
+    "Group_ID" BIGINT IDENTITY(1,1),
+    "Event_ID" BIGINT NOT NULL,
+    "GroupName" VARCHAR(255) NOT NULL,
+);
+ALTER TABLE
+    "Group" ADD CONSTRAINT "group_group_id_primary" PRIMARY KEY("Group_ID");
+CREATE TABLE "Registrations"(
+    "Registration_ID" BIGINT IDENTITY(1,1),
+    "Event_ID" BIGINT NOT NULL,
+    "Participant_ID" BIGINT NOT NULL,
+    "EventType_ID" BIGINT NOT NULL
+);
+ALTER TABLE
+    "Registrations" ADD CONSTRAINT "registrations_registration_id_primary" PRIMARY KEY("Registration_ID");
+CREATE TABLE "Location"(
+    "Location_ID" BIGINT IDENTITY(1,1),
+    "Event_ID" BIGINT NOT NULL,
+    "LocationName" VARCHAR(255) NOT NULL,
+    "Slots" INT NOT NULL
+);
+ALTER TABLE
+    "Location" ADD CONSTRAINT "location_location_id_primary" PRIMARY KEY("Location_ID");
+CREATE TABLE "PauseTable"(
+    "Pause_ID" BIGINT IDENTITY(1,1),
+    "Event_ID" BIGINT NOT NULL,
+    "Location_ID1" BIGINT NOT NULL,
+    "Location_ID2" BIGINT NOT NULL,
+    "Pause" TIME NOT NULL
+);
+ALTER TABLE
+    "PauseTable" ADD CONSTRAINT "pausetable_pause_id_primary" PRIMARY KEY("Pause_ID");
+CREATE TABLE "Log"(
+    "Log_ID" BIGINT IDENTITY(1,1),
+    "User_ID" BIGINT NOT NULL,
+    "LogText" VARCHAR(255) NOT NULL,
+    "LogDate" DATETIME NOT NULL
+);
+ALTER TABLE
+    "Log" ADD CONSTRAINT "log_log_id_primary" PRIMARY KEY("Log_ID");
+CREATE TABLE "LocationTable"(
+    "LocationTable_ID" BIGINT IDENTITY(1,1),
+    "Event_ID" BIGINT NOT NULL,
+    "EventType_ID" BIGINT NOT NULL,
+    "Location_ID" BIGINT NOT NULL
+);
+ALTER TABLE
+    "LocationTable" ADD CONSTRAINT "locationtable_locationtable_id_primary" PRIMARY KEY("LocationTable_ID");
+CREATE TABLE "Constraint"(
+    "Constraint_ID" BIGINT IDENTITY(1,1),
+    "Event_ID" BIGINT NOT NULL,
+    "Object_ID" BIGINT NOT NULL,
+    "ConstraintType" CHAR NOT NULL,
+    "StartTime" DATETIME NOT NULL,
+    "EndTime" DATETIME NOT NULL
+);
+ALTER TABLE
+    "Constraint" ADD CONSTRAINT "constraint_constraint_id_primary" PRIMARY KEY("Constraint_ID");
+
+
+
+ALTER TABLE
+    "LocationTable" ADD CONSTRAINT "locationtable_location_id_foreign" FOREIGN KEY("Location_ID") REFERENCES "Location"("Location_ID") ON DELETE CASCADE;
+ALTER TABLE
+    "Schedule" ADD CONSTRAINT "schedule_location_id_foreign" FOREIGN KEY("Location_ID") REFERENCES "Location"("Location_ID") ON DELETE CASCADE;
+ALTER TABLE
+    "LocationTable" ADD CONSTRAINT "locationtable_eventtype_id_foreign" FOREIGN KEY("EventType_ID") REFERENCES "EventType"("EventType_ID") ON DELETE CASCADE;
+ALTER TABLE
+    "PauseTable" ADD CONSTRAINT "pausetable_location_id1_foreign" FOREIGN KEY("Location_ID1") REFERENCES "Location"("Location_ID") ON DELETE CASCADE;
+ALTER TABLE
+    "PauseTable" ADD CONSTRAINT "pausetable_location_id2_foreign" FOREIGN KEY("Location_ID2") REFERENCES "Location"("Location_ID");
+ALTER TABLE
+    "Registrations" ADD CONSTRAINT "registrations_participant_id_foreign" FOREIGN KEY("Participant_ID") REFERENCES "Participant"("Participant_ID") ON DELETE CASCADE;
+ALTER TABLE
+    "Log" ADD CONSTRAINT "log_user_id_foreign" FOREIGN KEY("User_ID") REFERENCES "Users"("User_ID");
+ALTER TABLE
+    "EventType" ADD CONSTRAINT "eventtype_event_id_foreign" FOREIGN KEY("Event_ID") REFERENCES "Event"("Event_ID") ON DELETE CASCADE;
+ALTER TABLE
+    "Registrations" ADD CONSTRAINT "registrations_eventtype_id_foreign" FOREIGN KEY("EventType_ID") REFERENCES "EventType"("EventType_ID") ON DELETE CASCADE;
+ALTER TABLE
+    "Participant" ADD CONSTRAINT "participant_group_id_foreign" FOREIGN KEY("Group_ID") REFERENCES "Group"("Group_ID") ON DELETE CASCADE;
+ALTER TABLE
+    "Registrations" ADD CONSTRAINT "registrations_event_id_foreign" FOREIGN KEY("Event_ID") REFERENCES "Event"("Event_ID");
+ALTER TABLE
+    "Constraint" ADD CONSTRAINT "constraint_event_id_foreign" FOREIGN KEY("Event_ID") REFERENCES "Event"("Event_ID");
+ALTER TABLE
+    "LocationTable" ADD CONSTRAINT "locationtable_event_id_foreign" FOREIGN KEY("Event_ID") REFERENCES "Event"("Event_ID");
+ALTER TABLE
+    "PauseTable" ADD CONSTRAINT "pausetable_event_id_foreign" FOREIGN KEY("Event_ID") REFERENCES "Event"("Event_ID") ON DELETE CASCADE;
+ALTER TABLE
+    "Group" ADD CONSTRAINT "group_event_id_foreign" FOREIGN KEY("Event_ID") REFERENCES "Event"("Event_ID");
+ALTER TABLE
+    "Participant" ADD CONSTRAINT "participant_event_id_foreign" FOREIGN KEY("Event_ID") REFERENCES "Event"("Event_ID");
+ALTER TABLE
+    "Schedule" ADD CONSTRAINT "schedule_participant_id_foreign" FOREIGN KEY("Participant_ID") REFERENCES "Participant"("Participant_ID") ON DELETE CASCADE;
+ALTER TABLE
+    "Schedule" ADD CONSTRAINT "schedule_eventtype_id_foreign" FOREIGN KEY("EventType_ID") REFERENCES "EventType"("EventType_ID") ON DELETE CASCADE;
+ALTER TABLE
+    "Location" ADD CONSTRAINT "location_event_id_foreign" FOREIGN KEY("Event_ID") REFERENCES "Event"("Event_ID");
+ALTER TABLE
+    "Event" ADD CONSTRAINT "event_createdby_foreign" FOREIGN KEY("CreatedBy") REFERENCES "Users"("User_ID");
+/*
+dotnet ef dbcontext scaffold "Server=.\SQLEXPRESS;Database=ScheduleLogicDB;Trusted_Connection=True;TrustServerCertificate=True;" Microsoft.EntityFrameworkCore.SqlServer -o Models -f
+*/

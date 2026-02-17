@@ -1,0 +1,203 @@
+.background{
+    font-family: "Inter", "Segoe UI", sans-serif;
+    background-image: linear-gradient(to bottom right, #0C7779, #249E94);
+    background-size: cover; 
+    background-position: bottom; 
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    padding-top: 40px;
+    color:white;
+}
+
+h2{
+  margin-top: 0px;
+  max-width: 1000px;
+}
+
+.upperbox{
+  margin-top: 50px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-left: 10%;
+  margin-right: 10%;
+  border-bottom: solid 1px white;
+  height: 60px;
+  margin-bottom: 80px;
+}
+
+.ListBox{
+  border-radius: 20px;
+  margin-left: 10%;
+  margin-right: 10%;
+  overflow: hidden;
+  color: white;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: space-around;
+}
+
+.ListItem{
+  margin-top: 5px;
+  margin-bottom: 5px;
+  background-color:gray;
+  width: 200px;
+  margin: 10px;
+  background-color: rgba(0, 0, 0, 0.212);
+  padding: 10px;
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.ListItem>div{
+  margin: auto auto auto auto;
+}
+
+.wrong{
+  background-color: red;
+}
+
+.dirty{
+  background-color: rgb(194, 194, 39);
+}
+
+.good{
+  background-color: rgb(0, 211, 0);
+}
+
+.loader {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border: 3px solid #ccc;
+  border-top-color: rgb(255, 25, 255);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.boxHeader{
+  display: flex;
+  justify-content: space-between;
+  margin-left: 10%;
+  margin-right: 10%;
+  height: 50px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid #ffffff;
+  margin-top: 60px;
+}
+
+.title{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 30px;
+}
+.Graph{
+  background-color: rgba(0, 0, 0, 0.322);
+  border-radius: 50px;
+  padding: 20px;
+}
+
+.Graph > div{
+  display: flex;
+  justify-content: space-around;
+}
+
+.searchbar{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.searchbar > div{
+  margin-left: 10px;
+  margin-right: 10px;
+}
+
+
+button {
+  appearance: none;
+  background-color: #249E94;
+  border: 1px solid rgba(224, 0, 224, 0.192);
+  border-radius: 6px;
+  box-shadow: rgba(27, 31, 35, .1) 0 1px 0;
+  box-sizing: border-box;
+  color: #fff;
+  cursor: pointer;
+  display: inline-block;
+  font-family: -apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji";
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  padding: 6px 16px;
+  position: relative;
+  text-align: center;
+  text-decoration: none;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  vertical-align: middle;
+  white-space: nowrap;
+  margin: 5px;
+}
+
+button:focus:not(:focus-visible):not(.focus-visible) {
+  box-shadow: none;
+  outline: none;
+}
+
+button:hover {
+  filter: brightness(1.1);
+}
+
+button:focus {
+  box-shadow: rgba(9, 93, 119, 0.4) 0 0 0 3px;
+  outline: none;
+}
+
+button:disabled {
+  background-color: #b6a1b3;
+  border-color: rgba(27, 31, 35, .1);
+  color: rgba(255, 255, 255, .8);
+  cursor: default;
+}
+
+button:active {
+  background-color: #249E94;
+  box-shadow: rgba(20, 70, 32, .2) 0 1px 0 inset;
+}
+
+
+
+
+
+
+
+input{
+  padding: 5px;
+  border-radius: 20px;
+  background-color: #3BC1A8;
+  border: none;
+  color: white;
+  margin: 2px;
+}
+
+input:hover{
+  filter: brightness(1.1);
+}
+
+select{
+  padding: 5px;
+  border-radius: 20px;
+  background-color: #3BC1A8;
+  border: none;
+  color: white;
+  margin: 2px;
+}

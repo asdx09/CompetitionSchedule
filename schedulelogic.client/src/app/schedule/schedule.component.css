@@ -1,0 +1,264 @@
+.schedule-container {
+  display: flex;
+  position: relative;
+  margin-left: 5%;
+  margin-right: 5%;
+  margin-bottom: 50px;
+  max-height: 600px;
+  overflow-x: auto;
+  color: white;
+  box-shadow: 0 0 20px 5px rgba(0, 0, 0, 0.5);
+}
+
+.page{
+  font-family: "Inter", "Segoe UI", sans-serif;
+  background-image: linear-gradient(to bottom right, #013b44, #005461);
+  position: absolute;
+  top: 6%;
+  left: 0;
+  right: 0;
+  color:white;
+}
+
+h1{
+  margin-top: 50px;
+  color: white;
+  font-size: 60px;
+}
+
+h2{
+  margin-top: 60px;
+  text-align: left;
+  margin-bottom: 50px;
+  color: white;
+  padding-left: 150px;
+}
+/* Bal oldali sticky box */
+.leftbox {
+  width: 15%;
+  position: sticky;
+  left: 0;
+  z-index: 10;
+  background: var(--bg-light);
+  border-right: 1px solid black;
+  backdrop-filter: blur(5px);
+  box-shadow: 10px 0 5px -2px #0000001e;
+  background-color: rgba(0, 0, 0, 0.568);
+}
+
+.row-label {
+  display: flex;
+  align-items: center;
+  padding-left: 5px;
+  font-weight: bold;
+  justify-content: right;
+  padding-right: 10px;
+}
+
+.rightbox {
+  position: relative;
+  flex: 1;
+  white-space: nowrap;
+}
+
+/* Felső gombok */
+.upperbox{
+  margin-top: 50px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-left: 10%;
+  margin-right: 10%;
+  border-bottom: solid 1px white;
+  height: 60px;
+}
+
+/* Órák */
+.time-slot {
+  position: absolute;
+  border-right: 1px solid #ffffff48;
+  overflow: hidden;
+}
+
+.time-label {
+  position: absolute;
+  top: 0;
+  left: 5px;
+  font-size: 14px;
+  text-align: left;
+}
+
+.info{
+  height: 45px;
+}
+
+.range {
+  position: absolute;
+  color: white;
+  border-radius: 100px;
+  font-size: 14px;
+  text-align: center;
+  z-index: 1;
+  overflow: hidden;
+  transition: all 0.2s;
+  height: 43px;
+  white-space: normal;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.rangeConstraint {
+  position: absolute;
+  z-index: 0;
+  overflow: hidden;
+  transition: all 0.2s;
+  height: 43px;
+  background: repeating-linear-gradient(
+    45deg,       
+    #ffffff2a,     
+    #ffffff28 10px, 
+    #00000000 10px,   
+    #00000000 20px
+  );
+}
+
+.range:hover{
+  transform: scale(1.1);
+  filter: brightness(1.1);
+  width: fit-content;
+  z-index: 2;
+  padding: 4px;
+  color: white;
+}
+
+.eventtype-label {
+  cursor: pointer;
+  justify-content:space-between;
+}
+
+.eventtype-label:hover {
+  filter: brightness(1.05);
+}
+
+.eventtype-range {
+  font-weight: bold;
+  border-radius: 100px;
+}
+
+.bakcgorund-lines{
+  position: absolute;
+  width: 100%;
+}
+
+.cbox{
+  margin-top: 20px;
+  display:flex;
+  justify-content: center;
+}
+
+button {
+  appearance: none;
+  background-color: #249E94;
+  border: 1px solid rgba(224, 0, 224, 0.192);
+  border-radius: 6px;
+  box-shadow: rgba(27, 31, 35, .1) 0 1px 0;
+  box-sizing: border-box;
+  color: #fff;
+  cursor: pointer;
+  display: inline-block;
+  font-family: -apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji";
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  padding: 6px 16px;
+  position: relative;
+  text-align: center;
+  text-decoration: none;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  vertical-align: middle;
+  white-space: nowrap;
+  margin: 5px;
+}
+
+button:focus:not(:focus-visible):not(.focus-visible) {
+  box-shadow: none;
+  outline: none;
+}
+
+button:hover {
+  filter: brightness(1.1);
+}
+
+button:focus {
+  box-shadow: rgba(187, 4, 156, 0.4) 0 0 0 3px;
+  outline: none;
+}
+
+button:disabled {
+  background-color: #b6a1b3;
+  border-color: rgba(27, 31, 35, .1);
+  color: rgba(255, 255, 255, .8);
+  cursor: default;
+}
+
+button:active {
+  background-color: #ad438a;
+  box-shadow: rgba(20, 70, 32, .2) 0 1px 0 inset;
+}
+
+
+
+
+
+.checkbox-wrapper-17 input[type=checkbox] {
+  height: 0;
+  width: 0;
+  visibility: hidden;
+  display: flex;
+  align-items: center;
+}
+
+.checkbox-wrapper-17 label {
+  --size: 50px;
+
+  cursor: pointer;
+  width: var(--size);
+  height: calc(var(--size) / 2);
+  background: grey;
+  display: block;
+  border-radius: 100px;
+  position: relative;
+  display:flex;
+  margin-left: 10px;
+}
+
+.checkbox-wrapper-17 label:after {
+  content: '';
+  position: absolute;
+  top: 6%;
+  left: 2.5%;
+  width: calc(50% - 5%);
+  height: calc(100% - 11%);
+  background: #fff;
+  border-radius: 90px;
+  transition: 0.3s;
+}
+
+.checkbox-wrapper-17 input:checked + label {
+  background: #249E94;
+}
+
+.checkbox-wrapper-17 input:checked + label:after {
+  left: calc(100% - 2.5%);
+  transform: translateX(-100%);
+}
+
+.checkbox-wrapper-17 label:active:after {
+  width: 55%;
+}
+
+

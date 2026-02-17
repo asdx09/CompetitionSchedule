@@ -1,0 +1,19 @@
+{
+  "version": "14.8.1",
+  "project": {
+    "defaultPort": 58921,
+    "framework": "angular",
+    "projectType": "igx-ts",
+    "projectTemplate": "ng-cli",
+    "theme": "Custom",
+    "isBundle": false,
+    "bundleFilePath": "",
+    "igniteuiSource": "",
+    "components": [],
+    "sourceFiles": [],
+    "isShowcase": false,
+    "version": ""
+  },
+  "build": {},
+  "packagesInstalled": true
+}

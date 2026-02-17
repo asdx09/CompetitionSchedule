@@ -1,0 +1,385 @@
+<div class="page">
+  <div class="upperbox">
+    <h1>{{data.eventName}}</h1>
+    <div class="cbox">
+      <span>Constraints</span>
+      <div class="checkbox-wrapper-17">
+        <input type="checkbox" id="switch-17" [(ngModel)]="isConstraint"/><label for="switch-17"></label>
+      </div>
+    </div>
+    <div>
+      <button (click)="zoomLevel = zoomLevel * 1.2">Zoom In</button>
+      <button (click)="zoomLevel = zoomLevel / 1.2">Zoom Out</button>
+    </div>
+    <div>
+      <button>DOWNLOAD DATA</button>
+    </div>
+  </div>
+  <h2>By Competitor</h2>
+  <div #box1 class="schedule-container" (scroll)="syncScroll('box1')">
+    <!-- Bal oldali résztvevő nevek -->
+    <div class="leftbox" [ngStyle]="{height: totalByCompetitorHeight + 'px'}">
+      <div class="row-label info">Competitors</div>
+      @for (participant of data.participans; track participant; let i = $index) {
+        <div
+          class="row-label"
+          [ngStyle]="{
+            height: eventHeight + 'px',
+          }">
+          {{ participant.participantName }}
+        </div>
+      }
+    </div>
+
+    <!-- Jobb oldali események -->
+    <div class="rightbox">
+      <!-- Háttér csíkok résztvevőnként -->
+      @for (participant of data.participans; track participant; let i = $index) {
+        <div
+          class="row-background"
+          [ngStyle]="{
+            top: (i * eventHeight + 45) + 'px',
+            height: eventHeight + 'px',
+            'background-color': 'white',
+            'opacity': i % 2 === 0 ? '5%' : '0%',
+            width: 100 * zoomLevel * hours.length/24 + '%',
+            position: 'absolute'
+          }">
+        </div>
+      }
+      @for (hour of hours; track hour) {
+        <div
+          class="time-slot"
+          [ngStyle]="{
+            left: (((hour*60 - startOfDay) / (endOfDay - startOfDay) * 100) * zoomLevel) + '%',
+            width: ((60 / (endOfDay - startOfDay) * 100) * zoomLevel) + '%',
+            height: totalByCompetitorHeight + 'px'
+          }">
+          <span class="time-label">
+            {{ getDateWithPlusDays(data.startDate, hour) | date:'yyyy.MM.dd' }}<br>
+            {{ hour % 24 }}:00
+          </span>
+        </div>
+      }
+
+      
+      @for (participant of data.participans; track participant; let i = $index) {
+        @for (range of getTimeZonesForParticipant(participant.participant_ID); track range) {
+          <div
+            class="range"
+            [ngStyle]="{
+              top: (i * eventHeight + 45) + 'px',
+              left: ((((range.startTime) - startOfDay) / (endOfDay - startOfDay) * 100) * zoomLevel) + '%',
+              width: (((range.endTime) - (range.startTime)) / (endOfDay - startOfDay) * 100 * zoomLevel) + '%',
+              'background-color': getEventTypeColor(range.eventType_ID)
+            }"
+            (click)="openInfo(range.schedule_ID)">
+            {{ getEventTypeName(range.eventType_ID ) }}
+          </div>
+        }
+        @if (isConstraint) {
+          <div>
+            @for (range of getTimeZonesForConstraint(participant.participant_ID); track range) {
+              <div
+                class="rangeConstraint"
+              [ngStyle]="{
+                top: (i * eventHeight + 45) + 'px',
+                left: ((((range.startTime) - startOfDay) / (endOfDay - startOfDay) * 100) * zoomLevel) + '%',
+                width: ((((range.endTime > hours.length*60 ? hours.length*60 : range.endTime) ?? 0) - (range.startTime)) / (endOfDay - startOfDay) * 100 * zoomLevel) + '%',
+              }">
+              </div>
+            }
+          </div>
+        }
+      }
+    </div>
+  </div>
+
+  <h2>By EventType</h2>
+
+  <div #box2 class="schedule-container" (scroll)="syncScroll('box2')">
+    <!-- Bal oldal -->
+    <div class="leftbox" [ngStyle]="{height: totalByEventTypeHeight + 'px'}">
+      <div class="row-label info" [ngStyle]="{ height: laneHeight + 'px' }">EventTypes</div>
+
+      @for (et of data.eventTypes; track et; let etIndex = $index) {
+        <div>
+          <!-- EventType cím sor -->
+          <div class="eventtype-label row-label"
+            (click)="toggleEventType(et.eventType_ID!)"
+            [ngStyle]="{ height: laneHeight + 'px', cursor:'pointer' }">
+            <input type="color" [(ngModel)]="eventTypeColorMap[et.eventType_ID!]"> <span>{{ et.eventTypeName }}</span>
+            <span style="margin-left:5px">{{ expandedEventTypes[et.eventType_ID!] ? '▼' : '▶' }}</span>
+          </div>
+          <!-- Lane-ek csak ha kibontva -->
+          @if (expandedEventTypes[et.eventType_ID!]) {
+            <div>
+              @for (lane of lanesByEventType[et.eventType_ID!] || []; track lane; let idx = $index) {
+                <div
+                  class="row-label"
+                  [ngStyle]="{ height: laneHeight + 'px', 'background-color': 'white', 'opacity': idx % 2 === 0 ? '5%' : '0%'}">
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Jobb oldal -->
+    <div class="rightbox">
+      <div class="bakcgorund-lines">
+        <div class="row-label info" [ngStyle]="{ height: laneHeight + 'px' }"></div>
+        @for (et of data.eventTypes; track et; let etIndex = $index) {
+          <div>
+            <!-- EventType cím sor -->
+            <div class="eventtype-label row-label"
+              (click)="toggleEventType(et.eventType_ID!)"
+                [ngStyle]="{ height: laneHeight + 'px', 
+                    width: 100 * zoomLevel + '%',}">
+            </div>
+            <!-- Lane-ek csak ha kibontva -->
+            @if (expandedEventTypes[et.eventType_ID!]) {
+              <div>
+                @for (lane of lanesByEventType[et.eventType_ID!] || []; track lane; let idx = $index) {
+                  <div
+                    class="row-label"
+                  [ngStyle]="{ height: laneHeight + 'px',
+                    'background-color': 'white',
+                    'opacity': idx % 2 === 0 ? '5%' : '0%',
+                    width: 100 * zoomLevel * hours.length/24 + '%',}">
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        }
+      </div>
+      <!-- EventType range-ek mindig láthatóak -->
+      @for (et of data.eventTypes; track et; let etIndex = $index) {
+        <div class="range eventtype-range"
+              [ngStyle]="{
+                top: getEventTypeRangeTop(et.eventType_ID!) + 22 + 'px',
+                left: (((getEventTypeRange(et.eventType_ID!).start - startOfDay) / (endOfDay - startOfDay) * 100 * zoomLevel)) + '%',
+                width: (((getEventTypeRange(et.eventType_ID!).end - getEventTypeRange(et.eventType_ID!).start) / (endOfDay - startOfDay) * 100 * zoomLevel)) + '%',
+                height: laneHeight - 2 + 'px',
+                'background-color': getEventTypeColor(et.eventType_ID!),
+                'position': 'absolute'
+              }">
+          {{ getEventTypeName(et.eventType_ID) }} -
+          {{ getLocationName(et.eventType_ID!) }}
+        </div>
+        @if (isConstraint) {
+          <div>
+            @for (range of getTimeZonesForConstraint(et.eventType_ID!); track range) {
+              <div
+                class="rangeConstraint"
+              [ngStyle]="{
+                top: getEventTypeRangeTop(et.eventType_ID!) + 22 + 'px',
+                left: ((((range.startTime) - startOfDay) / (endOfDay - startOfDay) * 100) * zoomLevel) + '%',
+                width: ((((range.endTime > hours.length*60 ? hours.length*60 : range.endTime) ?? 0) - (range.startTime)) / (endOfDay - startOfDay) * 100 * zoomLevel) + '%',
+              }">
+              </div>
+            }
+          </div>
+        }
+        <!-- Lane-ek és események csak kibontott EventType esetén -->
+        @if (expandedEventTypes[et.eventType_ID!]) {
+          <div>
+            @for (lane of lanesByEventType[et.eventType_ID!] || []; track lane; let laneIndex = $index) {
+              @for (event of lane.events; track event) {
+                <div
+                  class="range"
+                [ngStyle]="{
+                  top: getLaneTop(et.eventType_ID!, laneIndex) + 45 + 'px',
+                  left: (((event.startTime) - startOfDay) / (endOfDay - startOfDay) * 100 * zoomLevel) + '%',
+                  width: (((event.endTime) - (event.startTime)) / (endOfDay - startOfDay) * 100 * zoomLevel) + '%',
+                  height: (laneHeight - 2) + 'px',
+                  'background-color': getEventTypeColor(et.eventType_ID),
+                }"
+                  (click)="openInfo(event.schedule_ID)">
+                  {{ getParticipantName(event.participant_ID) }}<br>
+                </div>
+              }
+              @if (isConstraint) {
+                <div>
+                  @for (range of getTimeZonesForConstraint(et.eventType_ID!); track range) {
+                    <div
+                      class="rangeConstraint"
+                  [ngStyle]="{
+                    top: getLaneTop(et.eventType_ID!, laneIndex) + 45 + 'px',
+                    left: ((((range.startTime) - startOfDay) / (endOfDay - startOfDay) * 100) * zoomLevel) + '%',
+                    width: ((((range.endTime > hours.length*60 ? hours.length*60 : range.endTime) ?? 0) - (range.startTime)) / (endOfDay - startOfDay) * 100 * zoomLevel) + '%',
+                  }">
+                    </div>
+                  }
+                </div>
+              }
+            }
+          </div>
+        }
+      }
+
+      <!-- Időskála órák -->
+      @for (hour of hours; track hour) {
+        <div
+          class="time-slot"
+          [ngStyle]="{
+            left: (((hour*60 - startOfDay) / (endOfDay - startOfDay) * 100) * zoomLevel) + '%',
+            width: ((60 / (endOfDay - startOfDay) * 100) * zoomLevel) + '%',
+            height: totalByEventTypeHeight + 'px'
+          }">
+          <span class="time-label">
+            {{ getDateWithPlusDays(data.startDate, hour) | date:'yyyy.MM.dd' }}<br>
+            {{ hour % 24 }}:00
+          </span>
+        </div>
+      }
+    </div>
+  </div>
+
+  <h2>By Location</h2>
+
+  <div #box3 class="schedule-container" (scroll)="syncScroll('box3')">
+    <!-- Bal oldal -->
+    <div class="leftbox" [ngStyle]="{height: totalByLocationHeight + 'px'}">
+      <div class="row-label info" [ngStyle]="{ height: laneHeight + 'px' }">EventTypes</div>
+
+      @for (location of data.locations; track location; let locIndex = $index) {
+        <div>
+          <!-- EventType cím sor -->
+          <div class="eventtype-label row-label"
+            (click)="toggleLocation(location.location_ID!)"
+            [ngStyle]="{ height: laneHeight + 'px', cursor:'pointer' }">
+            <input type="color" [(ngModel)]="eventTypeColorMap[location.location_ID!]">
+            <span>{{ location.locationName }}</span>
+            <span style="margin-left:5px">{{ expandedLocations[location.location_ID!] ? '▼' : '▶' }}</span>
+          </div>
+          <!-- Lane-ek csak ha kibontva -->
+          @if (expandedLocations[location.location_ID!]) {
+            <div>
+              @for (lane of locationsLanes[location.location_ID!] || []; track lane; let idx = $index) {
+                <div
+                  class="row-label"
+                  [ngStyle]="{ height: laneHeight + 'px'}">
+                  <span>{{idx+1}}</span>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Jobb oldal -->
+    <div class="rightbox">
+      <div class="bakcgorund-lines">
+        <div class="row-label info" [ngStyle]="{ height: laneHeight + 'px' }"></div>
+        @for (location of data.locations; track location; let locIndex = $index) {
+          <div>
+            <!-- EventType cím sor -->
+            <div class="eventtype-label row-label"
+                [ngStyle]="{ height: laneHeight + 'px', 
+                    width: 100 * zoomLevel + '%',}">
+            </div>
+            <!-- Lane-ek csak ha kibontva -->
+            @if (expandedLocations[location.location_ID!]) {
+              <div>
+                @for (lane of locationsLanes[location.location_ID!] || []; track lane; let idx = $index) {
+                  <div
+                    class="row-label"
+                  [ngStyle]="{ height: laneHeight + 'px',
+                    'background-color': 'white',
+                    'opacity': idx % 2 === 0 ? '5%' : '0%',
+                    width: 100 * zoomLevel * hours.length/24 + '%',}">
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        }
+      </div>
+      <!-- EventType range-ek mindig láthatóak -->
+      @for (location of data.locations; track location; let locIndex = $index) {
+        @if (hasRange(location.location_ID)){
+          <div class="range eventtype-range"
+                [ngStyle]="{
+                  top: getLocationRangeTop(location.location_ID!) + 'px',
+                  left: (((getLocationRange(location.location_ID!).start - startOfDay) / (endOfDay - startOfDay) * 100 * zoomLevel)) + '%',
+                  width: (((getLocationRange(location.location_ID!).end - getLocationRange(location.location_ID!).start) / (endOfDay - startOfDay) * 100 * zoomLevel)) + '%',
+                  height: laneHeight - 2 + 'px',
+                  'background-color': getEventTypeColor(location.location_ID!),
+                  'position': 'absolute'
+                }">
+            {{ getLocationName2(location.location_ID!) }}
+          </div>
+        }
+        @if (isConstraint) {
+          <div>
+            @for (range of getTimeZonesForConstraint(location.location_ID!); track range) {
+              <div
+                class="rangeConstraint"
+              [ngStyle]="{
+                top: getLocationRangeTop(location.location_ID!) + 'px',
+                left: ((((range.startTime) - startOfDay) / (endOfDay - startOfDay) * 100) * zoomLevel) + '%',
+                width: ((((range.endTime > hours.length*60 ? hours.length*60 : range.endTime) ?? 0) - (range.startTime)) / (endOfDay - startOfDay) * 100 * zoomLevel) + '%',
+              }">
+              </div>
+            }
+          </div>
+        }
+        <!-- Lane-ek és események csak kibontott EventType esetén -->
+        @if (expandedLocations[location.location_ID!]) {
+          <div>
+            @for (lane of locationsLanes[location.location_ID!] || []; track lane; let laneIndex = $index) {
+              @for (event of lane.events; track event) {
+                <div
+                  class="range"
+                [ngStyle]="{
+                  top: getLocationLaneTop(location.location_ID!,event.slot) + 'px',
+                  left: (((event.startTime) - startOfDay) / (endOfDay - startOfDay) * 100 * zoomLevel) + '%',
+                  width: (((event.endTime) - (event.startTime)) / (endOfDay - startOfDay) * 100 * zoomLevel) + '%',
+                  height: (laneHeight - 2) + 'px',
+                  'background-color': getEventTypeColor(event.eventType_ID!),
+                }"
+                  (click)="openInfo(event.schedule_ID)">
+                  {{ getParticipantName(event.participant_ID) }}<br>
+                </div>
+              }
+              @if (isConstraint) {
+                <div>
+                  @for (range of getTimeZonesForConstraint(location.location_ID!); track range) {
+                    <div
+                      class="rangeConstraint"
+                  [ngStyle]="{
+                    top: getLocationLaneTop(location.location_ID!, laneIndex) + laneHeight + 'px',
+                    left: ((((range.startTime) - startOfDay) / (endOfDay - startOfDay) * 100) * zoomLevel) + '%',
+                    width: ((((range.endTime > hours.length*60 ? hours.length*60 : range.endTime) ?? 0) - (range.startTime)) / (endOfDay - startOfDay) * 100 * zoomLevel) + '%',
+                  }">
+                    </div>
+                  }
+                </div>
+              }
+            }
+          </div>
+        }
+      }
+
+      <!-- Időskála órák -->
+      @for (hour of hours; track hour) {
+        <div
+          class="time-slot"
+          [ngStyle]="{
+            left: (((hour*60 - startOfDay) / (endOfDay - startOfDay) * 100) * zoomLevel) + '%',
+            width: ((60 / (endOfDay - startOfDay) * 100) * zoomLevel) + '%',
+            height: totalByLocationHeight + 'px'
+          }">
+          <span class="time-label">
+            {{ getDateWithPlusDays(data.startDate, hour) | date:'yyyy.MM.dd' }}<br>
+            {{ hour % 24 }}:00
+          </span>
+        </div>
+      }
+    </div>
+  </div>
+</div>

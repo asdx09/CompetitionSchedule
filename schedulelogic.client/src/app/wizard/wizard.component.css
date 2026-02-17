@@ -1,0 +1,187 @@
+.background{
+  font-family: "Inter", "Segoe UI", sans-serif;
+  background-image: linear-gradient(to bottom right, #3a3a3a, #7e7e7e);
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+}
+
+.box{
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1200px;
+  height: 600px;
+  max-height: 80%;
+  max-width: 80%;
+  transform: translate(-50%, -50%);
+  background-color: white;
+  border-radius: 30px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  transition: 0.5s;
+  padding: 20px;
+}
+
+.leftbox{
+    width: 50%;
+    height: 100%;
+    float: left;
+}
+.rightbox{
+    width: 50%;
+    height: 100%;
+    float: right;
+    background-color: gray;
+    border-radius: 30px;
+    overflow: hidden;
+    border: 2px solid black;
+    box-shadow: 0 0 20px 5px rgba(0, 0, 0, 0.5);
+}
+
+.buttonbox{
+    width: 100%;
+    height: 15%;
+    display: flex;
+    align-items:center;
+    justify-content: center;
+}
+
+.container{
+    align-items: center;
+    width: 100%;
+    height: 85%;
+}
+
+h1{
+  font-size: 70px;
+}
+
+
+
+
+
+
+button {
+  appearance: none;
+  background-color: #249E94;
+  border: 1px solid rgba(224, 0, 224, 0.192);
+  border-radius: 6px;
+  box-shadow: rgba(27, 31, 35, .1) 0 1px 0;
+  box-sizing: border-box;
+  color: #fff;
+  cursor: pointer;
+  display: inline-block;
+  font-family: -apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji";
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  padding: 6px 16px;
+  position: relative;
+  text-align: center;
+  text-decoration: none;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  vertical-align: middle;
+  white-space: nowrap;
+  margin: 5px;
+}
+
+button:focus:not(:focus-visible):not(.focus-visible) {
+  box-shadow: none;
+  outline: none;
+}
+
+button:hover {
+  filter: brightness(1.1);
+}
+
+button:focus {
+  box-shadow: rgba(9, 93, 119, 0.4) 0 0 0 3px;
+  outline: none;
+}
+
+button:disabled {
+  background-color: #b6a1b3;
+  border-color: rgba(27, 31, 35, .1);
+  color: rgba(255, 255, 255, .8);
+  cursor: default;
+}
+
+button:active {
+  background-color: #249E94;
+  box-shadow: rgba(20, 70, 32, .2) 0 1px 0 inset;
+}
+
+
+
+
+
+
+.input-container {
+  position: relative;
+  margin: 50px auto;
+  width: 400px;
+}
+
+.input-container input[type="text"] {
+  font-size: 20px;
+  width: 100%;
+  border: none;
+  border-bottom: 2px solid #ccc;
+  padding: 5px 0;
+  background-color: transparent;
+  outline: none;
+}
+
+.input-container .label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  color: #ccc;
+  transition: all 0.3s ease;
+  pointer-events: none;
+}
+
+.input-container input[type="text"]:focus ~ .label,
+.input-container input[type="text"]:valid ~ .label {
+  top: -20px;
+  font-size: 16px;
+  color: #333;
+}
+
+.input-container .underline {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  width: 100%;
+  background-color: #333;
+  transform: scaleX(0);
+  transition: all 0.3s ease;
+}
+
+.input-container input[type="text"]:focus ~ .underline,
+.input-container input[type="text"]:valid ~ .underline {
+  transform: scaleX(1);
+}
+
+input[type="date"], input[type="time"], input[type="number"], select{
+  padding: 8px;
+  border-radius: 30px;
+  border: none;
+  box-shadow: 0 0 5px 3px rgba(0, 0, 0, 0.3);
+  margin-left: 10px;
+  margin-right: 10px;
+  margin-bottom: 10px;
+  background-color: #249E94;
+  color: white;
+}
+
+
+input[type="date"]:hover, input[type="time"]:hover, input[type="number"]:hover{
+  filter: brightness(1.2);
+}

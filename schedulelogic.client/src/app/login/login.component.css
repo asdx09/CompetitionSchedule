@@ -1,0 +1,230 @@
+.background{
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-image: linear-gradient(to bottom right, #0C7779, #249E94);
+    background-size:cover;
+    background-position:bottom;
+    position: absolute;
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+    z-index: 200;
+}
+
+h1{
+  font-size: 45px;
+  line-height: 50px;
+  text-align: center;
+  margin-bottom: 40px;
+  margin-top: 30px;
+  color: white;
+}
+
+.centerbox{
+    width: 60%;
+    height: 60%;
+    margin-left: 50%;
+    transform: translate(-50%, 0%);
+    position: absolute;
+    top: 20%;
+    box-shadow: 0px 0px 25px rgba(0, 0, 0, 0.397);
+    min-width: 400px;
+    min-height: 350px;
+}
+
+.leftbox{
+  float: left;
+  width: 40%;
+  height: 100%;
+  background-color: white;
+  overflow: hidden;
+  transition: 1s;
+}
+.leftboxreg{
+  float: left;
+  width: 60%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  color: white;
+  line-height: 25px;
+  background-image: url('/bg.svg');
+  background-position: right;
+  background-size: cover;
+  overflow: hidden;
+  transition: 1s;
+}
+
+p{
+  color: white;
+}
+
+b{
+  color: white;
+}
+
+.rightbox{
+  float: right;
+  width: 60%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  color: white;
+  line-height: 25px;
+  background-image: url('/bg.svg');
+  background-position: right;
+  background-size: cover;
+  overflow: hidden;
+  transition: 1s;
+}
+
+.rightboxreg{
+  float: right;
+  width: 40%;
+  height: 100%;
+  background-color: white;
+  overflow: hidden;
+  transition: 1s;
+}
+
+
+.gradient-text {
+  background: linear-gradient(to bottom, rgb(120, 7, 148), rgb(158, 2, 49));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+.gradient-text:hover {
+  background: linear-gradient(to bottom, rgb(219, 76, 255), rgb(255, 6, 81));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  cursor:pointer;
+}
+
+.rightbox p{
+  margin-top: 3px;
+}
+
+
+.upperbox{
+  width: 100%;
+  height: 20%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 10%;
+  margin-top: 10%;
+}
+
+.bottombox{
+  width: 100%;
+  margin-top: 10%;
+}
+
+
+
+
+.group {
+  display: flex;
+  line-height: 30px;
+  align-items: center;
+  position: relative;
+  width: 80%;
+  margin: 0 auto 0 auto;
+}
+
+.input {
+  width: 100%;
+  height: 45px;
+  line-height: 30px;
+  padding-left: 2rem;
+  padding-right: 1rem;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  outline: none;
+  background-color: #eef1f5;
+  color: #0d0c22;
+  transition: .2s ease;
+  margin: 5px;
+}
+
+.input::placeholder {
+  color: #94a3b8;
+}
+
+.input:focus, input:hover {
+  outline: none;
+  border-color: #249E94;
+  background-color: #fff;
+  box-shadow: 0 0 0 2px rgba(70, 0, 46, 0.3);
+}
+
+.icon {
+  position: absolute;
+  left: 1rem;
+  fill: none;
+  width: 1rem;
+  height: 1rem;
+}
+
+
+
+
+
+button {
+  appearance: none;
+  background-color: #249E94;
+  border: 1px solid rgba(224, 0, 224, 0.192);
+  border-radius: 6px;
+  box-shadow: rgba(27, 31, 35, .1) 0 1px 0;
+  box-sizing: border-box;
+  color: #fff;
+  cursor: pointer;
+  display: inline-block;
+  font-family: -apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji";
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  padding: 6px 16px;
+  position: relative;
+  text-align: center;
+  text-decoration: none;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  vertical-align: middle;
+  white-space: nowrap;
+  margin: 5px;
+}
+
+button:focus:not(:focus-visible):not(.focus-visible) {
+  box-shadow: none;
+  outline: none;
+}
+
+button:hover {
+  filter: brightness(1.1);
+}
+
+button:focus {
+  box-shadow: rgba(9, 93, 119, 0.4) 0 0 0 3px;
+  outline: none;
+}
+
+button:disabled {
+  background-color: #b6a1b3;
+  border-color: rgba(27, 31, 35, .1);
+  color: rgba(255, 255, 255, .8);
+  cursor: default;
+}
+
+button:active {
+  background-color: #249E94;
+  box-shadow: rgba(20, 70, 32, .2) 0 1px 0 inset;
+}

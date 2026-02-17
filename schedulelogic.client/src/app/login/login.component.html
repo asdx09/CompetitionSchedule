@@ -1,0 +1,65 @@
+<div class="background">
+  <div class="centerbox">
+    <div [ngClass]="{ 'leftbox': IsLogin, 'leftboxreg': !IsLogin}">
+      @if (IsLogin) {
+        <div class="upperbox">
+          <h2>
+            Welcome back!
+          </h2>
+        </div>
+        <div class="group">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon user-icon"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <input class="input" type="text" placeholder="username" [(ngModel)]="loginUsername">
+        </div>
+        <div class="group">
+          <svg stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" class="icon"><path d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" stroke-linejoin="round" stroke-linecap="round"></path></svg>
+          <input class="input" type="password" placeholder="password" [(ngModel)]="loginPassword">
+        </div>
+        <div class="bottombox">
+          <button (click)="login()" [disabled]="WaitForAnswer"><span>LOGIN</span></button>
+        </div>
+      }
+      @if (!IsLogin) {
+        <h1>SCHEDULE LOGIC</h1>
+        <b>Already have an account?</b>
+        <p>Log in to access your personalized tools and continue seamlessly.</p>
+        <p class="gradient-text" (click)="toggleIsLogin()">Click here to sign in!</p>
+      }
+    </div>
+    <div [ngClass]="{ 'rightbox': IsLogin, 'rightboxreg': !IsLogin}">
+      @if (IsLogin) {
+        <h1>SCHEDULE LOGIC</h1>
+        <b>Don't have an account yet?</b>
+        <p>Register today to access personalized tools and a seamless experience.</p>
+        <p class="gradient-text" (click)="toggleIsLogin()">Click here to sign up!</p>
+      }
+      @if (!IsLogin) {
+        <div class="upperbox">
+          <h2>
+            Let's get started!
+          </h2>
+        </div>
+        <div class="group">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon user-icon"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <input class="input" type="text" placeholder="username" [(ngModel)]="regUsername">
+        </div>
+        <div class="group">
+          <svg stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" class="icon"><path d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" stroke-linejoin="round" stroke-linecap="round"></path></svg>
+          <input class="input" type="password" placeholder="password" [(ngModel)]="regPassword">
+        </div>
+        <div class="group">
+          <svg stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" class="icon"><path d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" stroke-linejoin="round" stroke-linecap="round"></path></svg>
+          <input class="input" type="password" placeholder="password again">
+        </div>
+        <div class="group">
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon email-icon"><rect x="2" y="4" width="20" height="16" rx="2" ry="2"/><polyline points="2,4 12,13 22,4"/></svg>
+          <input class="input" type="email" placeholder="e-mail" [(ngModel)]="regEmail">
+        </div>
+        <div class="bottombox">
+          <button (click)="register()" [disabled]="WaitForAnswer"><span>REGISTER</span></button>
+        </div>
+      }
+    </div>
+  </div>
+</div>
+

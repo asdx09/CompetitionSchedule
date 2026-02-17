@@ -1,0 +1,6 @@
+@ScheduleLogic.Server_HostAddress = http://localhost:5242
+
+GET {{ScheduleLogic.Server_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
