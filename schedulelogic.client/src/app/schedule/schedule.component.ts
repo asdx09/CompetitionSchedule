@@ -310,9 +310,9 @@ export class ScheduleComponent {
       });
   }
 
-  hasRange(i:string)
+  hasRange(i:number)
   {
-    return (this.data.timeZones.filter(tz => tz.location_ID.toString() == i).length>0)
+    return (this.data.timeZones.filter(tz => tz.location_ID == i).length>0)
   }
 
   computeLanes() {

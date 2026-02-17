@@ -1,6 +1,4 @@
-﻿using AutoMapper;
-using AutoMapper.QueryableExtensions;
-using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using ScheduleLogic.Server.Class;
 using ScheduleLogic.Server.Controllers;
@@ -14,11 +12,9 @@ namespace ScheduleLogic.Server.Services
     public class DatabaseService
     {
         private readonly ScheduleLogicDbContext _context;
-        private readonly IMapper _mapper;
 
-        public DatabaseService(IMapper mapper, ScheduleLogicDbContext context)
+        public DatabaseService(ScheduleLogicDbContext context)
         {
-            _mapper = mapper;
             _context = context;
         }
 
@@ -32,7 +28,6 @@ namespace ScheduleLogic.Server.Services
 
             return result == PasswordVerificationResult.Success;
         }
-
         public string RegisterUser(string username, string password, string email)
         {
             if (_context.Users.Any(u => u.Username == username))
@@ -51,7 +46,6 @@ namespace ScheduleLogic.Server.Services
             _context.SaveChanges();
             return "";
         }
-
         public long NewEvent(string username)
         {
             Event NewEvent = new Event();
@@ -237,43 +231,101 @@ namespace ScheduleLogic.Server.Services
             _context.Constraints.RemoveRange(constraintsToRemove);
             _context.SaveChanges();
         }
-
         public long GetUserID(string username)
         {
             if (_context.Users.Count() < 1) return 0;
             return _context.Users.Where(w => w.Username == username).First().UserId;
         }
-
         public bool CheckUser(string username, string id)
         {
             return _context.Events.Where(w => w.CreatedBy == GetUserID(username) && w.EventId == Convert.ToInt32(id)).Count() > 0;
         }
-
         public bool CheckUserExist(string username)
         {
             return _context.Users.Where(w => w.Username == username).Count() > 0;
         }
-
         public List<EventsData> GetEvents(string username)
         {
             return _context.Events.Where(e => e.CreatedBy == GetUserID(username)).Select(e => new EventsData{event_ID = e.EventId, eventName = e.EventName}).ToList();
         }
-
         public dataDTO GetEvent(string id, string username)
         {
             dataDTO TempData = new dataDTO();
-            TempData.eventData = _mapper.Map<EventDTO>(_context.Events.First(w => w.CreatedBy == GetUserID(username) && w.EventId == Convert.ToInt32(id)));
-            TempData.eventTypes = _context.EventTypes.Where(w => w.EventId == Convert.ToInt32(id)).ProjectTo<EventTypeDTO>(_mapper.ConfigurationProvider).ToList();
-            TempData.groups = _context.Groups.Where(w => w.EventId == Convert.ToInt32(id)).ProjectTo<GroupDTO>(_mapper.ConfigurationProvider).ToList();
-            TempData.locations = _context.Locations.Where(w => w.EventId == Convert.ToInt32(id)).ProjectTo<LocationDTO>(_mapper.ConfigurationProvider).ToList();
-            TempData.participants = _context.Participants.Where(w => w.EventId == Convert.ToInt32(id)).ProjectTo<ParticipantDTO>(_mapper.ConfigurationProvider).ToList();
-            TempData.registrations = _context.Registrations.Where(w => w.EventId == Convert.ToInt32(id)).ProjectTo<RegistrationDTO>(_mapper.ConfigurationProvider).ToList();
-            TempData.pauseTable = _context.PauseTables.Where(w => w.EventId == Convert.ToInt32(id)).ProjectTo<PauseTableDTO>(_mapper.ConfigurationProvider).ToList();
-            TempData.locationTable = _context.LocationTables.Where(w => w.EventId == Convert.ToInt32(id)).ProjectTo<LocationTableDTO>(_mapper.ConfigurationProvider).ToList();
-            TempData.constraints = _context.Constraints.Where(w => w.EventId == Convert.ToInt32(id)).ProjectTo<ConstraintDTO>(_mapper.ConfigurationProvider).ToList();
+            TempData.eventData = _context.Events.AsNoTracking().Where(w => w.CreatedBy == GetUserID(username) && w.EventId == Convert.ToInt32(id)).Select(e => new EventDTO
+            {
+                EventId = e.EventId.ToString(),
+                EventName = e.EventName,
+                StartDate = e.StartDate,
+                EndDate = e.EndDate,
+                IsPrivate = e.IsPrivate,
+                BasePauseTime = e.BasePauseTime,
+                LocationPauseTime = e.LocationPauseTime,
+                LocWeight = e.LocWeight,
+                GroupWeight = e.GroupWeight,
+                TypeWeight = e.TypeWeight,
+                CompWeight = e.CompWeight
+            }).First();
+            TempData.eventTypes = _context.EventTypes.AsNoTracking().Where(w => w.EventId == Convert.ToInt32(id)).Select(e => new EventTypeDTO
+            {
+                EventId = e.EventId.ToString(),
+                EventTypeId = e.EventTypeId.ToString(),
+                TypeName = e.TypeName,
+                TimeRange = e.TimeRange
+            }).ToList();
+            TempData.groups = _context.Groups.AsNoTracking().Where(w => w.EventId == Convert.ToInt32(id)).Select(e => new GroupDTO
+            {
+                GroupId = e.GroupId.ToString(),
+                EventId = e.EventId.ToString(),
+                GroupName = e.GroupName
+            }).ToList();
+            TempData.locations = _context.Locations.AsNoTracking().Where(w => w.EventId == Convert.ToInt32(id)).Select(e => new LocationDTO
+            {
+                LocationId = e.LocationId.ToString(),
+                EventId = e.EventId.ToString(),
+                LocationName = e.LocationName,
+                Slots = e.Slots
+            }).ToList();
+            TempData.participants = _context.Participants.AsNoTracking().Where(w => w.EventId == Convert.ToInt32(id)).Select(e => new ParticipantDTO
+            {
+                ParticipantId = e.ParticipantId.ToString(),
+                ParticipantName = e.ParticipantName,
+                CompetitorNumber = e.CompetitorNumber,
+                EventId = e.EventId.ToString(),
+                GroupId = e.GroupId.ToString()
+            }).ToList();
+            TempData.registrations = _context.Registrations.AsNoTracking().Where(w => w.EventId == Convert.ToInt32(id)).Select(e => new RegistrationDTO
+            {
+                RegistrationId = e.RegistrationId.ToString(),
+                EventId= e.EventId.ToString(),
+                ParticipantId= e.ParticipantId.ToString(),
+                EventTypeId = e.EventId.ToString()
+            }).ToList();
+            TempData.pauseTable = _context.PauseTables.AsNoTracking().Where(w => w.EventId == Convert.ToInt32(id)).Select(e => new PauseTableDTO
+            {
+                PauseId = e.PauseId.ToString(),
+                EventId = e.EventId.ToString(),
+                LocationId1 = e.LocationId1.ToString(),
+                LocationId2 = e.LocationId2.ToString(),
+                Pause = e.Pause
+            }).ToList();
+            TempData.locationTable = _context.LocationTables.AsNoTracking().Where(w => w.EventId == Convert.ToInt32(id)).Select(e => new LocationTableDTO
+            {
+                LocationTableId = e.LocationTableId.ToString(),
+                EventId = e.EventId.ToString(),
+                EventTypeId = e.EventId.ToString(),
+                LocationId = e.LocationTableId.ToString()
+            }).ToList();
+            TempData.constraints = _context.Constraints.AsNoTracking().Where(w => w.EventId == Convert.ToInt32(id)).Select(e => new ConstraintDTO
+            {
+                ConstraintId = e.ConstraintId.ToString(),
+                EventId = e.EventId.ToString(),
+                ObjectId = e.ObjectId.ToString(),
+                ConstraintType = e.ConstraintType.ToString(),
+                StartTime = e.StartTime,
+                EndTime = e.EndTime
+            }).ToList();
             return TempData;
         }
-
         public bool SaveEvent(dataDTO Data)
         {
             using var tx = _context.Database.BeginTransaction();
@@ -436,7 +488,6 @@ namespace ScheduleLogic.Server.Services
             }
             return true;
         }
-
         public ScheduleRequestForSolver GetScheduleInfo(int id)
         {
             ScheduleRequestForSolver request = new ScheduleRequestForSolver();
@@ -525,7 +576,6 @@ namespace ScheduleLogic.Server.Services
             request.compWeight = Math.Min(500, _context.Events.Where(w => w.EventId == id).First().CompWeight);
             return request;
         }
-
         public bool NewSchedule(List<Schedule> request, int event_id)
         {
             List<long> typeIDs = _context.EventTypes.Where(w => w.EventId == event_id).Select(s => s.EventTypeId).ToList();
@@ -598,7 +648,6 @@ namespace ScheduleLogic.Server.Services
             }
             return true;
         }
-
         public ScheduleDataForFrontEnd GetScheduleData(string id)
         {
             ScheduleDataForFrontEnd TempData = new ScheduleDataForFrontEnd();

@@ -5,7 +5,6 @@ using ScheduleLogic.Server.Class;
 using ScheduleLogic.Server.Models;
 using ScheduleLogic.Server.Services;
 using System.Text;
-using AutoMapper;
 using System.Reflection;
 
 
@@ -22,8 +21,6 @@ builder.Services.AddCors(options =>
                   .AllowAnyMethod();
         });
 });
-builder.Services.AddAutoMapper(cfg => { },
-    Assembly.GetExecutingAssembly());
 builder.Services.AddControllers();
 builder.Services.AddDbContext<ScheduleLogicDbContext>(options =>
     options.UseSqlServer("Server=.\\SQLEXPRESS;Database=ScheduleLogicDB;Trusted_Connection=True;TrustServerCertificate=True;"));

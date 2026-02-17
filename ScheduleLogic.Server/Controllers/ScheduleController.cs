@@ -1,5 +1,4 @@
-﻿using AutoMapper;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ScheduleLogic.Server.Services;
 using System.Text.Json;
@@ -13,12 +12,10 @@ namespace ScheduleLogic.Server.Controllers
     {
         private readonly DatabaseService _dbService;
         private readonly IConfiguration _configuration;
-        private readonly IMapper _mapper;
         private readonly ScheduleService _scheduleService;
 
-        public ScheduleController(IMapper mapper, DatabaseService dbService, IConfiguration configuration, ScheduleService scheduleService)
+        public ScheduleController(DatabaseService dbService, IConfiguration configuration, ScheduleService scheduleService)
         {
-            _mapper = mapper;
             _dbService = dbService;
             _configuration = configuration;
             _scheduleService = scheduleService;
