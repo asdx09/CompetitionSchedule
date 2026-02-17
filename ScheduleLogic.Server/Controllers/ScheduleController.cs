@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using Azure;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ScheduleLogic.Server.Services;
 using System.Text.Json;
@@ -24,7 +25,7 @@ namespace ScheduleLogic.Server.Controllers
 
         [Authorize]
         [HttpPost("{id}")]
-        public async Task<IActionResult> Generate(int id)
+        public async Task<IActionResult> GenerateSchedule(int id)
         {
             var result = await _scheduleService.GenerateSchedule(id);
             return Ok(result);
@@ -42,8 +43,15 @@ namespace ScheduleLogic.Server.Controllers
         [HttpGet("isRunning")]
         public async Task<IActionResult> CheckSolver(string id)
         {
-            var result = await _scheduleService.CheckSolver(id);
-            return Ok(result);
+            try
+            {
+                var result = await _scheduleService.CheckSolver(id);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return NotFound(ex);
+            }
         }
 
         [Authorize]
@@ -55,7 +63,7 @@ namespace ScheduleLogic.Server.Controllers
         }
 
         [HttpPost("answer")]
-        public async Task<IActionResult> SolverAnswer(Response data)
+        public async Task<IActionResult> SolverAnswer(SolverResponse data)
         {
             if (data.status == "FEASIBLE" || data.status == "PARTIAL_SOLUTION" || data.status == "OPTIMAL" || data.status == "4" || data.status == "1")
             {
@@ -63,7 +71,7 @@ namespace ScheduleLogic.Server.Controllers
             }
             else
             {
-                Console.WriteLine("No solution fund! " + data.status);
+                Console.WriteLine("No solution found! " + data.status);
             }
             return Ok();
         }

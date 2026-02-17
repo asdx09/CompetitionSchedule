@@ -132,7 +132,7 @@ namespace ScheduleLogic.Server.Services
     }
 
     //SOLVER to backend
-    public class Response
+    public class SolverResponse
     {
         public int event_id { get; set; }
         public string status { get; set; }

@@ -316,15 +316,13 @@ export class EventComponent {
   {
     this.scheduleService.checkSolver(this.id).subscribe({
       next: (res) => {
-        if (res == false) this.alertService.info("Solver not online!");
         this.isRunning = true;
         this.isSolving = res;
       },
       error: (err) => {
-        this.alertService.error("Something went wrong!");
+        this.alertService.error("Solver not found!");
         if (environment.production == false) 
         {console.error('Error at checking!', err);}
-        
         this.isRunning = false;
       }
     });
