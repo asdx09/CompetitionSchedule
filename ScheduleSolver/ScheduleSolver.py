@@ -1,5 +1,4 @@
-﻿# file: scheduler_api_fast_full.py
-import asyncio
+﻿import asyncio
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -19,36 +18,30 @@ class LocationModel(BaseModel):
     id: int
     name: str
     capacity: int
-
 class EventModel(BaseModel):
     id: int
     name: str
     duration: int
     possible_locations: List[int]
-
 class CompetitorModel(BaseModel):
     id: int
     name: str
     group_id: int = 0
-
 class EntryModel(BaseModel):
     id: int
     competitor_id: int
     event_id: int
-
 class ConstraintModel(BaseModel):
     id: int
     object_id: int
     constraintType: str  # 'L', 'C', 'E', 'G'
     startTime: int
     endTime: int
-
 class PauseTableModel(BaseModel):
     id: int
     locationId1: int
     locationId2: int
     pause: int
-
 class ScheduleRequestForSolver(BaseModel):
     returnURL: str
     event_id: int
@@ -267,18 +260,14 @@ def schedule(req: ScheduleRequestForSolver, printer, container):
                 a = comp_entries[i]
                 b = comp_entries[j]
 
-                # sorrendváltozó
                 a_before_b = model.NewBoolVar(f"a{a.id}_before_b{b.id}")
 
-                # event location változók
                 loc_a_var = event_location[a.event_id]
                 loc_b_var = event_location[b.event_id]
 
-                # ---------------- Travel idő linear expression ----------------
-                travel_expr = req.base_pause_time  # alap travel
+                travel_expr = req.base_pause_time  
 
                 for p in req.travel:
-                    # feltétel: loc_a == p.locationId1 AND loc_b == p.locationId2
                     cond_a = model.NewBoolVar(f"cond_a_{a.id}_{b.id}_{p.locationId1}")
                     cond_b = model.NewBoolVar(f"cond_b_{a.id}_{b.id}_{p.locationId2}")
                     model.Add(loc_a_var == p.locationId1).OnlyEnforceIf(cond_a)
@@ -290,21 +279,17 @@ def schedule(req: ScheduleRequestForSolver, printer, container):
                     model.AddBoolAnd([cond_a, cond_b]).OnlyEnforceIf(cond)
                     model.AddBoolOr([cond_a.Not(), cond_b.Not()]).OnlyEnforceIf(cond.Not())
 
-                    # lineáris kifejezés: ha cond igaz, akkor travel = p.pause
                     travel_expr += cond * (p.pause - req.base_pause_time)
 
-                # sorrend kényszer
                 model.Add(start[b.id] >= end[a.id] + travel_expr).OnlyEnforceIf(a_before_b)
                 model.Add(start[a.id] >= end[b.id] + travel_expr).OnlyEnforceIf(a_before_b.Not())
 
    # ---------------- Group-level single-location-at-a-time constraint ----------------
-    # Csoportok
     groups = {}
     for comp in req.competitors:
         if comp.group_id != -1:
             groups.setdefault(comp.group_id, []).append(comp.id)
 
-    # Minden csoport
     for group_id, member_ids in groups.items():
         group_entries = [e for e in req.entries if comp_by_id[e.competitor_id].group_id == group_id]
 
@@ -518,6 +503,10 @@ def schedule(req: ScheduleRequestForSolver, printer, container):
         horizon * len(group_event_spans) * req.groupWeight +
         horizon  
     )
+
+    total_span = model.NewIntVar(0, horizon * (1 + len(event_spans) + len(competitor_spans) + len(location_spans) + len(group_event_spans)),
+                             "total_span")
+
 
     model.Add(total_span == global_makespan + sum(event_spans)*req.typeWeight + sum(competitor_spans)*req.compWeight + sum(location_spans)*req.locWeight + sum(group_event_spans)*req.groupWeight + global_end)
     model.Minimize(total_span)

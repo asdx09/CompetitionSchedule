@@ -46,6 +46,7 @@ export class ScheduleComponent {
       next: (res) => {
         if(res == null) this.router.navigate(['home']);
           this.data = res;
+          console.log(this.data);
           this.computeLanes();
           this.computeLocationLanes();
           const msPerDay = 1000 * 60 * 60 * 24;

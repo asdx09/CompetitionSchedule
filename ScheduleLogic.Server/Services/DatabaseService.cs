@@ -298,7 +298,7 @@ namespace ScheduleLogic.Server.Services
                 RegistrationId = e.RegistrationId.ToString(),
                 EventId= e.EventId.ToString(),
                 ParticipantId= e.ParticipantId.ToString(),
-                EventTypeId = e.EventId.ToString()
+                EventTypeId = e.EventTypeId.ToString()
             }).ToList();
             TempData.pauseTable = _context.PauseTables.AsNoTracking().Where(w => w.EventId == Convert.ToInt32(id)).Select(e => new PauseTableDTO
             {
@@ -312,8 +312,8 @@ namespace ScheduleLogic.Server.Services
             {
                 LocationTableId = e.LocationTableId.ToString(),
                 EventId = e.EventId.ToString(),
-                EventTypeId = e.EventId.ToString(),
-                LocationId = e.LocationTableId.ToString()
+                EventTypeId = e.EventTypeId.ToString(),
+                LocationId = e.LocationId.ToString()
             }).ToList();
             TempData.constraints = _context.Constraints.AsNoTracking().Where(w => w.EventId == Convert.ToInt32(id)).Select(e => new ConstraintDTO
             {
