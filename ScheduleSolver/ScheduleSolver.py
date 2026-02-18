@@ -520,7 +520,8 @@ def schedule(req: ScheduleRequestForSolver, printer, container):
     solver.parameters.num_search_workers = 4
     solver.parameters.log_search_progress = True
     container["solver"] = solver
-    status = solver.Solve(model, solution_callback=printer)
+    cb = printer;
+    status = solver.Solve(model,cb)
     printer.send_final_solution(status)
     return {"status": str(status)}
 
