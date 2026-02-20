@@ -1,23 +1,90 @@
-﻿
+﻿:host {
+    max-width: 1280px;
+    text-align: center;
+}
 
-:host { max-width: 1280px; text-align: center; }
-th, td { padding-left: 1rem; padding-right: 1rem; }
-table { margin: 0 auto; }
-.upperbox{ background-color: white; left: 0; right: 0; height: 60px; top:0; z-index: 100; font-family: Verdana, Geneva, Tahoma, sans-serif; position: sticky; box-shadow: 0 4px 6px -2px rgba(0,0,0,0.3);}
-.right{ float: right; width: 15%; height: 100%; display: flex; justify-content: center; align-items: center; font-size: 20px; color: black; background-color: white; border-left: 1px black solid; }
-.left{ float: right; width: 20%; height: 100%; display: flex; justify-content: center; align-items: center; font-size: 20px; color: black; background-color: white; font-size: 25px; }
-.button:hover{ background-color: rgb(226, 226, 226); }
-.right:hover{ background-color: rgb(226, 226, 226); }
+th,
+td {
+    padding-left: 1rem;
+    padding-right: 1rem;
+}
 
-.button{
-    float: left;
+table {
+    margin: 0 auto;
+}
+.background{
+    position: absolute;
+    width: 100%;
+    height: 70%;
+    z-index: -1;
+    background-color: #000000cc;
+}
+.background2{
+    position: absolute;
+    top: 70%;
+    width: 100%;
+    height: 50%;
+    z-index: -2;
+    background-image: linear-gradient(to bottom, #000000cc, #070b2500);
+}
+.upperbox {
+    position: fixed;
+    color: white;
+    left: 0;
+    right: 0;
+    height: 80px;
+    top: 0;
+    z-index: 100;
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+    display: flex;
+    justify-content: space-around;
+}
+
+.right {
     width: 15%;
     height: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
     font-size: 20px;
-    color: black;
-    background-color: white;
-    border-right: 1px black solid;
+    color: white;
+    transition: 0.2s;
+}
+
+.left {
+    width: 20%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 20px;
+    color: white;
+    font-size: 25px;
+}
+
+.button:hover {
+    scale: 1.2;
+    transition: 0.2s;
+}
+
+.right:hover {
+    scale: 1.2;
+    transition: 0.2s;
+}
+
+.button {
+    margin-left: 50px;
+    margin-right: 50px;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 20px;
+    color: white;
+    transition: 0.2s;
+}
+
+.buttons{
+    display: flex;
+    justify-content: space-between;
 }

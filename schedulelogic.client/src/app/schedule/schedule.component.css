@@ -12,12 +12,15 @@
 
 .page{
   font-family: "Inter", "Segoe UI", sans-serif;
-  background-image: linear-gradient(to bottom right, #013b44, #005461);
+  background-image: linear-gradient(to bottom right, #0C1443, #1C1853);
   position: absolute;
-  top: 6%;
   left: 0;
   right: 0;
   color:white;
+  top: 0;
+  position: absolute;
+  width: 100%;
+  padding-top: 100px;
 }
 
 h1{
@@ -160,8 +163,8 @@ h2{
 
 button {
   appearance: none;
-  background-color: #249E94;
-  border: 1px solid rgba(224, 0, 224, 0.192);
+  background-color: #2E145D;
+  border: 1px solid #5626b1;
   border-radius: 6px;
   box-shadow: rgba(27, 31, 35, .1) 0 1px 0;
   box-sizing: border-box;
@@ -206,7 +209,7 @@ button:disabled {
 }
 
 button:active {
-  background-color: #ad438a;
+  background-color: #5626b1;
   box-shadow: rgba(20, 70, 32, .2) 0 1px 0 inset;
 }
 
@@ -249,7 +252,7 @@ button:active {
 }
 
 .checkbox-wrapper-17 input:checked + label {
-  background: #249E94;
+  background: #5626b1;
 }
 
 .checkbox-wrapper-17 input:checked + label:after {

@@ -8,7 +8,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: white;
+  background-image: linear-gradient(to bottom right, #0C1443, #1C1853);
   z-index: 9999;
   pointer-events: none;
 }
@@ -19,10 +19,10 @@
 }
 
 #splash .loader {
-  width: 50px;
-  height: 50px;
-  border: 10px solid #ccc;
-  border-top-color: rgb(255, 25, 255);
+  width: 100px;
+  height: 100px;
+  border: 10px solid #1C1853;
+  border-top-color: rgb(255, 255, 255);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -45,4 +45,10 @@ html, body {
 :host {
   display: block;
   min-height: 100%;
+}
+
+.custom-dialog-container .mat-mdc-dialog-container {
+  border: 2px solid white;
+  border-radius: 50px;
+  overflow: hidden;
 }

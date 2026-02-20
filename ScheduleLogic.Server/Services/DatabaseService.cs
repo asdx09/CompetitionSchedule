@@ -568,8 +568,8 @@ namespace ScheduleLogic.Server.Services
 
             request.day_length = 24 * 60 - 1;
             request.max_days = (_context.Events.Where(w => w.EventId == id).First().EndDate - _context.Events.Where(w => w.EventId == id).FirstOrDefault().StartDate).Days + 1;
-            request.break_time_loc = 5;
-            request.base_pause_time = 5;
+            request.break_time_loc = _context.Events.Where(w => w.EventId == id).First().LocationPauseTime;
+            request.base_pause_time = _context.Events.Where(w => w.EventId == id).First().BasePauseTime;
             request.locWeight = Math.Min(500,_context.Events.Where(w => w.EventId == id).First().LocWeight);
             request.groupWeight = Math.Min(500, _context.Events.Where(w => w.EventId == id).First().GroupWeight);
             request.typeWeight = Math.Min(500, _context.Events.Where(w => w.EventId == id).First().TypeWeight);

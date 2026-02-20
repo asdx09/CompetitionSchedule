@@ -220,7 +220,8 @@ def schedule(req: ScheduleRequestForSolver, printer, container):
     # ---------------- Entry intervals ----------------
     for e in req.entries:
         ev = event_by_id[e.event_id]
-        start[e.id] = model.NewIntVar(0, horizon - ev.duration, f"start_{e.id}")
+        possible_starts = list(range(0, horizon - ev.duration, 5))
+        start[e.id] = model.NewIntVarFromDomain(cp_model.Domain.FromValues(possible_starts), f"start_{e.id}")
         end[e.id] = model.NewIntVar(ev.duration, horizon, f"end_{e.id}")
         interval[e.id] = model.NewIntervalVar(start[e.id], ev.duration, end[e.id], f"interval_{e.id}")
 
@@ -248,41 +249,81 @@ def schedule(req: ScheduleRequestForSolver, printer, container):
         if loc_intervals:
             model.AddCumulative(loc_intervals, [1]*len(loc_intervals), loc.capacity)
 
-    # ---------------- Competitor + Travel constraints ----------------
-    for comp in req.competitors:
-        comp_entries = [e for e in req.entries if e.competitor_id == comp.id]
-        comp_intervals = [interval[e.id] for e in comp_entries]
-        if len(comp_intervals) > 1:
-            model.AddNoOverlap(comp_intervals)
+   # ---------------- Wave start per location (same event type per batch) ----------------
 
-        for i in range(len(comp_entries)):
-            for j in range(i + 1, len(comp_entries)):
-                a = comp_entries[i]
-                b = comp_entries[j]
+    for loc in req.locations:
 
-                a_before_b = model.NewBoolVar(f"a{a.id}_before_b{b.id}")
+        loc_entries = [
+            e for e in req.entries
+            if loc.id in event_by_id[e.event_id].possible_locations
+        ]
 
-                loc_a_var = event_location[a.event_id]
-                loc_b_var = event_location[b.event_id]
+        if len(loc_entries) < 2:
+            continue
 
-                travel_expr = req.base_pause_time  
+        for i in range(len(loc_entries)):
+            for j in range(i + 1, len(loc_entries)):
 
-                for p in req.travel:
-                    cond_a = model.NewBoolVar(f"cond_a_{a.id}_{b.id}_{p.locationId1}")
-                    cond_b = model.NewBoolVar(f"cond_b_{a.id}_{b.id}_{p.locationId2}")
-                    model.Add(loc_a_var == p.locationId1).OnlyEnforceIf(cond_a)
-                    model.Add(loc_a_var != p.locationId1).OnlyEnforceIf(cond_a.Not())
-                    model.Add(loc_b_var == p.locationId2).OnlyEnforceIf(cond_b)
-                    model.Add(loc_b_var != p.locationId2).OnlyEnforceIf(cond_b.Not())
+                e1 = loc_entries[i]
+                e2 = loc_entries[j]
 
-                    cond = model.NewBoolVar(f"travel_cond_{a.id}_{b.id}_{p.locationId1}_{p.locationId2}")
-                    model.AddBoolAnd([cond_a, cond_b]).OnlyEnforceIf(cond)
-                    model.AddBoolOr([cond_a.Not(), cond_b.Not()]).OnlyEnforceIf(cond.Not())
+                # -------------------------------------------------
+                # BOOL: mindkettő tényleg ezen a location-ön van?
+                # -------------------------------------------------
 
-                    travel_expr += cond * (p.pause - req.base_pause_time)
+                e1_here = model.NewBoolVar(f"e{e1.id}_on_loc{loc.id}")
+                e2_here = model.NewBoolVar(f"e{e2.id}_on_loc{loc.id}")
 
-                model.Add(start[b.id] >= end[a.id] + travel_expr).OnlyEnforceIf(a_before_b)
-                model.Add(start[a.id] >= end[b.id] + travel_expr).OnlyEnforceIf(a_before_b.Not())
+                model.Add(event_location[e1.event_id] == loc.id).OnlyEnforceIf(e1_here)
+                model.Add(event_location[e1.event_id] != loc.id).OnlyEnforceIf(e1_here.Not())
+
+                model.Add(event_location[e2.event_id] == loc.id).OnlyEnforceIf(e2_here)
+                model.Add(event_location[e2.event_id] != loc.id).OnlyEnforceIf(e2_here.Not())
+
+                both_here = model.NewBoolVar(
+                    f"both_e{e1.id}_{e2.id}_loc{loc.id}"
+                )
+
+                model.AddBoolAnd([e1_here, e2_here]).OnlyEnforceIf(both_here)
+                model.AddBoolOr([e1_here.Not(), e2_here.Not()]).OnlyEnforceIf(both_here.Not())
+
+                # -------------------------------------------------
+                # BOOL: ugyanakkor indulnak?
+                # -------------------------------------------------
+
+                same_start = model.NewBoolVar(
+                    f"same_start_{e1.id}_{e2.id}_loc{loc.id}"
+                )
+
+                model.Add(start[e1.id] == start[e2.id])\
+                    .OnlyEnforceIf([same_start, both_here])
+
+                model.Add(start[e1.id] != start[e2.id])\
+                    .OnlyEnforceIf([same_start.Not(), both_here])
+
+                # -------------------------------------------------
+                # ÚJ RÉSZ:
+                # Ha ugyanazon a loc-on vannak ÉS ugyanakkor indulnak
+                # → event típusnak azonosnak kell lennie
+                # -------------------------------------------------
+
+                if e1.event_id != e2.event_id:
+                    model.Add(same_start == 0).OnlyEnforceIf(both_here)
+
+                # -------------------------------------------------
+                # Ha nem ugyanakkor indulnak ÉS ugyanazon a loc-on vannak
+                # akkor egyik teljesen befejeződik a másik előtt
+                # -------------------------------------------------
+
+                e1_before_e2 = model.NewBoolVar(
+                    f"e{e1.id}_before_e{e2.id}_loc{loc.id}"
+                )
+
+                model.Add(end[e1.id] <= start[e2.id])\
+                    .OnlyEnforceIf([e1_before_e2, same_start.Not(), both_here])
+
+                model.Add(end[e2.id] <= start[e1.id])\
+                    .OnlyEnforceIf([e1_before_e2.Not(), same_start.Not(), both_here])
 
    # ---------------- Group-level single-location-at-a-time constraint ----------------
     groups = {}
@@ -516,9 +557,9 @@ def schedule(req: ScheduleRequestForSolver, printer, container):
 
     # ---------------- Solve ----------------
     solver = cp_model.CpSolver()
-    solver.parameters.max_time_in_seconds = 60*60
+    solver.parameters.max_time_in_seconds = 60*60*3
     solver.parameters.num_search_workers = 4
-    solver.parameters.log_search_progress = True
+    solver.parameters.log_search_progress = False
     container["solver"] = solver
     cb = printer;
     status = solver.Solve(model,cb)

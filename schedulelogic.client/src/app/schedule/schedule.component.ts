@@ -50,7 +50,11 @@ export class ScheduleComponent {
           this.computeLanes();
           this.computeLocationLanes();
           const msPerDay = 1000 * 60 * 60 * 24;
-          const diffInMs = new Date(this.data.endDate).getTime() - new Date(this.data.startDate).getTime();
+          const end = new Date(this.data.endDate);
+          const start = new Date(this.data.startDate);
+          start.setHours(0, 0, 0, 0);
+          end.setHours(23, 59, 59, 999);
+          const diffInMs = end.getTime() - start.getTime();
           const diffInDays = diffInMs / msPerDay;
           this.hours = Array.from({length: Math.ceil(diffInDays)*24},(_,i)=> i);
           this.zoomLevel = Math.max(((diffInDays*24*60)/(Math.max(...this.data.timeZones.map(item => item.endTime)) - Math.min(...this.data.timeZones.map(item => item.startTime))))/8, 1/diffInDays);
@@ -67,15 +71,14 @@ export class ScheduleComponent {
 
             const containerWidth = this.box1.nativeElement.clientWidth;
             const contentWidth = this.box1.nativeElement.scrollWidth;
-            
             const middleTime = (startTime + endTime) / 2;
 
-            const scrollLeft = (middleTime - new Date(this.data.startDate).getHours()*60-new Date(this.data.startDate).getMinutes()) / (24*60*diffInDays) * contentWidth - containerWidth/3;
+            const targetPosition  = middleTime/(diffInDays*24*60) * contentWidth;
+            const scrollLeft = targetPosition - containerWidth / 2;
 
-
-            this.box1.nativeElement.scrollTo({ left: scrollLeft });
-            this.box2.nativeElement.scrollTo({ left: scrollLeft });
-            this.box3.nativeElement.scrollTo({ left: scrollLeft });
+            this.box1.nativeElement.scrollLeft = scrollLeft;
+            this.box2.nativeElement.scrollLeft = scrollLeft;
+            this.box3.nativeElement.scrollLeft = scrollLeft;
           }, 100);
       },
       error: (err) => {

@@ -31,9 +31,14 @@ export class EventComponent {
     { code: 'C', label: 'Competitor' },
     { code: 'T', label: 'Eventtype' }
   ];
+  dropdowns: boolean[] = [false,false,false,false,false,false,false];
 
   public range: DateRange = { start: new Date(), end: new Date(new Date().setDate(new Date().getDate() + 5)) };
 
+  switchDropdown(i:number){
+    if(this.dropdowns[i]) this.dropdowns[i] = false;
+    else this.dropdowns[i] = true;
+  }
 
   ngOnInit(){
     this.route.queryParamMap.subscribe(params => {
@@ -55,11 +60,6 @@ export class EventComponent {
       next: (res) => {
         if(res == null) this.router.navigate(['home']);
         this.data = res;
-        this.points[0].weight = this.data.eventData.typeWeight;
-        this.points[1].weight = this.data.eventData.locWeight;
-        this.points[2].weight = this.data.eventData.groupWeight;
-        this.points[3].weight = this.data.eventData.compWeight;
-        this.updatePath();
         const splash = document.getElementById('splash');
         if (splash) {
           splash.style.opacity = '0';
@@ -308,6 +308,7 @@ export class EventComponent {
   openLocationSelector(i:string) {
     this.dialog.open(LocationSelectorComponent, {
       width: '500px',
+      panelClass: 'custom-dialog-container',
       data: { data: this.data, index: i}
     });
   }
@@ -326,6 +327,25 @@ export class EventComponent {
         this.isRunning = false;
       }
     });
+  }
+
+  get gradient() {
+    let values: number[] = [this.data.eventData.locWeight,this.data.eventData.typeWeight,this.data.eventData.groupWeight,this.data.eventData.compWeight];
+    const total = values.reduce((a,b)=>a+b,0);
+
+    let current = 0;
+    const colors = ['#2E145D','#0C1443','#1C1853','#04122D'];
+
+    let result = 'conic-gradient(';
+
+    values.forEach((value, i) => {
+      const start = current;
+      current += (value / total) * 100;
+      result += `${colors[i]} ${start}% ${current}%,`;
+    });
+
+    result = result.slice(0, -1) + ')';
+    return result;
   }
 
   GenerateSchedule()
@@ -410,66 +430,4 @@ export class EventComponent {
   }
 
 
-  //WEIGHT PATH -----------------------------------------------------------------------
-
-  baseY = 200;
-  path = '';
-  maxCurveHeight = 150;
-
-  points: Point[] = [
-    { x: 180, weight: this.data.eventData.typeWeight, name: "EventType"},
-    { x: 360, weight: this.data.eventData.locWeight, name: "Location"},
-    { x: 540, weight: this.data.eventData.groupWeight, name: "Group"},
-    { x: 720, weight: this.data.eventData.compWeight, name: "Competitor"},
-  ];
-
-  
-
-  updatePath() {
-    const startX = 50;
-    const endX = 850;
-    const baseY = this.baseY;
-
-    // 1️⃣ max weight meghatározása
-    const maxWeight = Math.max(...this.points.map(p => p.weight), 1);
-
-    let d = `M ${startX} ${baseY}`;
-
-    this.data.eventData.typeWeight = this.points[0].weight;
-    this.data.eventData.locWeight = this.points[1].weight;
-    this.data.eventData.groupWeight = this.points[2].weight;
-    this.data.eventData.compWeight = this.points[3].weight;
-
-    const allPoints = [
-      { x: startX, y: baseY },
-      ...this.points.map(p => {
-        if (p.weight > 500) p.weight=500;
-        const normalized = p.weight / maxWeight;
-
-        // 3️⃣ skálázott magasság
-        const y = baseY - normalized * this.maxCurveHeight;
-
-        return { x: p.x, y };
-      }),
-      { x: endX, y: baseY }
-    ];
-
-    for (let i = 1; i < allPoints.length; i++) {
-      const prev = allPoints[i - 1];
-      const curr = allPoints[i];
-
-      const cx = prev.x + (curr.x - prev.x) / 2;
-
-      d += ` C ${cx} ${prev.y}, ${cx} ${curr.y}, ${curr.x} ${curr.y}`;
-    }
-
-    this.path = d;
-  }
-  
-}
-
-interface Point {
-  x: number;
-  weight: number;
-  name: string;
 }

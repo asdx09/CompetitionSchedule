@@ -1,393 +1,441 @@
 <div class="background">
   <div class="upperbox">
     <h2>{{data.eventData.eventName}}</h2>
-    <button (click)="SaveEvent()" [disabled]="isSolving" [ngClass]="{'wrong': condition === 1, 'dirty': condition === 2, 'good': condition === 0}">SAVE @if (loading) {
-      <div class="loader"></div>
-    }</button>
+    <button (click)="SaveEvent()" [disabled]="isSolving"
+      [ngStyle]="{'border-width': '4px'}"
+      [ngClass]="{'wrong': condition === 1, 'dirty': condition === 2, 'good': condition === 0}">SAVE @if (loading) {<div
+        class="loader"></div>}</button>
     <button (click)="GenerateSchedule()" [disabled]="!isRunning">
       @if (!isSolving) {
-        <span>SOLVE SOLUTION</span>
+      <span>SOLVE SOLUTION</span>
       }
       @if (isSolving) {
-        <span><div class="loader"></div>CANCEL</span>
+      <span>
+        <div class="loader"></div>CANCEL
+      </span>
       }
     </button>
     <button (click)="GoToSolution()">VIEW SOLUTION</button>
   </div>
-  <div class="ListBox">
-    <div class="ListItem">
-      Name: <input type="text" [(ngModel)]="data.eventData.eventName" (ngModelChange)="condition = 2">
+  <div class="FirstListBox">
+    <div class="right">
+      <div class="FirstListItem">
+        Name: <input type="text" [(ngModel)]="data.eventData.eventName" (ngModelChange)="condition = 2">
+      </div>
+      <div class="FirstListItem">
+        Start Date:
+        <input type="date" [ngModel]="getDateString(data.eventData.startDate)"
+          (ngModelChange)="updateDate(data.eventData, $event, 'startDate'); condition = 2">
+        <input type="time" [ngModel]="getTimeString(data.eventData.startDate)"
+          (ngModelChange)="updateTime(data.eventData, $event, 'startDate'); condition = 2">
+      </div>
+      <div class="FirstListItem">
+        End Date:
+        <input type="date" [ngModel]="getDateString(data.eventData.endDate)"
+          (ngModelChange)="updateDate(data.eventData, $event, 'endDate'); condition = 2">
+        <input type="time" [ngModel]="getTimeString(data.eventData.endDate)"
+          (ngModelChange)="updateTime(data.eventData, $event, 'endDate'); condition = 2">
+      </div>
+      <div class="FirstListItem">
+        BasePauseTime: <input type="number" [(ngModel)]="data.eventData.basePauseTime" (ngModelChange)="condition = 2">
+      </div>
+      <div class="FirstListItem">
+        LocationPauseTime: <input type="number" [(ngModel)]="data.eventData.locationPauseTime"
+          (ngModelChange)="condition = 2">
+      </div>
     </div>
-    <div class="ListItem">
-      Start Date:
-      <input type="date" [ngModel]="getDateString(data.eventData.startDate)" (ngModelChange)="updateDate(data.eventData, $event, 'startDate'); condition = 2">
-      <input type="time" [ngModel]="getTimeString(data.eventData.startDate)" (ngModelChange)="updateTime(data.eventData, $event, 'startDate'); condition = 2">
-    </div>
-    <div class="ListItem">
-      End Date:
-      <input type="date" [ngModel]="getDateString(data.eventData.endDate)" (ngModelChange)="updateDate(data.eventData, $event, 'endDate'); condition = 2">
-      <input type="time" [ngModel]="getTimeString(data.eventData.endDate)" (ngModelChange)="updateTime(data.eventData, $event, 'endDate'); condition = 2">
-    </div>
-    <div class="ListItem">
-      BasePauseTime: <input type="number" [(ngModel)]="data.eventData.basePauseTime" (ngModelChange)="condition = 2">
-    </div>
-    <div class="ListItem">
-      LocationPauseTime: <input type="number" [(ngModel)]="data.eventData.locationPauseTime" (ngModelChange)="condition = 2">
-    </div>
-    <div class="Graph">
-      <h4>WEIGHT GRAPH</h4><br>
-      <svg width="900" height="200" viewBox="0 0 900 200">
-        <line x1="50" y1="200" x2="850" y2="200" stroke="#ccc" stroke-width="1"/>
-        <line x1="50" y1="0" x2="850" y2="0" stroke="#ccc" stroke-width="1"/>
-        <line x1="50" y1="0" x2="50" y2="200" stroke="#ccc" stroke-width="1"/>
-        <line x1="850" y1="0" x2="850" y2="200" stroke="#ccc" stroke-width="1"/>
+    <div class="left">
+      <div class="Graph">
+        <div class="pie" [style.background]="gradient"></div>
+      </div>
+      <div class="graphinputs">
         @for (p of points; track p; let i = $index) {
-          <line [attr.x1]="p.x" [attr.y1]="0" [attr.x2]="p.x" [attr.y2]="200" stroke="#ccc" stroke-width="1" />
+        <div class="pointBox">
+          {{p.name}} weight: 
+          <input type="number" [(ngModel)]="p.weight" (input)="updatePath(); condition = 2" max="500">
+        </div>
         }
-        <path [attr.d]="path"
-          fill="none"
-          stroke="white"
-          stroke-width="2"/>
-        </svg>
-
-        <div>
-          @for (p of points; track p; let i = $index) {
-            <div class="pointBox">
-              {{p.name}} weight:<br>
-              <input type="range" min="0" max="10"
-                [(ngModel)]="p.weight"
-                (input)="updatePath(); condition = 2"><br>
-                <input type="number" [(ngModel)]="p.weight" (input)="updatePath(); condition = 2" max="500">
-              </div>
-            }
-          </div>
-        </div>
-      </div>
-      <div class="boxHeader">
-        <div class="title">Event Types</div>
-        <div class="searchbar">
-          <div>
-            EventType Name:<br><input type="text" [(ngModel)]="search_EventTypeName">
-          </div>
-        </div>
-        <button (click)="NewEventType()">Add New EventType</button>
-      </div>
-      <div class="container">
-        <div class="ListBox">
-          @for (item of GetEventTypes(); track item; let i = $index) {
-            <div class="ListItem">
-              <div>
-                Event Type Name:
-                <input type="text" [(ngModel)]="item.typeName" (ngModelChange)="condition = 2">
-              </div>
-              <div>
-                Time:
-                <input type="time" [(ngModel)]="item.timeRange" (ngModelChange)="condition = 2">
-              </div>
-              <div><button (click)="openLocationSelector(item.eventTypeId ?? '0'); condition = 2">LOCATIONS</button></div>
-              <button (click)="removeEventType(i)">REMOVE</button>
-            </div>
-          }
-        </div>
-      </div>
-      <div class="boxHeader">
-        <div class="title">Groups</div>
-        <div class="searchbar">
-          <div>
-            Group Name:<br><input type="text" [(ngModel)]="search_GroupName">
-          </div>
-        </div>
-        <button (click)="NewGroup()">Add New Group</button>
-      </div>
-      <div class="container">
-        <div class="ListBox">
-          @for (item of GetGroups(); track item; let i = $index) {
-            <div class="ListItem">
-              <div>
-                Group Name:
-                <input type="text" [(ngModel)]="item.groupName" (ngModelChange)="condition = 2">
-              </div>
-              <button (click)="removeGroup(i)">REMOVE</button>
-            </div>
-          }
-        </div>
-      </div>
-      <div class="boxHeader">
-        <div class="title">Locations</div>
-        <div class="searchbar">
-          <div>
-            Location Name:<br><input type="text" [(ngModel)]="search_LocationName">
-          </div>
-          <div>
-            Slot Count (>=):<br><input type="number" [(ngModel)]="search_LocationSlotCount">
-          </div>
-        </div>
-        <button (click)="NewLocation()">Add New Location</button>
-      </div>
-      <div class="container">
-        <div class="ListBox">
-          @for (item of GetLocations(); track item; let i = $index) {
-            <div class="ListItem">
-              <div>
-                Location Name:
-                <input type="text" [(ngModel)]="item.locationName" (ngModelChange)="condition = 2">
-              </div>
-              <div>
-                Slot count:
-                <input type="number" [(ngModel)]="item.slots" [ngClass]="{'wrong': !isBetween(1, 999, item.slots ?? 1)}" (ngModelChange)="condition = 2">
-              </div>
-              <button (click)="removeLocation(i)">REMOVE</button>
-            </div>
-          }
-        </div>
-      </div>
-      <div class="boxHeader">
-        <div class="title">Travel Times</div>
-        <div class="searchbar">
-          <div>
-            Location Name:<br>
-            <select [(ngModel)]="search_PauseTable">
-              <option [ngValue]="null">-- Select --</option>
-              @for (location of data.locations; track location) {
-                <option [ngValue]="location.locationId">{{ location.locationName }}</option>
-              }
-            </select>
-          </div>
-        </div>
-        <button (click)="NewPause()">Add New Travel Time</button>
-      </div>
-      <div class="container">
-        <div class="ListBox">
-          @for (item of GetPauseTable(); track item; let i = $index) {
-            <div class="ListItem">
-              <div>
-                Locations:
-                <select [(ngModel)]="item.locationId1" (ngModelChange)="condition = 2">
-                  <option [ngValue]="null">-- Select --</option>
-                  @for (location of data.locations; track location) {
-                    <option [ngValue]="location.locationId">{{ location.locationName }}</option>
-                  }
-                </select>
-                <select [(ngModel)]="item.locationId2" (ngModelChange)="condition = 2">
-                  <option [ngValue]="null">-- Select --</option>
-                  @for (location of data.locations; track location) {
-                    <option [ngValue]="location.locationId">{{ location.locationName }}</option>
-                  }
-                </select>
-              </div>
-              <div>
-                Time:
-                <input type="time" [(ngModel)]="item.pause" (ngModelChange)="condition = 2">
-              </div>
-              <button (click)="removePause(i)">REMOVE</button>
-            </div>
-          }
-        </div>
-      </div>
-      <div class="boxHeader">
-        <div class="title">Participants</div>
-        <div class="searchbar">
-          <div>
-            Participant Name:<br><input type="text" [(ngModel)]="search_ParticipantName">
-          </div>
-          <div>
-            Group:<br>
-            <select [(ngModel)]="search_participantGroup">
-              <option [ngValue]="null">-- Select --</option>
-              @for (group of data.groups; track group) {
-                <option [ngValue]="group.groupId">{{ group.groupName }}</option>
-              }
-            </select>
-          </div>
-        </div>
-        <button (click)="NewParticipant()">Add New Participant</button>
-      </div>
-      <div class="container">
-        <div class="ListBox">
-          @for (item of GetParticipants(); track item; let i = $index) {
-            <div class="ListItem">
-              <div>
-                Participant Name:
-                <input type="text" [(ngModel)]="item.participantName" (ngModelChange)="condition = 2">
-              </div>
-              <div>
-                Race Number:
-                <input type="number" [(ngModel)]="item.competitorNumber" [ngClass]="{'wrong': isDuplicateNumber(item.competitorNumber ?? 0) || !isBetween(0, 999999, item.competitorNumber ?? 0)}" (ngModelChange)="condition = 2">
-              </div>
-              <div>
-                Group:
-                <select [(ngModel)]="item.groupId" (ngModelChange)="condition = 2">
-                  <option [ngValue]="null">-- Select --</option>
-                  @for (group of data.groups; track group) {
-                    <option [ngValue]="group.groupId">{{ group.groupName }}</option>
-                  }
-                </select>
-              </div>
-              <button (click)="removeParticipant(i)">REMOVE</button>
-            </div>
-          }
-        </div>
-      </div>
-      <div class="boxHeader">
-        <div class="title">Registrations</div>
-        <div class="searchbar">
-          <div>
-            Participant:<br>
-            <select [(ngModel)]="search_RegistrationCompetitor">
-              <option [ngValue]="null">-- Select --</option>
-              @for (participant of data.participants; track participant) {
-                <option [ngValue]="participant.participantId">{{ participant.participantName }} ({{participant.competitorNumber}})</option>
-              }
-            </select>
-          </div>
-          <div>
-            Event Type:<br>
-            <select [(ngModel)]="search_RegistrationEventType">
-              <option [ngValue]="null">-- Select --</option>
-              @for (type of data.eventTypes; track type) {
-                <option [ngValue]="type.eventTypeId">{{ type.typeName }}</option>
-              }
-            </select>
-          </div>
-        </div>
-        <button (click)="NewRegistration()">Add New Registration</button>
-      </div>
-      <div class="container">
-        <div class="ListBox">
-          @for (item of GetRegistrations(); track item; let i = $index) {
-            <div class="ListItem">
-              <div>
-                Event Type:
-                <select [(ngModel)]="item.eventTypeId" [ngClass]="{'wrong': item.eventTypeId == null}" (ngModelChange)="condition = 2">
-                  <option [ngValue]="null">-- Select --</option>
-                  @for (type of data.eventTypes; track type) {
-                    <option [ngValue]="type.eventTypeId">{{ type.typeName }}</option>
-                  }
-                </select>
-              </div>
-              <div>
-                Participant:
-                <select [(ngModel)]="item.participantId" [ngClass]="{'wrong': item.participantId == null}" (ngModelChange)="condition = 2">
-                  @for (type of data.participants; track type) {
-                    <option [ngValue]="type.participantId">{{ type.participantName }} ({{type.competitorNumber}})</option>
-                  }
-                </select>
-              </div>
-              <button (click)="removeRegistration(i)">REMOVE</button>
-            </div>
-          }
-        </div>
-      </div>
-      <div class="boxHeader">
-        <div class="title">Constraints</div>
-        <div class="searchbar">
-          <div>
-            Constraint Type:<br>
-            <select [(ngModel)]="search_ConstraintType">
-              <option [ngValue]="null">-- Select --</option>
-              @for (type of types; track type) {
-                <option [ngValue]="type.code">{{ type.label }}</option>
-              }
-            </select>
-          </div>
-          <div>
-            @if (search_ConstraintType != null) {
-              <span>Object:<br></span>
-            }
-            @if (search_ConstraintType === 'L') {
-              <select [(ngModel)]="search_ConstraintObject" >
-                <option [ngValue]="null">-- Select --</option>
-                @for (location of data.locations; track location) {
-                  <option [ngValue]="location.locationId">{{ location.locationName }}</option>
-                }
-              </select>
-            }
-            @if (search_ConstraintType === 'G') {
-              <select [(ngModel)]="search_ConstraintObject">
-                <option [ngValue]="null">-- Select --</option>
-                @for (group of data.groups; track group) {
-                  <option [ngValue]="group.groupId">{{ group.groupName }}</option>
-                }
-              </select>
-            }
-            @if (search_ConstraintType === 'C') {
-              <select [(ngModel)]="search_ConstraintObject">
-                <option [ngValue]="null">-- Select --</option>
-                @for (participant of data.participants; track participant) {
-                  <option [ngValue]="participant.participantId">{{ participant.participantName }} ({{participant.competitorNumber}})</option>
-                }
-              </select>
-            }
-            @if (search_ConstraintType === 'T') {
-              <select [(ngModel)]="search_ConstraintObject">
-                <option [ngValue]="null">-- Select --</option>
-                @for (eventType of data.eventTypes; track eventType) {
-                  <option [ngValue]="eventType.eventTypeId">{{ eventType.typeName }}</option>
-                }
-              </select>
-            }
-          </div>
-        </div>
-        <button (click)="NewConstraint()">Add New Constraint</button>
-      </div>
-      <div class="container">
-        <div class="ListBox">
-          @for (item of GetConstraints(); track item; let i = $index) {
-            <div class="ListItem">
-              <div>
-                Constraint Type:
-                <select [(ngModel)]="item.constraintType" (ngModelChange)="condition = 2">
-                  <option [ngValue]="null">-- Select --</option>
-                  @for (type of types; track type) {
-                    <option [ngValue]="type.code">{{ type.label }}</option>
-                  }
-                </select>
-                @if (item.constraintType === 'L') {
-                  <select [(ngModel)]="item.objectId" (ngModelChange)="condition = 2">
-                    <option [ngValue]="null">-- Select --</option>
-                    @for (location of data.locations; track location) {
-                      <option [ngValue]="location.locationId">{{ location.locationName }}</option>
-                    }
-                  </select>
-                }
-                @if (item.constraintType === 'G') {
-                  <select [(ngModel)]="item.objectId" (ngModelChange)="condition = 2">
-                    <option [ngValue]="null">-- Select --</option>
-                    @for (group of data.groups; track group) {
-                      <option [ngValue]="group.groupId">{{ group.groupName }}</option>
-                    }
-                  </select>
-                }
-                @if (item.constraintType === 'C') {
-                  <select [(ngModel)]="item.objectId" (ngModelChange)="condition = 2">
-                    <option [ngValue]="null">-- Select --</option>
-                    @for (participant of data.participants; track participant) {
-                      <option [ngValue]="participant.participantId">{{ participant.participantName }} ({{participant.competitorNumber}})</option>
-                    }
-                  </select>
-                }
-                @if (item.constraintType === 'T') {
-                  <select [(ngModel)]="item.objectId" (ngModelChange)="condition = 2">
-                    <option [ngValue]="null">-- Select --</option>
-                    @for (eventType of data.eventTypes; track eventType) {
-                      <option [ngValue]="eventType.eventTypeId">{{ eventType.typeName }}</option>
-                    }
-                  </select>
-                }
-              </div>
-              <div>
-                Start time:
-                <input type="date" [ngModel]="getDateString(item.startTime)" (ngModelChange)="updateDate(item, $event, 'startTime'); condition = 2">
-                <input type="time" [ngModel]="getTimeString(item.startTime)" (ngModelChange)="updateTime(item, $event, 'startTime'); condition = 2">
-              </div>
-              <div>
-                End time:
-                <input type="date" [ngModel]="getDateString(item.endTime)" (ngModelChange)="updateDate(item, $event, 'endTime'); condition = 2">
-                <input type="time" [ngModel]="getTimeString(item.endTime)" (ngModelChange)="updateTime(item, $event, 'endTime'); condition = 2">
-              </div>
-              <button (click)="removeConstraint(i)">REMOVE</button>
-            </div>
-          }
-        </div>
       </div>
     </div>
+  </div>
+  <div class="boxHeader">
+    <div class="title">Event Types</div>
+    <div class="searchbar">
+      <div>
+        EventType Name:<br><input type="text" [(ngModel)]="search_EventTypeName">
+      </div>
+    </div>
+    <div class="buttons">
+      <button (click)="NewEventType()">Add New EventType</button>
+    </div>
+  </div>
+  @if (dropdowns[0]){
+  <div class="less" (click)="switchDropdown(0)">SHOW LESS</div>
+  <div class="container">
+    <div class="ListBox">
+      @for (item of GetEventTypes(); track item; let i = $index) {
+      <div class="ListItem">
+        <div>
+          Event Type Name:
+          <input type="text" [(ngModel)]="item.typeName" (ngModelChange)="condition = 2">
+        </div>
+        <div>
+          Time:
+          <input type="time" [(ngModel)]="item.timeRange" (ngModelChange)="condition = 2">
+        </div>
+        <div><button (click)="openLocationSelector(item.eventTypeId ?? '0'); condition = 2">LOCATIONS</button></div>
+        <button (click)="removeEventType(i)">REMOVE</button>
+      </div>
+      }
+    </div>
+  </div>
+  } @else
+  {<div class="more" (click)="switchDropdown(0)">...</div>}
+  <div class="boxHeader">
+    <div class="title">Groups</div>
+    <div class="searchbar">
+      <div>
+        Group Name:<br><input type="text" [(ngModel)]="search_GroupName">
+      </div>
+    </div>
+    <div class="buttons">
+      <button (click)="NewGroup()">Add New Group</button>
+    </div>
+  </div>
+  @if (dropdowns[1]){
+  <div class="less" (click)="switchDropdown(1)">SHOW LESS</div>
+  <div class="container">
+    <div class="ListBox">
+      @for (item of GetGroups(); track item; let i = $index) {
+      <div class="ListItem">
+        <div>
+          Group Name:
+          <input type="text" [(ngModel)]="item.groupName" (ngModelChange)="condition = 2">
+        </div>
+        <button (click)="removeGroup(i)">REMOVE</button>
+      </div>
+      }
+    </div>
+  </div>
+  } @else
+  {<div class="more" (click)="switchDropdown(1)">...</div>}
+  <div class="boxHeader">
+    <div class="title">Locations</div>
+    <div class="searchbar">
+      <div>
+        Location Name:<br><input type="text" [(ngModel)]="search_LocationName">
+      </div>
+      <div>
+        Slot Count (>=):<br><input type="number" [(ngModel)]="search_LocationSlotCount">
+      </div>
+    </div>
+    <div class="buttons">
+      <button (click)="NewLocation()">Add New Location</button>
+    </div>
+  </div>
+  @if (dropdowns[2]){
+  <div class="less" (click)="switchDropdown(2)">SHOW LESS</div>
+  <div class="container">
+    <div class="ListBox">
+      @for (item of GetLocations(); track item; let i = $index) {
+      <div class="ListItem">
+        <div>
+          Location Name:
+          <input type="text" [(ngModel)]="item.locationName" (ngModelChange)="condition = 2">
+        </div>
+        <div>
+          Slot count:
+          <input type="number" [(ngModel)]="item.slots" [ngClass]="{'wrong': !isBetween(1, 999, item.slots ?? 1)}"
+            (ngModelChange)="condition = 2">
+        </div>
+        <button (click)="removeLocation(i)">REMOVE</button>
+      </div>
+      }
+    </div>
+  </div>
+  } @else
+  {<div class="more" (click)="switchDropdown(2)">...</div>}
+  <div class="boxHeader">
+    <div class="title">Travel Times</div>
+    <div class="searchbar">
+      <div>
+        Location Name:<br>
+        <select [(ngModel)]="search_PauseTable">
+          <option [ngValue]="null">-- Select --</option>
+          @for (location of data.locations; track location) {
+          <option [ngValue]="location.locationId">{{ location.locationName }}</option>
+          }
+        </select>
+      </div>
+    </div>
+    <div class="buttons">
+      <button (click)="NewPause()">Add New Travel Time</button>
+    </div>
+  </div>
+  @if (dropdowns[3]){
+  <div class="less" (click)="switchDropdown(3)">SHOW LESS</div>
+  <div class="container">
+    <div class="ListBox">
+      @for (item of GetPauseTable(); track item; let i = $index) {
+      <div class="ListItem">
+        <div>
+          Locations:
+          <select [(ngModel)]="item.locationId1" (ngModelChange)="condition = 2">
+            <option [ngValue]="null">-- Select --</option>
+            @for (location of data.locations; track location) {
+            <option [ngValue]="location.locationId">{{ location.locationName }}</option>
+            }
+          </select>
+          <select [(ngModel)]="item.locationId2" (ngModelChange)="condition = 2">
+            <option [ngValue]="null">-- Select --</option>
+            @for (location of data.locations; track location) {
+            <option [ngValue]="location.locationId">{{ location.locationName }}</option>
+            }
+          </select>
+        </div>
+        <div>
+          Time:
+          <input type="time" [(ngModel)]="item.pause" (ngModelChange)="condition = 2">
+        </div>
+        <button (click)="removePause(i)">REMOVE</button>
+      </div>
+      }
+    </div>
+  </div>
+  } @else
+  {<div class="more" (click)="switchDropdown(3)">...</div>}
+  <div class="boxHeader">
+    <div class="title">Participants</div>
+    <div class="searchbar">
+      <div>
+        Participant Name:<br><input type="text" [(ngModel)]="search_ParticipantName">
+      </div>
+      <div>
+        Group:<br>
+        <select [(ngModel)]="search_participantGroup">
+          <option [ngValue]="null">-- Select --</option>
+          @for (group of data.groups; track group) {
+          <option [ngValue]="group.groupId">{{ group.groupName }}</option>
+          }
+        </select>
+      </div>
+    </div>
+    <div class="buttons">
+      <button (click)="NewParticipant()">Add New Participant</button>
+    </div>
+  </div>
+  @if (dropdowns[4]){
+  <div class="less" (click)="switchDropdown(4)">SHOW LESS</div>
+  <div class="container">
+    <div class="ListBox">
+      @for (item of GetParticipants(); track item; let i = $index) {
+      <div class="ListItem">
+        <div>
+          Participant Name:
+          <input type="text" [(ngModel)]="item.participantName" (ngModelChange)="condition = 2">
+        </div>
+        <div>
+          Race Number:
+          <input type="number" [(ngModel)]="item.competitorNumber"
+            [ngClass]="{'wrong': isDuplicateNumber(item.competitorNumber ?? 0) || !isBetween(0, 999999, item.competitorNumber ?? 0)}"
+            (ngModelChange)="condition = 2">
+        </div>
+        <div>
+          Group:
+          <select [(ngModel)]="item.groupId" (ngModelChange)="condition = 2">
+            <option [ngValue]="null">-- Select --</option>
+            @for (group of data.groups; track group) {
+            <option [ngValue]="group.groupId">{{ group.groupName }}</option>
+            }
+          </select>
+        </div>
+        <button (click)="removeParticipant(i)">REMOVE</button>
+      </div>
+      }
+    </div>
+  </div>
+  } @else
+  {<div class="more" (click)="switchDropdown(4)">...</div>}
+  <div class="boxHeader">
+    <div class="title">Registrations</div>
+    <div class="searchbar">
+      <div>
+        Participant:<br>
+        <select [(ngModel)]="search_RegistrationCompetitor">
+          <option [ngValue]="null">-- Select --</option>
+          @for (participant of data.participants; track participant) {
+          <option [ngValue]="participant.participantId">{{ participant.participantName }}
+            ({{participant.competitorNumber}})</option>
+          }
+        </select>
+      </div>
+      <div>
+        Event Type:<br>
+        <select [(ngModel)]="search_RegistrationEventType">
+          <option [ngValue]="null">-- Select --</option>
+          @for (type of data.eventTypes; track type) {
+          <option [ngValue]="type.eventTypeId">{{ type.typeName }}</option>
+          }
+        </select>
+      </div>
+    </div>
+    <div class="buttons">
+      <button (click)="NewRegistration()">Add New Registration</button>
+    </div>
+  </div>
+  @if (dropdowns[5]){
+  <div class="less" (click)="switchDropdown(5)">SHOW LESS</div>
+  <div class="container">
+    <div class="ListBox">
+      @for (item of GetRegistrations(); track item; let i = $index) {
+      <div class="ListItem">
+        <div>
+          Event Type:
+          <select [(ngModel)]="item.eventTypeId" [ngClass]="{'wrong': item.eventTypeId == null}"
+            (ngModelChange)="condition = 2">
+            <option [ngValue]="null">-- Select --</option>
+            @for (type of data.eventTypes; track type) {
+            <option [ngValue]="type.eventTypeId">{{ type.typeName }}</option>
+            }
+          </select>
+        </div>
+        <div>
+          Participant:
+          <select [(ngModel)]="item.participantId" [ngClass]="{'wrong': item.participantId == null}"
+            (ngModelChange)="condition = 2">
+            @for (type of data.participants; track type) {
+            <option [ngValue]="type.participantId">{{ type.participantName }} ({{type.competitorNumber}})</option>
+            }
+          </select>
+        </div>
+        <button (click)="removeRegistration(i)">REMOVE</button>
+      </div>
+      }
+    </div>
+  </div>
+  } @else
+  {<div class="more" (click)="switchDropdown(5)">...</div>}
+  <div class="boxHeader">
+    <div class="title">Constraints</div>
+    <div class="searchbar">
+      <div>
+        Constraint Type:<br>
+        <select [(ngModel)]="search_ConstraintType">
+          <option [ngValue]="null">-- Select --</option>
+          @for (type of types; track type) {
+          <option [ngValue]="type.code">{{ type.label }}</option>
+          }
+        </select>
+      </div>
+      <div>
+        @if (search_ConstraintType != null) {
+        <span>Object:<br></span>
+        }
+        @if (search_ConstraintType === 'L') {
+        <select [(ngModel)]="search_ConstraintObject">
+          <option [ngValue]="null">-- Select --</option>
+          @for (location of data.locations; track location) {
+          <option [ngValue]="location.locationId">{{ location.locationName }}</option>
+          }
+        </select>
+        }
+        @if (search_ConstraintType === 'G') {
+        <select [(ngModel)]="search_ConstraintObject">
+          <option [ngValue]="null">-- Select --</option>
+          @for (group of data.groups; track group) {
+          <option [ngValue]="group.groupId">{{ group.groupName }}</option>
+          }
+        </select>
+        }
+        @if (search_ConstraintType === 'C') {
+        <select [(ngModel)]="search_ConstraintObject">
+          <option [ngValue]="null">-- Select --</option>
+          @for (participant of data.participants; track participant) {
+          <option [ngValue]="participant.participantId">{{ participant.participantName }}
+            ({{participant.competitorNumber}})</option>
+          }
+        </select>
+        }
+        @if (search_ConstraintType === 'T') {
+        <select [(ngModel)]="search_ConstraintObject">
+          <option [ngValue]="null">-- Select --</option>
+          @for (eventType of data.eventTypes; track eventType) {
+          <option [ngValue]="eventType.eventTypeId">{{ eventType.typeName }}</option>
+          }
+        </select>
+        }
+      </div>
+    </div>
+    <div class="buttons">
+      <button (click)="NewConstraint()">Add New Constraint</button>
+    </div>
+  </div>
+  @if (dropdowns[6]){
+  <div class="less" (click)="switchDropdown(6)">SHOW LESS</div>
+  <div class="container">
+    <div class="ListBox">
+      @for (item of GetConstraints(); track item; let i = $index) {
+      <div class="ListItem">
+        <div>
+          Constraint Type:
+          <select [(ngModel)]="item.constraintType" (ngModelChange)="condition = 2">
+            <option [ngValue]="null">-- Select --</option>
+            @for (type of types; track type) {
+            <option [ngValue]="type.code">{{ type.label }}</option>
+            }
+          </select>
+          @if (item.constraintType === 'L') {
+          <select [(ngModel)]="item.objectId" (ngModelChange)="condition = 2">
+            <option [ngValue]="null">-- Select --</option>
+            @for (location of data.locations; track location) {
+            <option [ngValue]="location.locationId">{{ location.locationName }}</option>
+            }
+          </select>
+          }
+          @if (item.constraintType === 'G') {
+          <select [(ngModel)]="item.objectId" (ngModelChange)="condition = 2">
+            <option [ngValue]="null">-- Select --</option>
+            @for (group of data.groups; track group) {
+            <option [ngValue]="group.groupId">{{ group.groupName }}</option>
+            }
+          </select>
+          }
+          @if (item.constraintType === 'C') {
+          <select [(ngModel)]="item.objectId" (ngModelChange)="condition = 2">
+            <option [ngValue]="null">-- Select --</option>
+            @for (participant of data.participants; track participant) {
+            <option [ngValue]="participant.participantId">{{ participant.participantName }}
+              ({{participant.competitorNumber}})</option>
+            }
+          </select>
+          }
+          @if (item.constraintType === 'T') {
+          <select [(ngModel)]="item.objectId" (ngModelChange)="condition = 2">
+            <option [ngValue]="null">-- Select --</option>
+            @for (eventType of data.eventTypes; track eventType) {
+            <option [ngValue]="eventType.eventTypeId">{{ eventType.typeName }}</option>
+            }
+          </select>
+          }
+        </div>
+        <div>
+          Start time:
+          <input type="date" [ngModel]="getDateString(item.startTime)"
+            (ngModelChange)="updateDate(item, $event, 'startTime'); condition = 2">
+          <input type="time" [ngModel]="getTimeString(item.startTime)"
+            (ngModelChange)="updateTime(item, $event, 'startTime'); condition = 2">
+        </div>
+        <div>
+          End time:
+          <input type="date" [ngModel]="getDateString(item.endTime)"
+            (ngModelChange)="updateDate(item, $event, 'endTime'); condition = 2">
+          <input type="time" [ngModel]="getTimeString(item.endTime)"
+            (ngModelChange)="updateTime(item, $event, 'endTime'); condition = 2">
+        </div>
+        <button (click)="removeConstraint(i)">REMOVE</button>
+      </div>
+      }
+    </div>
+  </div>
+  } @else
+  {<div class="more" (click)="switchDropdown(6)">...</div>}
