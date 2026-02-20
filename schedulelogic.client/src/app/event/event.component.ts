@@ -32,6 +32,12 @@ export class EventComponent {
     { code: 'T', label: 'Eventtype' }
   ];
   dropdowns: boolean[] = [false,false,false,false,false,false,false];
+  points: Point[] = [
+    { weight: this.data.eventData.typeWeight, name: "EventType"},
+    { weight: this.data.eventData.locWeight, name: "Location"},
+    { weight: this.data.eventData.groupWeight, name: "Group"},
+    { weight: this.data.eventData.compWeight, name: "Competitor"},
+  ];
 
   public range: DateRange = { start: new Date(), end: new Date(new Date().setDate(new Date().getDate() + 5)) };
 
@@ -55,11 +61,22 @@ export class EventComponent {
     }
   }
 
+  updatePath() {
+    this.data.eventData.typeWeight = this.points[0].weight;
+    this.data.eventData.locWeight = this.points[1].weight;
+    this.data.eventData.groupWeight = this.points[2].weight;
+    this.data.eventData.compWeight = this.points[3].weight;
+  }
+
   RefreshData(){
     this.eventsService.GetEvent(this.id).subscribe({
       next: (res) => {
         if(res == null) this.router.navigate(['home']);
         this.data = res;
+        this.points[0].weight = this.data.eventData.typeWeight;
+        this.points[1].weight = this.data.eventData.locWeight;
+        this.points[2].weight = this.data.eventData.groupWeight;
+        this.points[3].weight = this.data.eventData.compWeight;
         const splash = document.getElementById('splash');
         if (splash) {
           splash.style.opacity = '0';
@@ -430,4 +447,9 @@ export class EventComponent {
   }
 
 
+}
+
+interface Point {
+  weight: number;
+  name: string;
 }
