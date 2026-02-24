@@ -351,14 +351,17 @@ export class EventComponent {
     const total = values.reduce((a,b)=>a+b,0);
 
     let current = 0;
-    const colors = ['#2E145D','#0C1443','#1C1853','#04122D'];
+    const colors = ['#7b5cff','#5d3df5','#3f2bbf','#2a1f80'];
 
     let result = 'conic-gradient(';
+
+    const gap = 0; 
 
     values.forEach((value, i) => {
       const start = current;
       current += (value / total) * 100;
-      result += `${colors[i]} ${start}% ${current}%,`;
+
+      result += `${colors[i]} ${start}% ${current - gap}%,`;
     });
 
     result = result.slice(0, -1) + ')';

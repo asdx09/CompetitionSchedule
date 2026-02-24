@@ -8,6 +8,8 @@ using Microsoft.AspNetCore.Http;
 using System.Text.Json;
 using ScheduleLogic.Server.Controllers;
 using Microsoft.Extensions.Logging;
+using ClosedXML.Excel;
+using DocumentFormat.OpenXml.Drawing;
 
 namespace ScheduleLogic.Server.Services
 {
@@ -159,6 +161,27 @@ namespace ScheduleLogic.Server.Services
         public string Status { get; set; }
     }
 
+    //EXPORT
+
+    public class scheduleTimeZoneEXPORT
+    {
+        public string eventType { get; set; } = "";
+        public string participant { get; set; } = "";
+        public string groupName { get; set; } = "";
+        public string location { get; set; } = "";
+        public DateTime StartTime { get; set; }
+        public DateTime EndTime { get; set; }
+        public int Slot { get; set; }
+    }
+
+    public class ScheduleDataForEXPORT
+    {
+        public List<scheduleTimeZoneEXPORT> timeZones { get; set; }
+        public string eventName { get; set; } = "";
+        public DateTime startDate { get; set; }
+        public DateTime endDate { get; set; }
+    }
+
     public class ScheduleService
     {
         private readonly DatabaseService _dbService;
@@ -229,6 +252,56 @@ namespace ScheduleLogic.Server.Services
                 Console.WriteLine("API call error: " + response.StatusCode);
                 return false;
             }
+        }
+
+        public async Task<byte[]> GetScheduleFile(string id)
+        {
+            var data = _dbService.GetScheduleDataEXPORT(id);
+
+            using var workbook = new XLWorkbook();
+            var worksheet = workbook.Worksheets.Add("Schedule");
+
+            worksheet.Cell(1, 1).Value = "Competitor";
+            worksheet.Cell(1, 2).Value = "Event Type";
+            worksheet.Cell(1, 3).Value = "Location";
+            worksheet.Cell(1, 4).Value = "Slot";
+            worksheet.Cell(1, 5).Value = "Start";
+            worksheet.Cell(1, 6).Value = "End";
+            worksheet.Range(1, 1, 1, 6).Style.Fill.BackgroundColor = XLColor.LightBlue;
+            var sortedTimeZones = data.timeZones
+                .OrderBy(tz => tz.groupName + tz.participant)
+                .ToList();
+            int row = 2;
+            string lastGroup = "-";
+            foreach (var timezone in sortedTimeZones)
+            {
+                if (timezone.groupName != lastGroup)
+                {
+                    lastGroup = timezone.groupName;
+                    if (timezone.groupName != "") worksheet.Cell(row, 1).Value = timezone.groupName + ":";
+                    else worksheet.Cell(row, 1).Value = "Without group:";
+                    worksheet.Range(row, 1, row, 6).Merge();
+                    worksheet.Range(row, 1, row, 6).Style.Fill.BackgroundColor = XLColor.LightCoral;
+                    row++;
+                }
+                worksheet.Cell(row, 1).Value = timezone.participant;
+                worksheet.Cell(row, 2).Value = timezone.eventType;
+                worksheet.Cell(row, 3).Value = timezone.location;
+                worksheet.Cell(row, 4).Value = timezone.Slot;
+                worksheet.Cell(row, 5).Value = timezone.StartTime.ToString();
+                worksheet.Cell(row, 6).Value = timezone.EndTime.ToString();
+
+                if(row % 2 == 0) worksheet.Range(row, 1, row, 6).Style.Fill.BackgroundColor = XLColor.LightBlue;
+                else worksheet.Range(row, 1, row, 6).Style.Fill.BackgroundColor = XLColor.LightCyan;
+                row++;
+            }
+            worksheet.SheetView.FreezeRows(1);
+            worksheet.Columns().AdjustToContents();
+
+            using var stream = new MemoryStream();
+            workbook.SaveAs(stream);
+            return stream.ToArray();
+
         }
     }
 }

@@ -75,6 +75,26 @@ namespace ScheduleLogic.Server.Controllers
             }
             return Ok();
         }
+
+        [Authorize]
+        [HttpGet("export")]
+        public async Task<IActionResult> GetExport(string id)
+        {
+            try
+            {
+                var content = await _scheduleService.GetScheduleFile(id);
+                return File(
+                    content,
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    $"schedule.xlsx"
+                );
+            }
+            catch (Exception ex)
+            {
+                return NotFound(ex);
+            }
+        }
+        
     }
 }
 

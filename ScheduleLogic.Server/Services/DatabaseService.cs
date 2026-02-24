@@ -718,5 +718,41 @@ namespace ScheduleLogic.Server.Services
 
             return TempData;
         }
+
+        public ScheduleDataForEXPORT GetScheduleDataEXPORT(string id)
+        {
+            ScheduleDataForEXPORT TempData = new ScheduleDataForEXPORT();
+            TempData.eventName = _context.Events.Where(e => e.EventId == Convert.ToInt32(id)).First().EventName;
+            TempData.startDate = _context.Events.Where(e => e.EventId == Convert.ToInt32(id)).First().StartDate;
+            TempData.endDate = _context.Events.Where(e => e.EventId == Convert.ToInt32(id)).First().EndDate;
+            List<long> typeIDs = _context.EventTypes.Where(e => e.EventId == Convert.ToInt32(id)).Select(s => s.EventTypeId).ToList();
+
+            var eventtypes = _context.EventTypes.Where(e => e.EventId == Convert.ToInt32(id)).ToList();
+            var participants = _context.Participants.Where(e => e.EventId == Convert.ToInt32(id)).ToList();
+            var locations = _context.Locations.Where(e => e.EventId == Convert.ToInt32(id)).ToList();
+            var groups = _context.Groups.Where(e => e.EventId == Convert.ToInt32(id)).ToList();
+
+            List<scheduleTimeZoneEXPORT> TZL = new List<scheduleTimeZoneEXPORT>();
+            foreach (Models.Schedule item in _context.Schedules.Where(w => typeIDs.Contains(w.EventTypeId)))
+            {
+                scheduleTimeZoneEXPORT TZ = new scheduleTimeZoneEXPORT();
+                TZ.eventType = eventtypes.Where(e => e.EventTypeId == item.EventTypeId).First().TypeName;
+                TZ.participant = participants.Where(e => e.ParticipantId == item.ParticipantId).Select(s => s.ParticipantName + " (" + s.CompetitorNumber + ")").First();
+                TZ.location = locations.Where(e => e.LocationId == item.LocationId).First().LocationName;
+                TZ.StartTime = item.StartTime;
+                TZ.EndTime = item.EndTime;
+                TZ.Slot = item.Slot;
+
+                var participant = participants.FirstOrDefault(p => p.ParticipantId == item.ParticipantId);
+                var groupId = participant?.GroupId ?? -1;
+                var groupName = groups.FirstOrDefault(g => g.GroupId == groupId)?.GroupName ?? "";
+                TZ.groupName = groupName;
+
+                TZL.Add(TZ);
+            }
+            TempData.timeZones = TZL;
+
+            return TempData;
+        }
     }
 }

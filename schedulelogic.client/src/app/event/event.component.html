@@ -37,10 +37,10 @@
           (ngModelChange)="updateTime(data.eventData, $event, 'endDate'); condition = 2">
       </div>
       <div class="FirstListItem">
-        BasePauseTime: <input type="number" [(ngModel)]="data.eventData.basePauseTime" (ngModelChange)="condition = 2">
+        Base travel time: <input type="number" [(ngModel)]="data.eventData.basePauseTime" (ngModelChange)="condition = 2">
       </div>
       <div class="FirstListItem">
-        LocationPauseTime: <input type="number" [(ngModel)]="data.eventData.locationPauseTime"
+        Location pause: <input type="number" [(ngModel)]="data.eventData.locationPauseTime"
           (ngModelChange)="condition = 2">
       </div>
     </div>
@@ -83,14 +83,14 @@
           Time:
           <input type="time" [(ngModel)]="item.timeRange" (ngModelChange)="condition = 2">
         </div>
-        <div><button (click)="openLocationSelector(item.eventTypeId ?? '0'); condition = 2">LOCATIONS</button></div>
+        <button (click)="openLocationSelector(item.eventTypeId ?? '0'); condition = 2">LOCATIONS</button>
         <button (click)="removeEventType(i)">REMOVE</button>
       </div>
       }
     </div>
   </div>
   } @else
-  {<div class="more" (click)="switchDropdown(0)">...</div>}
+  {<div class="more" (click)="switchDropdown(0)">SHOW ITEMS ({{GetEventTypes().length}})</div>}
   <div class="boxHeader">
     <div class="title">Groups</div>
     <div class="searchbar">
@@ -118,7 +118,7 @@
     </div>
   </div>
   } @else
-  {<div class="more" (click)="switchDropdown(1)">...</div>}
+  {<div class="more" (click)="switchDropdown(1)">SHOW ITEMS ({{GetGroups().length}})</div>}
   <div class="boxHeader">
     <div class="title">Locations</div>
     <div class="searchbar">
@@ -154,7 +154,7 @@
     </div>
   </div>
   } @else
-  {<div class="more" (click)="switchDropdown(2)">...</div>}
+  {<div class="more" (click)="switchDropdown(2)">SHOW ITEMS ({{GetLocations().length}})</div>}
   <div class="boxHeader">
     <div class="title">Travel Times</div>
     <div class="searchbar">
@@ -203,7 +203,7 @@
     </div>
   </div>
   } @else
-  {<div class="more" (click)="switchDropdown(3)">...</div>}
+  {<div class="more" (click)="switchDropdown(3)">SHOW ITEMS ({{GetPauseTable().length}})</div>}
   <div class="boxHeader">
     <div class="title">Participants</div>
     <div class="searchbar">
@@ -255,7 +255,7 @@
     </div>
   </div>
   } @else
-  {<div class="more" (click)="switchDropdown(4)">...</div>}
+  {<div class="more" (click)="switchDropdown(4)">SHOW ITEMS ({{GetParticipants().length}})</div>}
   <div class="boxHeader">
     <div class="title">Registrations</div>
     <div class="searchbar">
@@ -314,7 +314,7 @@
     </div>
   </div>
   } @else
-  {<div class="more" (click)="switchDropdown(5)">...</div>}
+  {<div class="more" (click)="switchDropdown(5)">SHOW ITEMS ({{GetRegistrations().length}})</div>}
   <div class="boxHeader">
     <div class="title">Constraints</div>
     <div class="searchbar">
@@ -438,4 +438,4 @@
     </div>
   </div>
   } @else
-  {<div class="more" (click)="switchDropdown(6)">...</div>}
+  {<div class="more" (click)="switchDropdown(6)">SHOW ITEMS ({{GetConstraints().length}})</div>}

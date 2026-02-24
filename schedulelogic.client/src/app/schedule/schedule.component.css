@@ -12,7 +12,11 @@
 
 .page{
   font-family: "Inter", "Segoe UI", sans-serif;
-  background-image: linear-gradient(to bottom right, #0C1443, #1C1853);
+  background: 
+    radial-gradient(circle at 20% 30%, #be29ec33, transparent 40%),
+    radial-gradient(circle at 80% 20%, #80008048, transparent 40%),
+    radial-gradient(circle at 50% 80%, rgba(228, 95, 18, 0.12), transparent 40%),
+    #0f172a;
   position: absolute;
   left: 0;
   right: 0;
@@ -163,8 +167,8 @@ h2{
 
 button {
   appearance: none;
-  background-color: #2E145D;
-  border: 1px solid #5626b1;
+  background: linear-gradient(135deg, #7b5cff, #5d3df5);
+  border: none;
   border-radius: 6px;
   box-shadow: rgba(27, 31, 35, .1) 0 1px 0;
   box-sizing: border-box;
@@ -187,6 +191,7 @@ button {
   margin: 5px;
 }
 
+
 button:focus:not(:focus-visible):not(.focus-visible) {
   box-shadow: none;
   outline: none;
@@ -201,16 +206,16 @@ button:focus {
   outline: none;
 }
 
-button:disabled {
-  background-color: #b6a1b3;
-  border-color: rgba(27, 31, 35, .1);
-  color: rgba(255, 255, 255, .8);
-  cursor: default;
-}
-
 button:active {
   background-color: #5626b1;
   box-shadow: rgba(20, 70, 32, .2) 0 1px 0 inset;
+}
+
+button:disabled {
+  background: #b6a1b3;
+  border-color: rgba(27, 31, 35, .1);
+  color: rgba(255, 255, 255, .8);
+  cursor: default;
 }
 
 
@@ -252,7 +257,7 @@ button:active {
 }
 
 .checkbox-wrapper-17 input:checked + label {
-  background: #5626b1;
+  background: linear-gradient(135deg, #7b5cff, #5d3df5);
 }
 
 .checkbox-wrapper-17 input:checked + label:after {

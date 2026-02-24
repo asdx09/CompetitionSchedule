@@ -78,4 +78,14 @@ export class ScheduleService {
     StopSchedule(id: string): Observable<any> {
       return this.http.post(`${this.apiUrl}/stop?id=${id}`, {});
     }
+
+    downloadSchedule(id: string) {
+      return this.http.get(
+        `${this.apiUrl}/export`,
+        {
+          responseType: 'blob',
+          params: { id }
+        }
+      );
+    }
 }

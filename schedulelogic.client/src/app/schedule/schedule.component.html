@@ -12,7 +12,7 @@
       <button (click)="zoomLevel = zoomLevel / 1.2">Zoom Out</button>
     </div>
     <div>
-      <button>DOWNLOAD DATA</button>
+      <button (click)="export()" [disabled]="isExporting">DOWNLOAD DATA</button>
     </div>
   </div>
   <h2>By Competitor</h2>

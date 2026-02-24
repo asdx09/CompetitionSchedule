@@ -32,6 +32,7 @@ export class ScheduleComponent {
   zoomLevel = 1;
   laneHeight = 45;
   isConstraint = false;
+  isExporting = false;
 
   ngOnInit()
   {
@@ -409,5 +410,24 @@ export class ScheduleComponent {
     }
 
     return rows * this.laneHeight;
+  }
+
+  export(){
+    this.isExporting = true;
+    console.log(this.isExporting);
+    this.scheduleService.downloadSchedule(this.id)
+    .subscribe(blob => {
+      this.isExporting = false;
+      const fileName = `schedule.xlsx`;
+
+      const a = document.createElement('a');
+      const objectUrl = URL.createObjectURL(blob);
+
+      a.href = objectUrl;
+      a.download = fileName;
+      a.click();
+
+      URL.revokeObjectURL(objectUrl);
+    });
   }
 }
