@@ -10,178 +10,12 @@ using ScheduleLogic.Server.Controllers;
 using Microsoft.Extensions.Logging;
 using ClosedXML.Excel;
 using DocumentFormat.OpenXml.Drawing;
+using ScheduleLogic.Server.Class;
+using static ScheduleLogic.Server.Class.EventModels;
+using static ScheduleLogic.Server.Class.ScheduleModels;
 
 namespace ScheduleLogic.Server.Services
 {
-    //Backend to SOLVER
-    public class LocationModel
-    {
-        public long id {  get; set; }
-        public string name { get; set; }
-        public int capacity { get; set; }
-    }
-    public class EventModel
-    {
-        public long id { get; set; }
-        public string name { get; set; }
-        public int duration { get; set; }
-        public List<long> possible_locations { get; set; } = new List<long>();
-    }
-    public class CompetitorModel
-    {
-        public long id { get; set; }
-        public string name { get; set; }
-        public long group_id { get; set; }
-    }
-    public class EntryModel
-    {
-        public long id { get; set; }
-        public long competitor_id { get; set; }
-        public long event_id { get; set; }
-    }
-    public class GroupModel
-    {
-        public long id { get; set; }
-        public string name { get; set; }
-        public long event_id { get; set; }
-    }
-    public class ConstraintModel
-    {
-        public long id { get; set; }
-        public long object_id { get; set; }
-        public string ConstraintType { get; set; } //'L' location, 'C' competitor, 'E' event, 'G' Group
-        public int StartTime { get; set; }
-        public int EndTime { get; set; }
-    }
-
-    public partial class PauseTableModel
-    {
-        public long id { get; set; }
-        public long LocationId1 { get; set; }
-        public long LocationId2 { get; set; }
-        public int Pause { get; set; }
-    }
-
-    public class ScheduleRequestForSolver
-    {
-        public string ReturnURL { get; set; } = "https://localhost:7098/api/Schedule/answer";
-        public int event_id { get; set; }
-        public List<LocationModel> locations { get; set; }
-        public List<EventModel> events { get; set; }
-        public List<CompetitorModel> competitors {  get; set; }
-        public List<EntryModel> entries { get; set; }
-        public List<PauseTableModel> travel {  get; set; }
-        public List<ConstraintModel> constraints { get; set; }
-        public int day_length { get; set; }
-        public int max_days { get; set; }
-        public int break_time_loc { get; set; }
-        public int base_pause_time { get; set; }
-        public int locWeight { get; set; }
-        public int groupWeight { get; set; }
-        public int typeWeight { get; set; }
-        public int compWeight { get; set; }
-    }
-
-    //Backend to frontend
-    public class ScheduleDataForFrontEnd
-    {
-        public List<scheduleTimeZone> timeZones { get; set; }
-        public int event_ID { get; set; }
-        public string eventName { get; set; }
-        public DateTime startDate { get; set; }
-        public DateTime endDate { get; set; }
-        public List<scheduleEventType> eventTypes { get; set; }
-        public List<scheduleParticipans> participans { get; set; }
-        public List<scheduleLocations> locations { get; set; }
-        public List<scheduleConstraint> constraints { get; set; }
-    }
-
-    public class scheduleTimeZone
-    {
-        public long schedule_ID { get; set; }
-        public long eventType_ID { get; set; }
-        public long participant_ID { get; set; }
-        public long location_ID { get; set; }
-        public int StartTime { get; set; }
-        public int EndTime { get; set; }
-        public int Slot {  get; set; }
-    }
-
-    public class scheduleEventType
-    {
-        public long eventType_ID { get; set; }
-        public string eventTypeName { get; set; }
-    }
-
-    public class scheduleParticipans
-    {
-        public long participant_ID { get; set; }
-        public string participantName { get; set; }
-    }
-
-    public class scheduleLocations
-    {
-        public long location_ID { get; set; }
-        public string locationName { get; set; }
-    }
-    public class scheduleConstraint
-    {
-        public long id { get; set; }
-        public long object_ID { get; set; }
-        public string ConstraintType { get; set; } //'L' location, 'C' competitor, 'E' event, 'G' Group
-        public int StartTime { get; set; }
-        public int EndTime { get; set; }
-    }
-
-    //SOLVER to backend
-    public class SolverResponse
-    {
-        public int event_id { get; set; }
-        public string status { get; set; }
-        public List<Schedule> schedule { get; set; }
-    }
-
-    public class Schedule
-    {
-        public int participant_id { get; set; }
-        public int eventtype_id { get; set; }
-        public int location_id { get; set; }
-        public int start { get; set; }
-        public int end { get; set; }
-        public int slot { get; set; }
-    }
-
-    public class SolverStatusResponse
-    {
-        public bool running { get; set; }
-    }
-
-    public class StopSolverResponse
-    {
-        public string Status { get; set; }
-    }
-
-    //EXPORT
-
-    public class scheduleTimeZoneEXPORT
-    {
-        public string eventType { get; set; } = "";
-        public string participant { get; set; } = "";
-        public string groupName { get; set; } = "";
-        public string location { get; set; } = "";
-        public DateTime StartTime { get; set; }
-        public DateTime EndTime { get; set; }
-        public int Slot { get; set; }
-    }
-
-    public class ScheduleDataForEXPORT
-    {
-        public List<scheduleTimeZoneEXPORT> timeZones { get; set; }
-        public string eventName { get; set; } = "";
-        public DateTime startDate { get; set; }
-        public DateTime endDate { get; set; }
-    }
-
     public class ScheduleService
     {
         private readonly DatabaseService _dbService;
@@ -204,12 +38,13 @@ namespace ScheduleLogic.Server.Services
             }
             else
             {
-                //"API call error: " + httpResponse.StatusCode;
+                var error = await httpResponse.Content.ReadAsStringAsync();
+                Console.WriteLine(error);
             }
             return SR;
         }
 
-        public async Task<ScheduleDataForFrontEnd> GetScheduleData(string id)
+        public async Task<DataDTO> GetScheduleData(string id)
         {
             return _dbService.GetScheduleData(id);
         }
@@ -218,14 +53,14 @@ namespace ScheduleLogic.Server.Services
         {
             using var client = new HttpClient();
 
-            var response = await client.GetAsync(apiUrl+"is_solver_running?event_id="+id);
+            var response = await client.GetAsync(apiUrl + "is_solver_running?EventId=" + id);
 
             if (response.IsSuccessStatusCode)
             {
                 var jsonString = await response.Content.ReadAsStringAsync();
                 var result = JsonSerializer.Deserialize<SolverStatusResponse>(jsonString);
 
-                return result?.running ?? false;
+                return result?.Running ?? false;
             }
             else
             {
@@ -238,7 +73,7 @@ namespace ScheduleLogic.Server.Services
         {
             using var client = new HttpClient();
 
-            var response = await client.GetAsync(apiUrl + "stop_solver?event_id=" + id);
+            var response = await client.GetAsync(apiUrl + "stop_solver?EventId=" + id);
 
             if (response.IsSuccessStatusCode)
             {
@@ -268,25 +103,25 @@ namespace ScheduleLogic.Server.Services
             worksheet.Cell(1, 5).Value = "Start";
             worksheet.Cell(1, 6).Value = "End";
             worksheet.Range(1, 1, 1, 6).Style.Fill.BackgroundColor = XLColor.LightBlue;
-            var sortedTimeZones = data.timeZones
-                .OrderBy(tz => tz.groupName + tz.participant)
+            var sortedTimeZones = data.TimeZones
+                .OrderBy(tz => tz.GroupName + tz.Participant)
                 .ToList();
             int row = 2;
             string lastGroup = "-";
             foreach (var timezone in sortedTimeZones)
             {
-                if (timezone.groupName != lastGroup)
+                if (timezone.GroupName != lastGroup)
                 {
-                    lastGroup = timezone.groupName;
-                    if (timezone.groupName != "") worksheet.Cell(row, 1).Value = timezone.groupName + ":";
+                    lastGroup = timezone.GroupName;
+                    if (timezone.GroupName != "") worksheet.Cell(row, 1).Value = timezone.GroupName + ":";
                     else worksheet.Cell(row, 1).Value = "Without group:";
                     worksheet.Range(row, 1, row, 6).Merge();
                     worksheet.Range(row, 1, row, 6).Style.Fill.BackgroundColor = XLColor.LightCoral;
                     row++;
                 }
-                worksheet.Cell(row, 1).Value = timezone.participant;
-                worksheet.Cell(row, 2).Value = timezone.eventType;
-                worksheet.Cell(row, 3).Value = timezone.location;
+                worksheet.Cell(row, 1).Value = timezone.Participant;
+                worksheet.Cell(row, 2).Value = timezone.EventType;
+                worksheet.Cell(row, 3).Value = timezone.Location;
                 worksheet.Cell(row, 4).Value = timezone.Slot;
                 worksheet.Cell(row, 5).Value = timezone.StartTime.ToString();
                 worksheet.Cell(row, 6).Value = timezone.EndTime.ToString();

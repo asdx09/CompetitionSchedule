@@ -192,7 +192,7 @@ export class EventComponent {
     const groupId = this.data.groups[index].groupId;
     this.data.participants.forEach(reg => {
       if (reg.groupId === groupId) {
-        reg.groupId = null;
+        reg.groupId = "";
       }
     });
     this.data.groups.splice(index, 1);
@@ -209,7 +209,7 @@ export class EventComponent {
     const participantId = this.data.participants[index].participantId;
     this.data.registrations.forEach(reg => {
       if (reg.participantId === participantId) {
-        reg.participantId = null;
+        reg.participantId = "";
       }
     });
     this.data.participants.splice(index, 1);

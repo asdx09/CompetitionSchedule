@@ -83,7 +83,7 @@
           Time:
           <input type="time" [(ngModel)]="item.timeRange" (ngModelChange)="condition = 2">
         </div>
-        <button (click)="openLocationSelector(item.eventTypeId ?? '0'); condition = 2">LOCATIONS</button>
+        <button (click)="openLocationSelector(item.eventTypeId); condition = 2">LOCATIONS</button>
         <button (click)="removeEventType(i)">REMOVE</button>
       </div>
       }
@@ -145,7 +145,7 @@
         </div>
         <div>
           Slot count:
-          <input type="number" [(ngModel)]="item.slots" [ngClass]="{'wrong': !isBetween(1, 999, item.slots ?? 1)}"
+          <input type="number" [(ngModel)]="item.slots" [ngClass]="{'wrong': !isBetween(1, 999, item.slots)}"
             (ngModelChange)="condition = 2">
         </div>
         <button (click)="removeLocation(i)">REMOVE</button>
@@ -237,7 +237,7 @@
         <div>
           Race Number:
           <input type="number" [(ngModel)]="item.competitorNumber"
-            [ngClass]="{'wrong': isDuplicateNumber(item.competitorNumber ?? 0) || !isBetween(0, 999999, item.competitorNumber ?? 0)}"
+            [ngClass]="{'wrong': isDuplicateNumber(item.competitorNumber) || !isBetween(0, 999999, item.competitorNumber)}"
             (ngModelChange)="condition = 2">
         </div>
         <div>

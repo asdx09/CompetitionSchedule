@@ -23,9 +23,12 @@ export class AuthGuardService implements CanActivate {
   }
 
   login(loginUsername: string, loginPassword: string): Observable<any> {
-    localStorage.setItem('username',loginUsername);
     this.usernameSubject.next(loginUsername);
-    return this.http.post(`${this.apiUrl}/login`, { Username: loginUsername, Password: loginPassword });
+
+    return this.http.post(`${this.apiUrl}/login`, 
+      { Username: loginUsername, Password: loginPassword }, 
+      { withCredentials: true } 
+    );
   }
   
   register(regUsername: string, regPassword:string, regEmail:string): Observable<any> {

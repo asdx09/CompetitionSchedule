@@ -3,9 +3,9 @@
   <button (click)="AddEvent()">Add New Event</button>
   <div class="box">
     @for (item of events; track item) {
-      <div class ="item" (click)="GoToEvent(item.event_ID)">
+      <div class ="item" (click)="GoToEvent(item.eventId)">
         {{ item.eventName }}
-        <button (click)="DeleteEvent(item.event_ID, $event);">DELETE</button>
+        <button (click)="DeleteEvent(item.eventId, $event);">DELETE</button>
       </div>
     }
     <div class ="item" (click)="GoToWizard()">

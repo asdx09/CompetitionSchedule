@@ -4,23 +4,23 @@ import { Router } from '@angular/router';
 import { Observable } from 'rxjs/internal/Observable';
 import { environment } from '../environments/environment';
 
-export class ScheduleData{
+/*export class ScheduleData{
   timeZones: ScheduleTimeZone[] = [];
-  event_ID: number = 0;
+  eventID: number = 0;
   eventName: string = "";
   startDate: Date = new Date();
   endDate: Date = new Date();
   eventTypes: ScheduleEventType[] = [];
-  participans: ScheduleParticipans[] = [];
+  participants: Scheduleparticipants[] = [];
   locations: ScheduleLocations[] = [];
   constraints: ScheduleConstraint[] = [];
 }
 
 export class ScheduleTimeZone {
-  schedule_ID: number = 0;
-  eventType_ID: number = 0;
-  participant_ID: number = 0;
-  location_ID: number = 0;
+  scheduleID: number = 0;
+  eventTypeID: number = 0;
+  participantID: number = 0;
+  locationID: number = 0;
   startTime: number = 0;
   endTime: number = 0;
   slot: number = 0;
@@ -30,7 +30,7 @@ export class ScheduleTimeZone {
 export class ScheduleConstraint{
   constraintId: number = 0;
   eventId: number = 0;
-  object_ID: number = 0;
+  objectID: number = 0;
   constraintType: string = "";
   startTime: number = 0;
   endTime: number = 0;
@@ -38,19 +38,19 @@ export class ScheduleConstraint{
 
 
 export class ScheduleEventType{
-  eventType_ID: number = 0;
+  eventTypeID: number = 0;
   eventTypeName: string = "";
 }
 
-export class ScheduleParticipans{
-  participant_ID: number = 0;
+export class Scheduleparticipants{
+  participantID: number = 0;
   participantName: string = "";
 }
 
 export class ScheduleLocations{
-  location_ID: number = 0;
+  locationID: number = 0;
   locationName: string = "";
-}
+}*/
 
 @Injectable({
   providedIn: 'root'
@@ -62,21 +62,22 @@ export class ScheduleService {
   private apiUrl = `${environment.apiUrl}api/Schedule`;
   
     schedule(id: string): Observable<any> {
-      return this.http.post(`${this.apiUrl}/`+id,null);
+      return this.http.post(`${this.apiUrl}/`+id,null, { withCredentials: true });
     }
 
     scheduleGet(id: string): Observable<any> {
-      return this.http.get(`${this.apiUrl}/`+id);
+      return this.http.get(`${this.apiUrl}/`+id, { withCredentials: true });
     }
 
     checkSolver(id: string): Observable<any> {
       return this.http.get(`${this.apiUrl}/isRunning`, {
-        params: { id }
+        params: { id },
+        withCredentials: true
       });
     }
 
     StopSchedule(id: string): Observable<any> {
-      return this.http.post(`${this.apiUrl}/stop?id=${id}`, {});
+      return this.http.post(`${this.apiUrl}/stop?id=${id}`, null, { withCredentials: true });
     }
 
     downloadSchedule(id: string) {
@@ -84,7 +85,8 @@ export class ScheduleService {
         `${this.apiUrl}/export`,
         {
           responseType: 'blob',
-          params: { id }
+          params: { id },
+          withCredentials: true
         }
       );
     }

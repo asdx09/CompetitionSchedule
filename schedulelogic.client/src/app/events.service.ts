@@ -6,7 +6,7 @@ import { environment } from '../environments/environment';
 
 export class EventsData{
   eventName: string = "";
-  event_ID: number = 0;
+  eventId: number = 0;
 }
 
 export class data{
@@ -19,6 +19,7 @@ export class data{
   pauseTable: PauseTable[] = [];
   locationTable: LocationTable[] = [];
   constraints: Constraint[]= [];
+  timeZones: TimeZone[] = [];
 }
 
 export class EventData{
@@ -36,62 +37,72 @@ export class EventData{
 }
 
 export class EventType{
-  eventTypeId: string | null = null;
+  eventTypeId: string = "";
   eventId: string = "0";
-  typeName: string | null = null;
-  timeRange: string | null = null;
+  typeName: string = "";
+  timeRange: string = "";
 }
 
 export class Group{
-  groupId: string | null = null;
+  groupId: string = "";
   eventId: string = "0";
-  groupName: string | null = null;
+  groupName: string = "";
 }
 
 export class Location{
-  locationId: string | null = null;
+  locationId: string = "";
   eventId: string = "0";
-  locationName: string | null = null;
-  slots: number | null = null;
+  locationName: string = "";
+  slots: number = 0;
 }
 
 export class Participant{
-  participantId: string | null = null;
+  participantId: string = "";
   eventId: string = "0";
-  competitorNumber: number | null = null;
-  participantName: string | null = null;
-  groupId: string | null = null;
+  competitorNumber: number = 0;
+  participantName: string = "";
+  groupId: string = "";
 }
 
 export class Registration{
-  registrationId: string | null = null;
+  registrationId: string = "";
   eventId: string = "0";
-  participantId: string | null = null;
-  eventTypeId: string | null = null;
+  participantId: string = "";
+  eventTypeId: string = "";
 }
 
 export class PauseTable{
-  pauseId: string | null = null;
+  pauseId: string = "";
   eventId: string = "0";
-  locationId1: string | null = null;
-  locationId2: string | null = null;
-  pause: string | null = null;
+  locationId1: string = "";
+  locationId2: string = "";;
+  pause: string = "";
 }
 
 export class LocationTable{
-  locationTableId: string | null = null;
+  locationTableId: string = "";
   eventId: string = "0";
-  eventTypeId: string | null = null;
-  locationId: string | null = null;
+  eventTypeId: string = "";
+  locationId: string = "";
 }
 
 export class Constraint{
-  constraintId: string | null = null;
+  constraintId: string = "";
   eventId: string = "0";
-  objectId: string | null = null;
-  constraintType: string | null = null;
-  startTime: string | null = null;
-  endTime: string | null = null;
+  objectId: string = "";
+  constraintType: string = "";
+  startTime: string = "";
+  endTime: string = "";
+}
+
+export class TimeZone {
+  scheduleId: string = "";
+  eventTypeId: string = "";
+  participantId: string = "";
+  locationId: string = "";
+  startTime: number = 0;
+  endTime: number = 0;
+  slot: number = 0;
 }
 
 @Injectable({
@@ -103,31 +114,31 @@ export class EventsService {
   private apiUrl = `${environment.apiUrl}api/Event`;
 
   GetEvents(): Observable<any> {
-    return this.http.get(`${this.apiUrl}/get-events`);
+    return this.http.get(`${this.apiUrl}/get-events`, { withCredentials: true });
   }
 
   NewEvent(): Observable<any> {
-    return this.http.post(`${this.apiUrl}/new-event`,null);
+    return this.http.post(`${this.apiUrl}/new-event`,null, { withCredentials: true });
   }
 
   GetEvent(id: string): Observable<data> {
     const params = new HttpParams()
         .set('id', id)
-    return this.http.get<data>(`${this.apiUrl}/get-event`, { params });
+    return this.http.get<data>(`${this.apiUrl}/get-event`, { params,withCredentials: true });
   }
 
   DeleteEvent(id: string): Observable<data> {
     const params = new HttpParams()
         .set('id', id)
-    return this.http.delete<data>(`${this.apiUrl}/delete-event`, { params });
+    return this.http.delete<data>(`${this.apiUrl}/delete-event`, { params,withCredentials: true });
   }
 
   SaveEvent(data: data): Observable<any> {
-    return this.http.post(`${this.apiUrl}/save-event`, data);
+    return this.http.post(`${this.apiUrl}/save-event`, data, { withCredentials: true });
   }
   
   NewWizardEvent(data: data): Observable<any> {
-    return this.http.post(`${this.apiUrl}/new-wizard`, data);
+    return this.http.post(`${this.apiUrl}/new-wizard`, data, { withCredentials: true });
   }
   
 }

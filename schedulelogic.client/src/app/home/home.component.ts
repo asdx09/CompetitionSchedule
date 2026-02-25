@@ -72,6 +72,8 @@ export class HomeComponent {
 
   GoToEvent(id:number)
   {
+    console.log(this.events);
+    console.log(id);
     this.router.navigate(['event'],{ queryParams: { id: id } });
   }
 

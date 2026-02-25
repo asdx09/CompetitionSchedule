@@ -170,6 +170,7 @@ h2{
   border-top-color: rgb(255, 25, 255);
   border-radius: 50%;
   animation: spin 1s linear infinite;
+  margin-right: 5px;
 }
 
 @keyframes spin {

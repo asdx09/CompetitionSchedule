@@ -1,8 +1,8 @@
 import { Component, ElementRef, ViewChild } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { ActivatedRoute, Router } from '@angular/router';
-import { EventsService } from '../events.service';
-import { ScheduleData, ScheduleService, ScheduleTimeZone } from '../schedule.service';
+import { Constraint, data, EventsData, EventsService, TimeZone } from '../events.service';
+import { ScheduleService } from '../schedule.service';
 import { TimezoneInfoComponent } from '../timezone-info/timezone-info.component';
 import html2canvas from 'html2canvas';
 import { box } from '@igniteui/material-icons-extended';
@@ -28,7 +28,7 @@ export class ScheduleComponent {
   @ViewChild('box3') box3!: ElementRef<HTMLDivElement>;
   constructor(private eventsService: EventsService, private route: ActivatedRoute, private router: Router, public dialog: MatDialog, public scheduleService: ScheduleService , private alertService: AlertService) { }
   id: string = "";
-  data: ScheduleData = new ScheduleData();
+  data: data = new data();
   zoomLevel = 1;
   laneHeight = 45;
   isConstraint = false;
@@ -47,12 +47,11 @@ export class ScheduleComponent {
       next: (res) => {
         if(res == null) this.router.navigate(['home']);
           this.data = res;
-          console.log(this.data);
           this.computeLanes();
           this.computeLocationLanes();
           const msPerDay = 1000 * 60 * 60 * 24;
-          const end = new Date(this.data.endDate);
-          const start = new Date(this.data.startDate);
+          const end = new Date(this.data.eventData.endDate);
+          const start = new Date(this.data.eventData.startDate);
           start.setHours(0, 0, 0, 0);
           end.setHours(23, 59, 59, 999);
           const diffInMs = end.getTime() - start.getTime();
@@ -65,7 +64,7 @@ export class ScheduleComponent {
             splash.style.transition = '0.5s';
           }
           setTimeout(() => {
-            if (!this.data.timeZones || this.data.timeZones.length === 0) return;
+            if (!this.data.timeZones || this.data.timeZones.length == 0) return;
 
             const startTime = Math.min(...this.data.timeZones.map(item => item.startTime)); 
             const endTime = Math.max(...this.data.timeZones.map(item => item.endTime));    
@@ -93,78 +92,86 @@ export class ScheduleComponent {
 
   getDateWithPlusDays(tempDate: string | Date, hours: string | number): Date {
     const dateObj = new Date(tempDate); 
-    const hoursNumber = typeof hours === 'string' ? parseInt(hours, 10) : hours;
+    const hoursNumber = typeof hours == 'string' ? parseInt(hours, 10) : hours;
     const daysToAdd = Math.floor(hoursNumber / 24);
     dateObj.setDate(dateObj.getDate() + daysToAdd);
     return dateObj;
   }
 
-  getEventTypeRange(eventTypeId: number) {
-    const events = this.data.timeZones.filter(e => e.eventType_ID === eventTypeId);
+  getEventTypeRange(eventTypeId: string) {
+    const events = this.data.timeZones.filter(e => e.eventTypeId == eventTypeId);
     const start = Math.min(...events.map(e => e.startTime ?? 0));
     const end = Math.max(...events.map(e => e.endTime ?? 0));
     return { start, end };
   }
 
-  getLocationRange(locationId: number) {
-    const events = this.data.timeZones.filter(e => e.location_ID === locationId);
+  getLocationRange(locationId: string) {
+    const events = this.data.timeZones.filter(e => e.locationId == locationId);
     const start = Math.min(...events.map(e => e.startTime ?? 0));
     const end = Math.max(...events.map(e => e.endTime ?? 0));
     return { start, end };
   }
 
-  getLocationRangeTop(locationId: number): number {
+  getLocationRangeTop(locationId: string): number {
     let top = 0;
 
     for (const loc of this.data.locations) {
       top += this.laneHeight;
 
-      if (loc.location_ID === locationId) {
+      if (loc.locationId == locationId) {
         return top;
       }
 
-      if (this.expandedLocations[loc.location_ID ?? 0]) {
-        top += this.laneHeight * (this.locationsLanes[loc.location_ID ?? 0].length);
+      if (this.expandedLocations[loc.locationId]) {
+        top += this.laneHeight * (this.locationsLanes[loc.locationId].length);
       }
     }
 
     return top;
   }
 
-  getLocationLaneTop(locationId: number, laneIndex: number): number {
+  getLocationLaneTop(locationId: string, laneIndex: number): number {
     let top = 0; 
 
     for (const loc of this.data.locations) {
       top += this.laneHeight;
 
-      if (loc.location_ID === locationId) {
+      if (loc.locationId == locationId) {
         top += this.laneHeight * laneIndex;
         break;
       }
 
-      if (this.expandedLocations[loc.location_ID ?? 0]) {
-        top += this.laneHeight * (this.locationsLanes[loc.location_ID ?? 0].length);
+      if (this.expandedLocations[loc.locationId]) {
+        top += this.laneHeight * (this.locationsLanes[loc.locationId].length);
       }
     }
 
     return top;
   }
 
-  getTimeZonesForParticipant(participantID: number | null) {
-    return this.data.timeZones.filter(tz => tz.participant_ID === participantID);
+  getTimeZonesForParticipant(participantId: string): TimeZone[] {
+    return this.data.timeZones.filter(tz => tz.participantId == participantId);
   }
 
-  getTimeZonesForConstraint(objectIDs: number) {
-    return this.data.constraints.filter(c => c.object_ID === objectIDs);
+  getTimeZonesForConstraint(objectIds: string): Constraint[] {
+    return this.data.constraints.filter(c => c.objectId == objectIds);
   }
 
-  getTimeZonesForEventType(eventTypeID: number | null) {
-    return this.data.timeZones.filter(tz => tz.eventType_ID === eventTypeID);
+  getTimeZonesForEventType(eventTypeId: string): TimeZone[] {
+    return this.data.timeZones.filter(tz => tz.eventTypeId == eventTypeId);
   }
 
-  eventTypeColorMap: { [key: number]: string } = {};
+  getNumberFromDate(_date: string)
+  {
+    const date = new Date(_date);
+    const startDate = new Date(this.data.eventData.startDate);
+    startDate.setHours(0,0,0);
+    return Math.floor((date.getTime() - startDate.getTime()) / 60000);
+  }
 
-  getEventTypeColor(eventTypeId: number | null): string {
+  eventTypeColorMap: { [key: string]: string } = {};
+
+  getEventTypeColor(eventTypeId: string): string {
     if (eventTypeId == null) return '#aaa';
     if (!this.eventTypeColorMap[eventTypeId]) {
       const r = Math.floor(Math.random() * 200 + 30); 
@@ -178,12 +185,12 @@ export class ScheduleComponent {
 
   getFilteredConstraints(type:string)
   {
-    return this.data.constraints.filter(item => item.constraintType === type);
+    return this.data.constraints.filter(item => item.constraintType == type);
   }
 
-  expandedEventTypes: { [key: number]: boolean } = {};
+  expandedEventTypes: { [key: string]: boolean } = {};
 
-  toggleEventType(etId: number) {
+  toggleEventType(etId: string) {
     this.expandedEventTypes[etId] = !this.expandedEventTypes[etId];
   }
 
@@ -193,10 +200,10 @@ export class ScheduleComponent {
     if (this.isSyncing) return;
     this.isSyncing = true;
 
-    if (source === 'box1') {
+    if (source == 'box1') {
       this.box2.nativeElement.scrollLeft = this.box1.nativeElement.scrollLeft;
       this.box3.nativeElement.scrollLeft = this.box1.nativeElement.scrollLeft;
-    } else if (source === "box2")
+    } else if (source == "box2")
     {
       this.box1.nativeElement.scrollLeft = this.box2.nativeElement.scrollLeft;
       this.box3.nativeElement.scrollLeft = this.box2.nativeElement.scrollLeft;
@@ -213,140 +220,140 @@ export class ScheduleComponent {
   eventHeight = 45;
   hours = [0,0];
 
-  lanesByEventType: { [key: number]: { participantName: string, events: ScheduleTimeZone[] }[] } = {};
+  lanesByEventType: { [key: string]: { participantName: string, events: TimeZone[] }[] } = {};
 
   locationsByGroup: {
-    [key: number]: { participantName: string, events: ScheduleTimeZone[] }[]
+    [key: string]: { participantName: string, events: TimeZone[] }[]
   } = {};
 
   locationsLanes: {
-    [key: number]: { events: ScheduleTimeZone[] }[]
+    [key: string]: { events: TimeZone[] }[]
   } = {};
 
-  expandedLocations: { [key: number]: boolean } = {};
+  expandedLocations: { [key: string]: boolean } = {};
 
-  toggleLocation(locId: number) {
+  toggleLocation(locId: string) {
     this.expandedLocations[locId] = !this.expandedLocations[locId];
   }
 
-  getLaneGlobalIndex(eventTypeId: number | null, laneIndex: number): number {
+  getLaneGlobalIndex(eventTypeId: string, laneIndex: number): number {
     if (eventTypeId == null) return laneIndex;
     const lanes = this.lanesByEventType[eventTypeId] || [];
     let offset = 0;
     for (let et of this.data.eventTypes) {
-      if (et.eventType_ID === eventTypeId) break;
-      offset += (this.lanesByEventType[et.eventType_ID!] || []).length;
+      if (et.eventTypeId == eventTypeId) break;
+      offset += (this.lanesByEventType[et.eventTypeId] || []).length;
     }
     return offset + laneIndex;
   }
 
 
-  getLaneTop(etId: number, laneIndex: number): number {
+  getLaneTop(etId: string, laneIndex: number): number {
     let top = this.laneHeight; 
     for (let et of this.data.eventTypes) {
-      if (et.eventType_ID === etId) {
+      if (et.eventTypeId == etId) {
         if (this.expandedEventTypes[etId]) {
           top += this.laneHeight * laneIndex; 
         }
         break;
-      } else if (this.expandedEventTypes[et.eventType_ID!]) {
-        top += this.laneHeight * (this.lanesByEventType[et.eventType_ID!]?.length || 0);
+      } else if (this.expandedEventTypes[et.eventTypeId]) {
+        top += this.laneHeight * (this.lanesByEventType[et.eventTypeId]?.length || 0);
       }
       top += this.laneHeight; 
     }
     return top;
   }
 
-  getEventTypeRangeTop(etId: number): number {
+  getEventTypeRangeTop(etId: string): number {
     let top = this.laneHeight; 
     for (let et of this.data.eventTypes) {
-      if (et.eventType_ID === etId) break;
+      if (et.eventTypeId == etId) break;
       top += this.laneHeight;
-      if (this.expandedEventTypes[et.eventType_ID!]) {
-        top += this.laneHeight * (this.lanesByEventType[et.eventType_ID!]?.length || 0);
+      if (this.expandedEventTypes[et.eventTypeId]) {
+        top += this.laneHeight * (this.lanesByEventType[et.eventTypeId]?.length || 0);
       }
     }
     return top - (this.laneHeight / 2); 
   }
 
-  getEventTypeRowIndex(eventTypeId: number): number {
+  getEventTypeRowIndex(eventTypeId: string): number {
     let rowIndex = 0;
 
     for (let et of this.data.eventTypes) {
-      if (et.eventType_ID === eventTypeId) {
+      if (et.eventTypeId == eventTypeId) {
         return rowIndex;
       }
-      const lanes = this.lanesByEventType[et.eventType_ID!] || [];
+      const lanes = this.lanesByEventType[et.eventTypeId] || [];
       rowIndex += lanes.length + 1; 
     }
 
     return 0; 
   }
 
-  getParticipantName(participantId: number | null): string {
+  getParticipantName(participantId: string): string {
     if (participantId == null) return '';
-    const p = this.data.participans.find(p => p.participant_ID === participantId);
+    const p = this.data.participants.find(p => p.participantId == participantId);
     return p ? p.participantName ?? '' : '';
   }
 
-  getEventTypeName(eventtypeid: number | null): string {
+  getEventTypeName(eventtypeid: string): string {
     if (eventtypeid == null) return '';
-    const p = this.data.eventTypes.find(p => p.eventType_ID === eventtypeid);
-    return p ? p.eventTypeName ?? '' : '';
+    const p = this.data.eventTypes.find(p => p.eventTypeId == eventtypeid);
+    return p ? p.typeName ?? '' : '';
   }
 
-  getLocationName(eventtypeid: number | null): string {
+  getLocationName(eventtypeid: string): string {
     if (eventtypeid == null) return '';
-    const p = this.data.timeZones.find(p => p.eventType_ID === eventtypeid);
-    const q = this.data.locations.find(q => q.location_ID === p?.location_ID);
+    const p = this.data.timeZones.find(p => p.eventTypeId == eventtypeid);
+    const q = this.data.locations.find(q => q.locationId == p?.locationId);
     return q ? q.locationName ?? '' : '';
   }
 
-  getLocationName2(locationid: number | null): string {
-    if (locationid == null) return '';
-    const q = this.data.locations.find(q => q.location_ID === locationid)?.locationName;
+  getLocationName2(locationId: string): string {
+    if (locationId == null) return '';
+    const q = this.data.locations.find(q => q.locationId == locationId)?.locationName;
     return q ?? '';
   }
 
-  openInfo(i:number) {
+  openInfo(i:string) {
       this.dialog.open(TimezoneInfoComponent, {
         panelClass: 'custom-dialog-radius',
         data: { data: this.data, index: i}
       });
   }
 
-  hasRange(i:number)
+  hasRange(i:string)
   {
-    return (this.data.timeZones.filter(tz => tz.location_ID == i).length>0)
+    return (this.data.timeZones.filter(tz => tz.locationId == i).length>0)
   }
 
   computeLanes() {
     for (let et of this.data.eventTypes) {
       const events = this.data.timeZones
-        .filter(e => e.eventType_ID === et.eventType_ID)
+        .filter(e => e.eventTypeId == et.eventTypeId)
         .sort((a,b) => (a.startTime ?? 0) - (b.startTime ?? 0));
 
-      const lanes: { participantName: string, events: ScheduleTimeZone[] }[] = [];
+      const lanes: { participantName: string, events: TimeZone[] }[] = [];
 
       for (let ev of events) {
         let placed = false;
         for (let lane of lanes) {
           if (!lane.events.some(e => !(e.endTime! <= ev.startTime! - 5 || e.startTime! >= ev.endTime! + 5))) {
             lane.events.push(ev);
-            lane.participantName = this.data.participans.find(p => p.participant_ID === ev.participant_ID)!.participantName!;
+            lane.participantName = this.data.participants.find(p => p.participantId == ev.participantId)!.participantName!;
             placed = true;
             break;
           }
         }
         if (!placed) {
           lanes.push({
-            participantName: this.data.participans.find(p => p.participant_ID === ev.participant_ID)!.participantName!,
+            participantName: this.data.participants.find(p => p.participantId == ev.participantId)!.participantName!,
             events: [ev]
           });
         }
       }
 
-      this.lanesByEventType[et.eventType_ID ?? 0] = lanes;
+      this.lanesByEventType[et.eventTypeId] = lanes;
     }
   }
 
@@ -354,13 +361,13 @@ export class ScheduleComponent {
     this.locationsLanes = {};
 
     for (let loc of this.data.locations) {
-      const locId = loc.location_ID!;
+      const locId = loc.locationId!;
 
       const events = this.data.timeZones
-        .filter(t => t.location_ID === locId)
+        .filter(t => t.locationId == locId)
         .sort((a, b) => (a.slot ?? 0) - (b.slot ?? 0)); 
 
-      const lanes: { events: ScheduleTimeZone[] }[] = [];
+      const lanes: { events: TimeZone[] }[] = [];
 
       for (let ev of events) {
         const slotIndex = (ev.slot ?? 1) - 1; 
@@ -381,8 +388,8 @@ export class ScheduleComponent {
     for (const loc of this.data.locations) {
       rows++; 
 
-      if (this.expandedLocations[loc.location_ID!]) {
-        rows += (this.locationsLanes[loc.location_ID!]?.length ?? 0);
+      if (this.expandedLocations[loc.locationId]) {
+        rows += (this.locationsLanes[loc.locationId]?.length ?? 0);
       }
     }
 
@@ -394,8 +401,8 @@ export class ScheduleComponent {
 
     for (const et of this.data.eventTypes) {
       rows++;
-      if (this.expandedEventTypes[et.eventType_ID!]) {
-        rows += (this.lanesByEventType[et.eventType_ID!]?.length ?? 0);
+      if (this.expandedEventTypes[et.eventTypeId]) {
+        rows += (this.lanesByEventType[et.eventTypeId]?.length ?? 0);
       }
     }
 
@@ -405,7 +412,7 @@ export class ScheduleComponent {
   get totalByCompetitorHeight(): number {
     let rows = 1; 
 
-    for (const par of this.data.participans) {
+    for (const par of this.data.participants) {
       rows++; 
     }
 
@@ -414,7 +421,6 @@ export class ScheduleComponent {
 
   export(){
     this.isExporting = true;
-    console.log(this.isExporting);
     this.scheduleService.downloadSchedule(this.id)
     .subscribe(blob => {
       this.isExporting = false;

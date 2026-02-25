@@ -9,34 +9,23 @@ using ScheduleLogic.Server.Models;
 using Microsoft.AspNet.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Authorization;
+using static ScheduleLogic.Server.Class.AuthenticationModels;
 
 namespace ScheduleLogic.Server.Controllers
 {
-    public class LoginModel
-    {
-        public string Username { get; set; } = null!;
-        public string Password { get; set; } = null!;
-    }
-
-    public class RegisterModel
-    {
-        public string Username { get; set; } = null!;
-        public string Password { get; set; } = null!;
-        public string Email { get; set; } = null!;
-    }
-
-
     [ApiController]
     [Route("api/[controller]")]
     public class AuthenticationController : ControllerBase
     {
         private readonly DatabaseService _dbService;
         private readonly IConfiguration _configuration;
+        private readonly bool _isProd;
 
-        public AuthenticationController(DatabaseService dbService, IConfiguration configuration)
+        public AuthenticationController(DatabaseService dbService, IConfiguration configuration, IWebHostEnvironment env)
         {
             _dbService = dbService;
             _configuration = configuration;
+            _isProd = env.IsProduction();
         }
 
         [HttpPost("login")]
@@ -45,18 +34,26 @@ namespace ScheduleLogic.Server.Controllers
             if (_dbService.LoginUser(data.Username, data.Password))
             {
                 var authClaims = new List<Claim>
-            {
+                {
                 new Claim(ClaimTypes.Name, data.Username),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-            };
+                };
 
                 var token = GetToken(authClaims);
-                return Ok(new
+                var jwtToken = new JwtSecurityTokenHandler().WriteToken(token);
+
+
+                Response.Cookies.Append("jwt", jwtToken, new CookieOptions
                 {
-                    token = new JwtSecurityTokenHandler().WriteToken(token),
-                    expiration = token.ValidTo
+                    HttpOnly = true, 
+                    Secure = true,
+                    SameSite = SameSiteMode.Strict,
+                    Expires = DateTime.UtcNow.AddHours(1),
                 });
+
+                return new JsonResult(new { message = "Login success!" });
             }
+
             return Unauthorized();
         }
 

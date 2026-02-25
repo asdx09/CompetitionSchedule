@@ -46,7 +46,6 @@ export class LoginComponent {
     this.WaitForAnswer = true;
     this.auth.login(this.loginUsername, this.loginPassword).subscribe({
       next: (res) => {
-        localStorage.setItem('token', res.token);
         this.router.navigate(['home']);
          this.WaitForAnswer = false;
       },

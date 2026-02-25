@@ -10,15 +10,19 @@ using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddExceptionHandler<ExceptionHandler>();
+builder.Services.AddProblemDetails();
+
 // CORS policy
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAngularApp",
         policy =>
         {
-            policy.WithOrigins("https://localhost:58921") // Angular port
+            policy.WithOrigins("https://localhost:58921") 
                   .AllowAnyHeader()
-                  .AllowAnyMethod();
+                  .AllowAnyMethod()
+                  .AllowCredentials();
         });
 });
 builder.Services.AddControllers();
@@ -48,13 +52,26 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = jwtSettings["Audience"],
         IssuerSigningKey = new SymmetricSecurityKey(key)
     };
+
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            if (context.Request.Cookies.ContainsKey("jwt"))
+            {
+                context.Token = context.Request.Cookies["jwt"];
+            }
+            return Task.CompletedTask;
+        }
+    };
 });
 
+var isProd = !builder.Environment.IsDevelopment();
 var app = builder.Build();
 
+app.UseExceptionHandler();
 app.UseHttpsRedirection();
 
-// ⚠ CORS middleware először
 app.UseCors("AllowAngularApp");
 
 app.UseDefaultFiles();  

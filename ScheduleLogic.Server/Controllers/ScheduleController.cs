@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ScheduleLogic.Server.Services;
 using System.Text.Json;
+using static ScheduleLogic.Server.Class.ScheduleModels;
 
 
 namespace ScheduleLogic.Server.Controllers
@@ -65,13 +66,13 @@ namespace ScheduleLogic.Server.Controllers
         [HttpPost("answer")]
         public async Task<IActionResult> SolverAnswer(SolverResponse data)
         {
-            if (data.status == "FEASIBLE" || data.status == "PARTIAL_SOLUTION" || data.status == "OPTIMAL" || data.status == "4" || data.status == "1")
+            if (data.Status == "FEASIBLE" || data.Status == "PARTIAL_SOLUTION" || data.Status == "OPTIMAL" || data.Status == "4" || data.Status == "1")
             {
-                _dbService.NewSchedule(data.schedule, data.event_id);
+                _dbService.NewSchedule(data.Schedule, data.EventId);
             }
             else
             {
-                Console.WriteLine("No solution found! " + data.status);
+                Console.WriteLine("No solution found! " + data.Status);
             }
             return Ok();
         }

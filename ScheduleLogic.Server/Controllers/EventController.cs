@@ -2,20 +2,12 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ScheduleLogic.Server.Class;
-using ScheduleLogic.Server.Models;
 using ScheduleLogic.Server.Services;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
 namespace ScheduleLogic.Server.Controllers
 {
-    public class EventsData
-    {
-        public string eventName { get; set; }
-        public long event_ID { get; set; }
-    }
-
-
     [ApiController]
     [Route("api/[controller]")]
     public class EventController : ControllerBase
@@ -63,9 +55,9 @@ namespace ScheduleLogic.Server.Controllers
 
         [Authorize]
         [HttpPost("save-event")]
-        public IActionResult SaveEvent([FromBody] dataDTO Data)
+        public IActionResult SaveEvent([FromBody] EventModels.DataDTO Data)
         {
-            if (!_dbService.CheckUser(User.Identity.Name, Data.eventData.EventId.ToString())) return Forbid();
+            if (!_dbService.CheckUser(User.Identity.Name, Data.EventData.EventId.ToString())) return Forbid();
             bool res = _dbService.SaveEvent(Data);
             if (res) return Ok();
             else return BadRequest();
@@ -73,7 +65,7 @@ namespace ScheduleLogic.Server.Controllers
 
         [Authorize]
         [HttpPost("new-wizard")]
-        public IActionResult NewWizardEvent([FromBody] dataDTO Data)
+        public IActionResult NewWizardEvent([FromBody] EventModels.DataDTO Data)
         {
             _dbService.NewWizardEvent(Data, User.Identity.Name);
             //try { _dbService.NewWizardEvent(Data, User.Identity.Name); } catch { return BadRequest(); }
