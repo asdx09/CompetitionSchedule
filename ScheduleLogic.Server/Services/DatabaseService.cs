@@ -1,9 +1,12 @@
 ﻿using DocumentFormat.OpenXml.Drawing.Charts;
+using DocumentFormat.OpenXml.Office2016.Drawing.Charts;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using ScheduleLogic.Server.Class;
 using ScheduleLogic.Server.Controllers;
 using ScheduleLogic.Server.Models;
+using ScheduleLogic.Server.Services.Interfaces;
 using System;
 using System.Linq;
 using static ScheduleLogic.Server.Class.EventModels;
@@ -12,18 +15,18 @@ using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace ScheduleLogic.Server.Services
 {
-    public class DatabaseService
+    public class DatabaseService : IDatabaseService
     {
-        private readonly ScheduleLogicDbContext _context;
+        private readonly ScheduleLogicDbContext _dbService;
 
         public DatabaseService(ScheduleLogicDbContext context)
         {
-            _context = context;
+            _dbService = context;
         }
 
-        public bool LoginUser(string username, string password)
+        public async Task<bool> LoginUser(string username, string password)
         {
-            var user = _context.Users.FirstOrDefault(u => u.Username == username);
+            var user = await _dbService.Users.FirstOrDefaultAsync(u => u.Username == username);
             if (user == null) return false;
 
             var passwordHasher = new PasswordHasher<User>();
@@ -31,9 +34,9 @@ namespace ScheduleLogic.Server.Services
 
             return result == PasswordVerificationResult.Success;
         }
-        public string RegisterUser(string username, string password, string email)
+        public async Task<string> RegisterUser(string username, string password, string email)
         {
-            if (_context.Users.Any(u => u.Username == username))
+            if (await _dbService.Users.AnyAsync(u => u.Username == username))
                 return "Username already taken!";
 
             var passwordHasher = new PasswordHasher<User>();
@@ -45,41 +48,48 @@ namespace ScheduleLogic.Server.Services
             user.Email = email;
             user.Validated = true;
 
-            _context.Users.Add(user);
-            _context.SaveChanges();
+            await _dbService.Users.AddAsync(user);
+            await _dbService.SaveChangesAsync();
             return "";
         }
-        public long NewEvent(string username)
+        public async Task<long> NewEvent(string username)
         {
-            Event NewEvent = new Event();
-            NewEvent.CreatedBy = GetUserID(username);
-            NewEvent.EventName = "New Event";
-            NewEvent.StartDate = DateTime.Now;
-            NewEvent.EndDate = DateTime.Now;
-            NewEvent.BasePauseTime = 5;
-            NewEvent.LocationPauseTime = 5;
-            NewEvent.IsPrivate = true;
-            NewEvent.LocWeight = 1;
-            NewEvent.CompWeight = 1;
-            NewEvent.GroupWeight = 1;
-            NewEvent.TypeWeight = 1;
-            var tempEvent = _context.Events.Add(NewEvent);
-            _context.SaveChanges();
+            Event newEvent = new Event
+            {
+                CreatedBy = await GetUserID(username),
+                EventName = "New Event",
+                StartDate = DateTime.Now,
+                EndDate = DateTime.Now,
+                BasePauseTime = 5,
+                LocationPauseTime = 5,
+                IsPrivate = true,
+                LocWeight = 1,
+                CompWeight = 1,
+                GroupWeight = 1,
+                TypeWeight = 1
+            };
+            var tempEvent = await _dbService.Events.AddAsync(newEvent);
+            await _dbService.SaveChangesAsync();
             return tempEvent.Entity.EventId;
         }
-        public bool NewWizardEvent(DataDTO Data, string username)
+        public async Task<bool> NewWizardEvent(DataDTO Data, string username)
         {
-            using var tx = _context.Database.BeginTransaction();
+            using var tx = _dbService.Database.BeginTransaction();
 
-            long id = NewEvent(username);
+            long id = await NewEvent(username);
 
-            _context.Events.Where(w => w.EventId == id).First().EventName = Data.EventData.EventName;
-            _context.Events.Where(w => w.EventId == id).First().StartDate = Data.EventData.StartDate;
-            _context.Events.Where(w => w.EventId == id).First().EndDate = Data.EventData.EndDate;
-            _context.Events.Where(w => w.EventId == id).First().BasePauseTime = Data.EventData.BasePauseTime;
-            _context.Events.Where(w => w.EventId == id).First().LocationPauseTime = Data.EventData.LocationPauseTime;
+            var existingEvent = await _dbService.Events
+                .FirstOrDefaultAsync(e => e.EventId == id);
 
-            try { _context.SaveChanges(); } catch { return false; }
+            if (existingEvent != null)
+            {
+                existingEvent.EventName = Data.EventData.EventName;
+                existingEvent.StartDate = Data.EventData.StartDate;
+                existingEvent.EndDate = Data.EventData.EndDate;
+                existingEvent.IsPrivate = Data.EventData.IsPrivate;
+                existingEvent.BasePauseTime = Data.EventData.BasePauseTime;
+                existingEvent.LocationPauseTime = Data.EventData.LocationPauseTime;
+            }
 
 
             var EventTypeMap = new Dictionary<string, EventType>();
@@ -89,10 +99,9 @@ namespace ScheduleLogic.Server.Services
                 temp.EventId = id;
                 temp.TypeName = item.TypeName;
                 temp.TimeRange = item.TimeRange;
-                _context.EventTypes.Add(temp);
+                _dbService.EventTypes.Add(temp);
                 EventTypeMap[item.EventTypeId] = temp;
             }
-            try { _context.SaveChanges(); } catch { return false; }
 
             var GroupMap = new Dictionary<string, Group>();
             foreach (GroupDTO item in Data.Groups)
@@ -100,10 +109,9 @@ namespace ScheduleLogic.Server.Services
                 Group temp = new Group();
                 temp.EventId = (long)Convert.ToDouble(id);
                 temp.GroupName = item.GroupName;
-                _context.Groups.Add(temp);
+                _dbService.Groups.Add(temp);
                 GroupMap[item.GroupId] = temp;
             }
-            try { _context.SaveChanges(); } catch { return false; }
 
             var LocationMap = new Dictionary<string, Location>();
             foreach (LocationDTO item in Data.Locations)
@@ -112,10 +120,9 @@ namespace ScheduleLogic.Server.Services
                 temp.LocationName = item.LocationName;
                 temp.EventId = (long)Convert.ToDouble(id);
                 temp.Slots = item.Slots;
-                _context.Locations.Add(temp);
+                _dbService.Locations.Add(temp);
                 LocationMap[item.LocationId] = temp;
             }
-            try { _context.SaveChanges(); } catch { return false; }
 
             var LocationTableMap = new Dictionary<string, LocationTable>();
             foreach (LocationTableDTO item in Data.LocationTable)
@@ -124,10 +131,9 @@ namespace ScheduleLogic.Server.Services
                 temp.EventId = (long)Convert.ToDouble(id);
                 temp.LocationId = LocationMap[item.LocationId].LocationId;
                 temp.EventTypeId = EventTypeMap[item.EventTypeId].EventTypeId;
-                _context.LocationTables.Add(temp);
+                _dbService.LocationTables.Add(temp);
                 LocationTableMap[item.LocationTableId] = temp;
             }
-            try { _context.SaveChanges(); } catch { return false; }
 
             var ParticipantMap = new Dictionary<string, Participant>();
             foreach (ParticipantDTO item in Data.Participants)
@@ -137,10 +143,9 @@ namespace ScheduleLogic.Server.Services
                 temp.EventId = (long)Convert.ToDouble(id);
                 temp.CompetitorNumber = item.CompetitorNumber;
                 if (item.GroupId != null && item.GroupId != "") temp.GroupId = GroupMap[item.GroupId].GroupId;
-                _context.Participants.Add(temp);
+                _dbService.Participants.Add(temp);
                 ParticipantMap[item.ParticipantId] = temp;
             }
-            try { _context.SaveChanges(); } catch { return false; }
 
             var pauseTableMap = new Dictionary<string, PauseTable>();
             foreach (PauseTableDTO item in Data.PauseTable)
@@ -150,10 +155,9 @@ namespace ScheduleLogic.Server.Services
                 temp.LocationId1 = LocationMap[item.LocationId1].LocationId;
                 temp.LocationId2 = LocationMap[item.LocationId2].LocationId;
                 temp.Pause = item.Pause;
-                _context.PauseTables.Add(temp);
+                _dbService.PauseTables.Add(temp);
                 pauseTableMap[item.PauseId] = temp;
             }
-            try { _context.SaveChanges(); } catch { return false; }
 
             var registrationMap = new Dictionary<string, Registration>();
             foreach (RegistrationDTO item in Data.Registrations)
@@ -162,10 +166,9 @@ namespace ScheduleLogic.Server.Services
                 temp.EventId = (long)Convert.ToDouble(id);
                 temp.ParticipantId = ParticipantMap[item.ParticipantId].ParticipantId;
                 temp.EventTypeId = EventTypeMap[item.EventTypeId].EventTypeId;
-                _context.Registrations.Add(temp);
+                _dbService.Registrations.Add(temp);
                 registrationMap[item.RegistrationId] = temp;
             }
-            try { _context.SaveChanges(); } catch { return false; }
 
             var ConstraintMap = new Dictionary<string, Constraint>();
             foreach (ConstraintDTO item in Data.Constraints)
@@ -194,10 +197,10 @@ namespace ScheduleLogic.Server.Services
                 catch { return false; }
                 temp.StartTime = item.StartTime;
                 temp.EndTime = item.EndTime;
-                _context.Constraints.Add(temp);
+                _dbService.Constraints.Add(temp);
                 ConstraintMap[item.ConstraintId] = temp;
             }
-            try { _context.SaveChanges(); } catch { return false; }
+            await _dbService.SaveChangesAsync(); 
 
             try
             {
@@ -210,51 +213,54 @@ namespace ScheduleLogic.Server.Services
             }
             return true;
         }
-        public void DeleteEvent(int id)
+        public async Task DeleteEvent(int id)
         {
-            var EventToRemove = _context.Events.Where(w => w.EventId == id).ToList();
-            _context.Events.RemoveRange(EventToRemove);
-            var pauesToRemove = _context.PauseTables.Where(w => w.EventId == id).ToList();
-            _context.PauseTables.RemoveRange(pauesToRemove);
-            var LocationTableToRemove = _context.LocationTables.Where(w => w.EventId == id).ToList();
-            _context.LocationTables.RemoveRange(LocationTableToRemove);
-            var LocationsToRemove = _context.Locations.Where(w => w.EventId == id).ToList();
-            _context.Locations.RemoveRange(LocationsToRemove);
-            var SchedulesToRemove = _context.Schedules.Where(w => w.EventTypeId == id).ToList();
-            _context.Schedules.RemoveRange(SchedulesToRemove);
-            var registrationsToRemove = _context.Registrations.Where(w => w.EventId == id).ToList();
-            _context.Registrations.RemoveRange(registrationsToRemove);
-            var ParticipantsToRemove = _context.Participants.Where(w => w.EventId == id).ToList();
-            _context.Participants.RemoveRange(ParticipantsToRemove);
-            var GroupsToRemove = _context.Groups.Where(w => w.EventId == id).ToList();
-            _context.Groups.RemoveRange(GroupsToRemove);
-            var EventTypesToRemove = _context.EventTypes.Where(w => w.EventId == id).ToList();
-            _context.EventTypes.RemoveRange(EventTypesToRemove);
-            var constraintsToRemove = _context.Constraints.Where(w => w.EventId == id).ToList();
-            _context.Constraints.RemoveRange(constraintsToRemove);
-            _context.SaveChanges();
+            var EventToRemove = await _dbService.Events.Where(w => w.EventId == id).ToListAsync();
+            _dbService.Events.RemoveRange(EventToRemove);
+            var pauesToRemove = await _dbService.PauseTables.Where(w => w.EventId == id).ToListAsync();
+            _dbService.PauseTables.RemoveRange(pauesToRemove);
+            var LocationTableToRemove = await _dbService.LocationTables.Where(w => w.EventId == id).ToListAsync();
+            _dbService.LocationTables.RemoveRange(LocationTableToRemove);
+            var LocationsToRemove = await _dbService.Locations.Where(w => w.EventId == id).ToListAsync();
+            _dbService.Locations.RemoveRange(LocationsToRemove);
+            var SchedulesToRemove = await _dbService.Schedules.Where(w => w.EventTypeId == id).ToListAsync();
+            _dbService.Schedules.RemoveRange(SchedulesToRemove);
+            var registrationsToRemove = await _dbService.Registrations.Where(w => w.EventId == id).ToListAsync();
+            _dbService.Registrations.RemoveRange(registrationsToRemove);
+            var ParticipantsToRemove = await _dbService.Participants.Where(w => w.EventId == id).ToListAsync();
+            _dbService.Participants.RemoveRange(ParticipantsToRemove);
+            var GroupsToRemove = await _dbService.Groups.Where(w => w.EventId == id).ToListAsync();
+            _dbService.Groups.RemoveRange(GroupsToRemove);
+            var EventTypesToRemove = await _dbService.EventTypes.Where(w => w.EventId == id).ToListAsync();
+            _dbService.EventTypes.RemoveRange(EventTypesToRemove);
+            var constraintsToRemove = await _dbService.Constraints.Where(w => w.EventId == id).ToListAsync();
+            _dbService.Constraints.RemoveRange(constraintsToRemove);
+            await _dbService.SaveChangesAsync();
         }
-        public long GetUserID(string username)
+        public async Task<long> GetUserID(string username)
         {
-            if (_context.Users.Count() < 1) return 0;
-            return _context.Users.Where(w => w.Username == username).First().UserId;
+            if (await _dbService.Users.CountAsync() < 1) return 0;
+            return _dbService.Users.Where(w => w.Username == username).First().UserId;
         }
-        public bool CheckUser(string username, string id)
+        public async Task<bool> CheckUser(string username, string id)
         {
-            return _context.Events.Where(w => w.CreatedBy == GetUserID(username) && w.EventId == Convert.ToInt32(id)).Count() > 0;
+            var userId = await GetUserID(username);
+            return await _dbService.Events.Where(w => w.CreatedBy == userId && w.EventId == Convert.ToInt32(id)).AnyAsync();
         }
-        public bool CheckUserExist(string username)
+        public async Task<bool> CheckUserExist(string username)
         {
-            return _context.Users.Where(w => w.Username == username).Count() > 0;
+            return await _dbService.Users.Where(w => w.Username == username).CountAsync() > 0;
         }
-        public List<EventsData> GetEvents(string username)
+        public async Task<List<EventsData>> GetEvents(string username)
         {
-            return _context.Events.Where(e => e.CreatedBy == GetUserID(username)).Select(e => new EventsData{EventId = e.EventId, EventName = e.EventName}).ToList();
+            var userId = await GetUserID(username);
+            return await _dbService.Events.Where(e => e.CreatedBy == userId).Select(e => new EventsData{EventId = e.EventId, EventName = e.EventName}).ToListAsync();
         }
-        public DataDTO GetEvent(string id, string username)
+        public async Task<DataDTO> GetEvent(string id, string username)
         {
             DataDTO TempData = new DataDTO();
-            TempData.EventData = _context.Events.AsNoTracking().Where(w => w.CreatedBy == GetUserID(username) && w.EventId == Convert.ToInt32(id)).Select(e => new EventDTO
+            var userId = await GetUserID(username);
+            TempData.EventData = await _dbService.Events.AsNoTracking().Where(w => w.CreatedBy == userId && w.EventId == Convert.ToInt32(id)).Select(e => new EventDTO
             {
                 EventId = e.EventId.ToString(),
                 EventName = e.EventName,
@@ -267,58 +273,58 @@ namespace ScheduleLogic.Server.Services
                 GroupWeight = e.GroupWeight,
                 TypeWeight = e.TypeWeight,
                 CompWeight = e.CompWeight
-            }).First();
-            TempData.EventTypes = _context.EventTypes.AsNoTracking().Where(w => w.EventId == Convert.ToInt32(id)).Select(e => new EventTypeDTO
+            }).FirstAsync();
+            TempData.EventTypes = await _dbService.EventTypes.AsNoTracking().Where(w => w.EventId == Convert.ToInt32(id)).Select(e => new EventTypeDTO
             {
                 EventId = e.EventId.ToString(),
                 EventTypeId = e.EventTypeId.ToString(),
                 TypeName = e.TypeName,
                 TimeRange = e.TimeRange
-            }).ToList();
-            TempData.Groups = _context.Groups.AsNoTracking().Where(w => w.EventId == Convert.ToInt32(id)).Select(e => new GroupDTO
+            }).ToListAsync();
+            TempData.Groups = await _dbService.Groups.AsNoTracking().Where(w => w.EventId == Convert.ToInt32(id)).Select(e => new GroupDTO
             {
                 GroupId = e.GroupId.ToString(),
                 EventId = e.EventId.ToString(),
                 GroupName = e.GroupName
-            }).ToList();
-            TempData.Locations = _context.Locations.AsNoTracking().Where(w => w.EventId == Convert.ToInt32(id)).Select(e => new LocationDTO
+            }).ToListAsync();
+            TempData.Locations = await _dbService.Locations.AsNoTracking().Where(w => w.EventId == Convert.ToInt32(id)).Select(e => new LocationDTO
             {
                 LocationId = e.LocationId.ToString(),
                 EventId = e.EventId.ToString(),
                 LocationName = e.LocationName,
                 Slots = e.Slots
-            }).ToList();
-            TempData.Participants = _context.Participants.AsNoTracking().Where(w => w.EventId == Convert.ToInt32(id)).Select(e => new ParticipantDTO
+            }).ToListAsync();
+            TempData.Participants = await _dbService.Participants.AsNoTracking().Where(w => w.EventId == Convert.ToInt32(id)).Select(e => new ParticipantDTO
             {
                 ParticipantId = e.ParticipantId.ToString(),
                 ParticipantName = e.ParticipantName,
                 CompetitorNumber = e.CompetitorNumber,
                 EventId = e.EventId.ToString(),
                 GroupId = e.GroupId.ToString()
-            }).ToList();
-            TempData.Registrations = _context.Registrations.AsNoTracking().Where(w => w.EventId == Convert.ToInt32(id)).Select(e => new RegistrationDTO
+            }).ToListAsync();
+            TempData.Registrations = await _dbService.Registrations.AsNoTracking().Where(w => w.EventId == Convert.ToInt32(id)).Select(e => new RegistrationDTO
             {
                 RegistrationId = e.RegistrationId.ToString(),
                 EventId= e.EventId.ToString(),
                 ParticipantId= e.ParticipantId.ToString(),
                 EventTypeId = e.EventTypeId.ToString()
-            }).ToList();
-            TempData.PauseTable = _context.PauseTables.AsNoTracking().Where(w => w.EventId == Convert.ToInt32(id)).Select(e => new PauseTableDTO
+            }).ToListAsync();
+            TempData.PauseTable = await _dbService.PauseTables.AsNoTracking().Where(w => w.EventId == Convert.ToInt32(id)).Select(e => new PauseTableDTO
             {
                 PauseId = e.PauseId.ToString(),
                 EventId = e.EventId.ToString(),
                 LocationId1 = e.LocationId1.ToString(),
                 LocationId2 = e.LocationId2.ToString(),
                 Pause = e.Pause
-            }).ToList();
-            TempData.LocationTable = _context.LocationTables.AsNoTracking().Where(w => w.EventId == Convert.ToInt32(id)).Select(e => new LocationTableDTO
+            }).ToListAsync();
+            TempData.LocationTable = await _dbService.LocationTables.AsNoTracking().Where(w => w.EventId == Convert.ToInt32(id)).Select(e => new LocationTableDTO
             {
                 LocationTableId = e.LocationTableId.ToString(),
                 EventId = e.EventId.ToString(),
                 EventTypeId = e.EventTypeId.ToString(),
                 LocationId = e.LocationId.ToString()
-            }).ToList();
-            TempData.Constraints = _context.Constraints.AsNoTracking().Where(w => w.EventId == Convert.ToInt32(id)).Select(e => new ConstraintDTO
+            }).ToListAsync();
+            TempData.Constraints = await _dbService.Constraints.AsNoTracking().Where(w => w.EventId == Convert.ToInt32(id)).Select(e => new ConstraintDTO
             {
                 ConstraintId = e.ConstraintId.ToString(),
                 EventId = e.EventId.ToString(),
@@ -326,43 +332,48 @@ namespace ScheduleLogic.Server.Services
                 ConstraintType = e.ConstraintType.ToString(),
                 StartTime = e.StartTime,
                 EndTime = e.EndTime
-            }).ToList();
+            }).ToListAsync();
             return TempData;
         }
-        public bool SaveEvent(DataDTO Data)
+        public async Task<bool> SaveEvent(DataDTO Data)
         {
-            using var tx = _context.Database.BeginTransaction();
+            using var tx = _dbService.Database.BeginTransaction();
 
             long id = (long)Convert.ToDouble(Data.EventData.EventId);
-            _context.Events.Where(w => w.EventId.ToString() == Data.EventData.EventId).First().EventName = Data.EventData.EventName;
-            _context.Events.Where(w => w.EventId.ToString() == Data.EventData.EventId).First().StartDate = Data.EventData.StartDate;
-            _context.Events.Where(w => w.EventId.ToString() == Data.EventData.EventId).First().EndDate = Data.EventData.EndDate;
-            _context.Events.Where(w => w.EventId.ToString() == Data.EventData.EventId).First().IsPrivate = Data.EventData.IsPrivate;
-            _context.Events.Where(w => w.EventId.ToString() == Data.EventData.EventId).First().BasePauseTime = Data.EventData.BasePauseTime;
-            _context.Events.Where(w => w.EventId.ToString() == Data.EventData.EventId).First().LocationPauseTime = Data.EventData.LocationPauseTime;
-            _context.Events.Where(w => w.EventId.ToString() == Data.EventData.EventId).First().LocWeight = Data.EventData.LocWeight;
-            _context.Events.Where(w => w.EventId.ToString() == Data.EventData.EventId).First().GroupWeight = Data.EventData.GroupWeight;
-            _context.Events.Where(w => w.EventId.ToString() == Data.EventData.EventId).First().TypeWeight = Data.EventData.TypeWeight;
-            _context.Events.Where(w => w.EventId.ToString() == Data.EventData.EventId).First().CompWeight = Data.EventData.CompWeight;
 
-            var EventTypesToRemove = _context.EventTypes.Where(w => w.EventId == id).ToList();
-            _context.EventTypes.RemoveRange(EventTypesToRemove);
-            var GroupsToRemove = _context.Groups.Where(w => w.EventId == id).ToList();
-            _context.Groups.RemoveRange(GroupsToRemove);
-            var LocationsToRemove = _context.Locations.Where(w => w.EventId == id).ToList();
-            _context.Locations.RemoveRange(LocationsToRemove);
-            var LocationTableToRemove = _context.LocationTables.Where(w => w.EventId == id).ToList();
-            _context.LocationTables.RemoveRange(LocationTableToRemove);
-            var ParticipantsToRemove = _context.Participants.Where(w => w.EventId == id).ToList();
-            _context.Participants.RemoveRange(ParticipantsToRemove);
-            var PauseTableToRemove = _context.PauseTables.Where(w => w.EventId == id).ToList();
-            _context.PauseTables.RemoveRange(PauseTableToRemove);
-            var RegistrationToRemove = _context.Registrations.Where(w => w.EventId == id).ToList();
-            _context.Registrations.RemoveRange(RegistrationToRemove);
-            var ConstraintsToRemove = _context.Constraints.Where(w => w.EventId == id).ToList();
-            _context.Constraints.RemoveRange(ConstraintsToRemove);
-            try { _context.SaveChanges(); } catch { return false; }
+            var existingEvent = await _dbService.Events
+                .FirstOrDefaultAsync(e => e.EventId == id);
 
+            if (existingEvent != null)
+            {
+                existingEvent.EventName = Data.EventData.EventName;
+                existingEvent.StartDate = Data.EventData.StartDate;
+                existingEvent.EndDate = Data.EventData.EndDate;
+                existingEvent.IsPrivate = Data.EventData.IsPrivate;
+                existingEvent.BasePauseTime = Data.EventData.BasePauseTime;
+                existingEvent.LocationPauseTime = Data.EventData.LocationPauseTime;
+                existingEvent.LocWeight = Data.EventData.LocWeight;
+                existingEvent.GroupWeight = Data.EventData.GroupWeight;
+                existingEvent.TypeWeight = Data.EventData.TypeWeight;
+                existingEvent.CompWeight = Data.EventData.CompWeight;
+            }
+
+            var EventTypesToRemove = _dbService.EventTypes.Where(w => w.EventId == id).ToList();
+            _dbService.EventTypes.RemoveRange(EventTypesToRemove);
+            var GroupsToRemove = _dbService.Groups.Where(w => w.EventId == id).ToList();
+            _dbService.Groups.RemoveRange(GroupsToRemove);
+            var LocationsToRemove = _dbService.Locations.Where(w => w.EventId == id).ToList();
+            _dbService.Locations.RemoveRange(LocationsToRemove);
+            var LocationTableToRemove = _dbService.LocationTables.Where(w => w.EventId == id).ToList();
+            _dbService.LocationTables.RemoveRange(LocationTableToRemove);
+            var ParticipantsToRemove = _dbService.Participants.Where(w => w.EventId == id).ToList();
+            _dbService.Participants.RemoveRange(ParticipantsToRemove);
+            var PauseTableToRemove = _dbService.PauseTables.Where(w => w.EventId == id).ToList();
+            _dbService.PauseTables.RemoveRange(PauseTableToRemove);
+            var RegistrationToRemove = _dbService.Registrations.Where(w => w.EventId == id).ToList();
+            _dbService.Registrations.RemoveRange(RegistrationToRemove);
+            var ConstraintsToRemove = _dbService.Constraints.Where(w => w.EventId == id).ToList();
+            _dbService.Constraints.RemoveRange(ConstraintsToRemove);
 
             var EventTypeMap = new Dictionary<string, EventType>();
             foreach (EventTypeDTO item in Data.EventTypes)
@@ -371,10 +382,9 @@ namespace ScheduleLogic.Server.Services
                 temp.EventId = id;
                 temp.TypeName = item.TypeName;
                 temp.TimeRange = item.TimeRange;
-                _context.EventTypes.Add(temp);
+                _dbService.EventTypes.Add(temp);
                 EventTypeMap[item.EventTypeId] = temp;
             }
-            try { _context.SaveChanges(); } catch { return false; }
 
             var GroupMap = new Dictionary<string, Group>();
             foreach (GroupDTO item in Data.Groups)
@@ -382,10 +392,9 @@ namespace ScheduleLogic.Server.Services
                 Group temp = new Group();
                 temp.EventId = (long)Convert.ToDouble(Data.EventData.EventId);
                 temp.GroupName = item.GroupName;
-                _context.Groups.Add(temp);
+                _dbService.Groups.Add(temp);
                 GroupMap[item.GroupId] = temp;
             }
-            try { _context.SaveChanges(); } catch { return false; }
 
             var LocationMap = new Dictionary<string, Location>();
             foreach (LocationDTO item in Data.Locations)
@@ -394,10 +403,9 @@ namespace ScheduleLogic.Server.Services
                 temp.LocationName = item.LocationName;
                 temp.EventId = (long)Convert.ToDouble(Data.EventData.EventId);
                 temp.Slots = item.Slots;
-                _context.Locations.Add(temp);
+                _dbService.Locations.Add(temp);
                 LocationMap[item.LocationId] = temp;
             }
-            try { _context.SaveChanges(); } catch { return false; }
 
             var LocationTableMap = new Dictionary<string, LocationTable>();
             foreach (LocationTableDTO item in Data.LocationTable)
@@ -406,10 +414,9 @@ namespace ScheduleLogic.Server.Services
                 temp.EventId = (long)Convert.ToDouble(Data.EventData.EventId);
                 temp.LocationId = LocationMap[item.LocationId].LocationId;
                 temp.EventTypeId = EventTypeMap[item.EventTypeId].EventTypeId;
-                _context.LocationTables.Add(temp);
+                _dbService.LocationTables.Add(temp);
                 LocationTableMap[item.LocationTableId] = temp;
             }
-            try { _context.SaveChanges(); } catch { return false; }
 
             var ParticipantMap = new Dictionary<string, Participant>();
             foreach (ParticipantDTO item in Data.Participants)
@@ -419,10 +426,9 @@ namespace ScheduleLogic.Server.Services
                 temp.EventId = (long)Convert.ToDouble(Data.EventData.EventId);
                 temp.CompetitorNumber = item.CompetitorNumber;
                 if (item.GroupId != null && item.GroupId != "") temp.GroupId = GroupMap[item.GroupId].GroupId;
-                _context.Participants.Add(temp);
+                _dbService.Participants.Add(temp);
                 ParticipantMap[item.ParticipantId] = temp;
             }
-            try { _context.SaveChanges(); } catch { return false; }
 
             var pauseTableMap = new Dictionary<string, PauseTable>();
             foreach (PauseTableDTO item in Data.PauseTable)
@@ -432,10 +438,9 @@ namespace ScheduleLogic.Server.Services
                 temp.LocationId1 = LocationMap[item.LocationId1].LocationId;
                 temp.LocationId2 = LocationMap[item.LocationId2].LocationId;
                 temp.Pause = item.Pause;
-                _context.PauseTables.Add(temp);
+                _dbService.PauseTables.Add(temp);
                 pauseTableMap[item.PauseId] = temp;
             }
-            try { _context.SaveChanges(); } catch { return false; }
 
             var registrationMap = new Dictionary<string, Registration>();
             foreach (RegistrationDTO item in Data.Registrations)
@@ -444,10 +449,9 @@ namespace ScheduleLogic.Server.Services
                 temp.EventId = (long)Convert.ToDouble(Data.EventData.EventId);
                 temp.ParticipantId = ParticipantMap[item.ParticipantId].ParticipantId;
                 temp.EventTypeId = EventTypeMap[item.EventTypeId].EventTypeId;
-                _context.Registrations.Add(temp);
+                _dbService.Registrations.Add(temp);
                 registrationMap[item.RegistrationId] = temp;
             }
-            try { _context.SaveChanges(); } catch { return false; }
 
             var ConstraintMap = new Dictionary<string, Constraint>();
             foreach (ConstraintDTO item in Data.Constraints)
@@ -475,10 +479,10 @@ namespace ScheduleLogic.Server.Services
                 } catch { return false; }
                 temp.StartTime = item.StartTime;
                 temp.EndTime = item.EndTime;
-                _context.Constraints.Add(temp);
+                _dbService.Constraints.Add(temp);
                 ConstraintMap[item.ConstraintId] = temp;
             }
-            try { _context.SaveChanges(); } catch { return false; }
+            await _dbService.SaveChangesAsync();
 
             try
             {
@@ -491,14 +495,14 @@ namespace ScheduleLogic.Server.Services
             }
             return true;
         }
-        public ScheduleRequestForSolver GetScheduleInfo(int id)
+        public async Task<ScheduleRequestForSolver> GetScheduleInfo(int id)
         {
             ScheduleRequestForSolver request = new ScheduleRequestForSolver();
 
             request.EventId = id;
 
             List<LocationModel> LML = new List<LocationModel>();
-            foreach (Location item in _context.Locations.Where(w => w.EventId == id))
+            foreach (Location item in _dbService.Locations.Where(w => w.EventId == id))
             {
                 LocationModel LM = new LocationModel();
                 LM.Id = item.LocationId;
@@ -508,12 +512,12 @@ namespace ScheduleLogic.Server.Services
             }
             request.Locations = LML;
 
-            var EML = _context.EventTypes.Where(e => e.EventId == id).Select(e => new EventModel
+            var EML = _dbService.EventTypes.Where(e => e.EventId == id).Select(e => new EventModel
             {
                 Id = e.EventTypeId,
                 Name = e.TypeName,
                 Duration = e.TimeRange.Hour * 60 + e.TimeRange.Minute,
-                PossibleLocations = _context.LocationTables
+                PossibleLocations = _dbService.LocationTables
                     .Where(l => l.EventTypeId == e.EventTypeId)
                     .Select(l => l.LocationId)
                     .ToList()
@@ -521,7 +525,7 @@ namespace ScheduleLogic.Server.Services
             request.Events = EML;
 
             List<CompetitorModel> CML = new List<CompetitorModel>();
-            foreach (Participant item in _context.Participants.Where(w => w.EventId == id))
+            foreach (Participant item in _dbService.Participants.Where(w => w.EventId == id))
             {
                 CompetitorModel CM = new CompetitorModel();
                 CM.Id = item.ParticipantId;
@@ -532,7 +536,7 @@ namespace ScheduleLogic.Server.Services
             request.Competitors = CML;
 
             List<EntryModel> EnML = new List<EntryModel>();
-            foreach (Registration item in _context.Registrations.Where(w => w.EventId == id))
+            foreach (Registration item in _dbService.Registrations.Where(w => w.EventId == id))
             {
                 EntryModel EnM = new EntryModel();
                 EnM.Id = item.RegistrationId;
@@ -542,9 +546,9 @@ namespace ScheduleLogic.Server.Services
             }
             request.Entries = EnML;
 
-            var EventStart = _context.Events.Where(w => w.EventId == id).Select(s => s.StartDate).First();
+            var EventStart = _dbService.Events.Where(w => w.EventId == id).Select(s => s.StartDate).First();
             List<ConstraintModel> CoML = new List<ConstraintModel>();
-            foreach (Constraint item in _context.Constraints.Where(w => w.EventId == id))
+            foreach (Constraint item in _dbService.Constraints.Where(w => w.EventId == id))
             {
                 ConstraintModel CoM = new ConstraintModel();
                 CoM.Id = item.ConstraintId;
@@ -558,7 +562,7 @@ namespace ScheduleLogic.Server.Services
 
 
             List<PauseTableModel> PL = new List<PauseTableModel>();
-            foreach (PauseTable item in _context.PauseTables.Where(w => w.EventId == id))
+            foreach (PauseTable item in _dbService.PauseTables.Where(w => w.EventId == id))
             {
                 PauseTableModel PM = new PauseTableModel();
                 PM.Id = item.PauseId;
@@ -570,21 +574,21 @@ namespace ScheduleLogic.Server.Services
             request.Travel = PL;
 
             request.DayLength = 24 * 60 - 1;
-            request.MaxDays = (_context.Events.Where(w => w.EventId == id).First().EndDate - _context.Events.Where(w => w.EventId == id).FirstOrDefault().StartDate).Days + 1;
-            request.BreakTimeLoc = _context.Events.Where(w => w.EventId == id).First().LocationPauseTime;
-            request.BasePauseTime = _context.Events.Where(w => w.EventId == id).First().BasePauseTime;
-            request.LocWeight = Math.Min(500,_context.Events.Where(w => w.EventId == id).First().LocWeight);
-            request.GroupWeight = Math.Min(500, _context.Events.Where(w => w.EventId == id).First().GroupWeight);
-            request.TypeWeight = Math.Min(500, _context.Events.Where(w => w.EventId == id).First().TypeWeight);
-            request.CompWeight = Math.Min(500, _context.Events.Where(w => w.EventId == id).First().CompWeight);
+            request.MaxDays = (_dbService.Events.Where(w => w.EventId == id).First().EndDate - _dbService.Events.Where(w => w.EventId == id).FirstOrDefault().StartDate).Days + 1;
+            request.BreakTimeLoc = _dbService.Events.Where(w => w.EventId == id).First().LocationPauseTime;
+            request.BasePauseTime = _dbService.Events.Where(w => w.EventId == id).First().BasePauseTime;
+            request.LocWeight = Math.Min(500,_dbService.Events.Where(w => w.EventId == id).First().LocWeight);
+            request.GroupWeight = Math.Min(500, _dbService.Events.Where(w => w.EventId == id).First().GroupWeight);
+            request.TypeWeight = Math.Min(500, _dbService.Events.Where(w => w.EventId == id).First().TypeWeight);
+            request.CompWeight = Math.Min(500, _dbService.Events.Where(w => w.EventId == id).First().CompWeight);
             return request;
         }
-        public bool NewSchedule(List<ScheduleModel> request, int Event_id)
+        public async Task<bool> NewSchedule(List<ScheduleModel> request, int Event_id)
         {
-            List<long> typeIDs = _context.EventTypes.Where(w => w.EventId == Event_id).Select(s => s.EventTypeId).ToList();
-            DateTime EventStart = _context.Events.Where(w => w.EventId == Event_id).Select(s => s.StartDate).First();
-            var itemsToRemove = _context.Schedules.Where(w => typeIDs.Contains(w.EventTypeId)).ToList();
-            _context.Schedules.RemoveRange(itemsToRemove);
+            List<long> typeIDs = _dbService.EventTypes.Where(w => w.EventId == Event_id).Select(s => s.EventTypeId).ToList();
+            DateTime EventStart = _dbService.Events.Where(w => w.EventId == Event_id).Select(s => s.StartDate).First();
+            var itemsToRemove = _dbService.Schedules.Where(w => typeIDs.Contains(w.EventTypeId)).ToList();
+            _dbService.Schedules.RemoveRange(itemsToRemove);
 
             foreach (var item in request)
             {
@@ -595,21 +599,21 @@ namespace ScheduleLogic.Server.Services
                 NS.LocationId = item.LocationId;
                 NS.Slot = item.Slot;
                 NS.EventTypeId = item.EventTypeId;
-                _context.Schedules.Add(NS);
+                _dbService.Schedules.Add(NS);
             }
 
             try
             {
-                _context.SaveChanges();
+                _dbService.SaveChanges();
             }
             catch (Exception ex)
             {
                 return false;
             }
 
-            var Schedules = _context.Schedules.Where(w => typeIDs.Contains(w.EventTypeId)).ToList();
-            var pause = _context.Events.Where(w => w.EventId == Event_id).First().LocationPauseTime;
-            var Locations = _context.Locations.ToList();
+            var Schedules = _dbService.Schedules.Where(w => typeIDs.Contains(w.EventTypeId)).ToList();
+            var pause = _dbService.Events.Where(w => w.EventId == Event_id).First().LocationPauseTime;
+            var Locations = _dbService.Locations.ToList();
 
             var GroupedByLocation = Schedules.GroupBy(s => s.LocationId);
 
@@ -643,7 +647,7 @@ namespace ScheduleLogic.Server.Services
 
             try
             {
-                _context.SaveChanges();
+                _dbService.SaveChanges();
             }
             catch (Exception ex)
             {
@@ -651,18 +655,18 @@ namespace ScheduleLogic.Server.Services
             }
             return true;
         }
-        public DataDTO GetScheduleData(string id)
+        public async Task<DataDTO> GetScheduleData(string id)
         {
             DataDTO TempData = new DataDTO();
             TempData.EventData.EventId = id;
-            TempData.EventData.EventName = _context.Events.Where(e => e.EventId == Convert.ToInt32(id)).First().EventName;
-            TempData.EventData.StartDate = _context.Events.Where(e => e.EventId == Convert.ToInt32(id)).First().StartDate;
-            TempData.EventData.EndDate = _context.Events.Where(e => e.EventId == Convert.ToInt32(id)).First().EndDate;
-            List<long> typeIDs = _context.EventTypes.Where(e => e.EventId == Convert.ToInt32(id)).Select(s => s.EventTypeId).ToList();
+            TempData.EventData.EventName = _dbService.Events.Where(e => e.EventId == Convert.ToInt32(id)).First().EventName;
+            TempData.EventData.StartDate = _dbService.Events.Where(e => e.EventId == Convert.ToInt32(id)).First().StartDate;
+            TempData.EventData.EndDate = _dbService.Events.Where(e => e.EventId == Convert.ToInt32(id)).First().EndDate;
+            List<long> typeIDs = _dbService.EventTypes.Where(e => e.EventId == Convert.ToInt32(id)).Select(s => s.EventTypeId).ToList();
 
-            DateTime temp_Startdate = _context.Events.Where(e => e.EventId == Convert.ToInt32(id)).First().StartDate;
+            DateTime temp_Startdate = _dbService.Events.Where(e => e.EventId == Convert.ToInt32(id)).First().StartDate;
             List <TimeZoneDTO> TZL = new List<TimeZoneDTO>();
-            foreach (Models.Schedule item in _context.Schedules.Where(w => typeIDs.Contains(w.EventTypeId)))
+            foreach (Models.Schedule item in _dbService.Schedules.Where(w => typeIDs.Contains(w.EventTypeId)))
             {
                 TimeZoneDTO TZ = new TimeZoneDTO();
                 TZ.ScheduleId = item.ScheduleId;
@@ -677,7 +681,7 @@ namespace ScheduleLogic.Server.Services
             TempData.TimeZones = TZL;
 
             List<EventTypeDTO> ETL = new List<EventTypeDTO>();
-            foreach (EventType item in _context.EventTypes.Where(e => e.EventId == Convert.ToInt32(id)))
+            foreach (EventType item in _dbService.EventTypes.Where(e => e.EventId == Convert.ToInt32(id)))
             {
                 EventTypeDTO ET = new EventTypeDTO();
                 ET.EventTypeId = item.EventTypeId.ToString();
@@ -687,7 +691,7 @@ namespace ScheduleLogic.Server.Services
             TempData.EventTypes = ETL;
 
             List<ParticipantDTO> SPL = new List<ParticipantDTO>();
-            foreach (Participant item in _context.Participants.Where(e => e.EventId == Convert.ToInt32(id)))
+            foreach (Participant item in _dbService.Participants.Where(e => e.EventId == Convert.ToInt32(id)))
             {
                 ParticipantDTO SP = new ParticipantDTO();
                 SP.ParticipantId = item.ParticipantId.ToString();
@@ -697,7 +701,7 @@ namespace ScheduleLogic.Server.Services
             TempData.Participants = SPL;
 
             List<LocationDTO> SLL = new List<LocationDTO>();
-            foreach (Location item in _context.Locations.Where(e => e.EventId == Convert.ToInt32(id)))
+            foreach (Location item in _dbService.Locations.Where(e => e.EventId == Convert.ToInt32(id)))
             {
                 LocationDTO SL = new LocationDTO();
                 SL.LocationId = item.LocationId.ToString();
@@ -707,7 +711,7 @@ namespace ScheduleLogic.Server.Services
             TempData.Locations = SLL;
 
             List<ConstraintDTO> SCL = new List<ConstraintDTO>();
-            foreach (Constraint item in _context.Constraints.Where(e => e.EventId == Convert.ToInt32(id)))
+            foreach (Constraint item in _dbService.Constraints.Where(e => e.EventId == Convert.ToInt32(id)))
             {
                 ConstraintDTO SC = new ConstraintDTO();
                 SC.ConstraintId = item.ConstraintId.ToString();
@@ -721,21 +725,21 @@ namespace ScheduleLogic.Server.Services
 
             return TempData;
         }
-        public ScheduleDataForEXPORT GetScheduleDataEXPORT(string id)
+        public async Task<ScheduleDataForEXPORT> GetScheduleDataEXPORT(string id)
         {
             ScheduleDataForEXPORT TempData = new ScheduleDataForEXPORT();
-            TempData.EventName = _context.Events.Where(e => e.EventId == Convert.ToInt32(id)).First().EventName;
-            TempData.StartDate = _context.Events.Where(e => e.EventId == Convert.ToInt32(id)).First().StartDate;
-            TempData.EndDate = _context.Events.Where(e => e.EventId == Convert.ToInt32(id)).First().EndDate;
-            List<long> typeIDs = _context.EventTypes.Where(e => e.EventId == Convert.ToInt32(id)).Select(s => s.EventTypeId).ToList();
+            TempData.EventName = _dbService.Events.Where(e => e.EventId == Convert.ToInt32(id)).First().EventName;
+            TempData.StartDate = _dbService.Events.Where(e => e.EventId == Convert.ToInt32(id)).First().StartDate;
+            TempData.EndDate = _dbService.Events.Where(e => e.EventId == Convert.ToInt32(id)).First().EndDate;
+            List<long> typeIDs = _dbService.EventTypes.Where(e => e.EventId == Convert.ToInt32(id)).Select(s => s.EventTypeId).ToList();
 
-            var EventTypes = _context.EventTypes.Where(e => e.EventId == Convert.ToInt32(id)).ToList();
-            var Participants = _context.Participants.Where(e => e.EventId == Convert.ToInt32(id)).ToList();
-            var Locations = _context.Locations.Where(e => e.EventId == Convert.ToInt32(id)).ToList();
-            var Groups = _context.Groups.Where(e => e.EventId == Convert.ToInt32(id)).ToList();
+            var EventTypes = _dbService.EventTypes.Where(e => e.EventId == Convert.ToInt32(id)).ToList();
+            var Participants = _dbService.Participants.Where(e => e.EventId == Convert.ToInt32(id)).ToList();
+            var Locations = _dbService.Locations.Where(e => e.EventId == Convert.ToInt32(id)).ToList();
+            var Groups = _dbService.Groups.Where(e => e.EventId == Convert.ToInt32(id)).ToList();
 
             List<ScheduleTimeZoneEXPORT> TZL = new List<ScheduleTimeZoneEXPORT>();
-            foreach (Models.Schedule item in _context.Schedules.Where(w => typeIDs.Contains(w.EventTypeId)))
+            foreach (Models.Schedule item in _dbService.Schedules.Where(w => typeIDs.Contains(w.EventTypeId)))
             {
                 ScheduleTimeZoneEXPORT TZ = new ScheduleTimeZoneEXPORT();
                 TZ.EventType = EventTypes.Where(e => e.EventTypeId == item.EventTypeId).First().TypeName;

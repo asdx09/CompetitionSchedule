@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ScheduleLogic.Server.Services;
+using ScheduleLogic.Server.Services.Interfaces;
 using System.Text.Json;
 using static ScheduleLogic.Server.Class.ScheduleModels;
 
@@ -12,11 +13,11 @@ namespace ScheduleLogic.Server.Controllers
     [Route("api/[controller]")]
     public class ScheduleController : ControllerBase
     {
-        private readonly DatabaseService _dbService;
+        private readonly IDatabaseService _dbService;
         private readonly IConfiguration _configuration;
-        private readonly ScheduleService _scheduleService;
+        private readonly IScheduleService _scheduleService;
 
-        public ScheduleController(DatabaseService dbService, IConfiguration configuration, ScheduleService scheduleService)
+        public ScheduleController(IDatabaseService dbService, IConfiguration configuration, IScheduleService scheduleService)
         {
             _dbService = dbService;
             _configuration = configuration;

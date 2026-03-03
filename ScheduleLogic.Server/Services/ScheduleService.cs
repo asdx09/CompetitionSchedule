@@ -13,21 +13,22 @@ using DocumentFormat.OpenXml.Drawing;
 using ScheduleLogic.Server.Class;
 using static ScheduleLogic.Server.Class.EventModels;
 using static ScheduleLogic.Server.Class.ScheduleModels;
+using ScheduleLogic.Server.Services.Interfaces;
 
 namespace ScheduleLogic.Server.Services
 {
-    public class ScheduleService
+    public class ScheduleService : IScheduleService
     {
-        private readonly DatabaseService _dbService;
+        private readonly IDatabaseService _dbService;
         string apiUrl = "http://127.0.0.1:8000/";
 
-        public ScheduleService(DatabaseService dbService)
+        public ScheduleService(IDatabaseService dbService)
         {
             _dbService = dbService;
         }
         public async Task<ScheduleRequestForSolver> GenerateSchedule(int id)
         {
-            var SR = _dbService.GetScheduleInfo(id);
+            var SR = await _dbService.GetScheduleInfo(id);
             using var client = new HttpClient();
 
             var httpResponse = await client.PostAsJsonAsync(apiUrl + "schedule", SR);
@@ -46,7 +47,7 @@ namespace ScheduleLogic.Server.Services
 
         public async Task<DataDTO> GetScheduleData(string id)
         {
-            return _dbService.GetScheduleData(id);
+            return await _dbService.GetScheduleData(id);
         }
 
         public async Task<bool> CheckSolver(string id)
@@ -91,7 +92,7 @@ namespace ScheduleLogic.Server.Services
 
         public async Task<byte[]> GetScheduleFile(string id)
         {
-            var data = _dbService.GetScheduleDataEXPORT(id);
+            var data = await _dbService.GetScheduleDataEXPORT(id);
 
             using var workbook = new XLWorkbook();
             var worksheet = workbook.Worksheets.Add("Schedule");

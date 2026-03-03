@@ -6,6 +6,7 @@ using ScheduleLogic.Server.Models;
 using ScheduleLogic.Server.Services;
 using System.Text;
 using System.Reflection;
+using ScheduleLogic.Server.Services.Interfaces;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -28,8 +29,10 @@ builder.Services.AddCors(options =>
 builder.Services.AddControllers();
 builder.Services.AddDbContext<ScheduleLogicDbContext>(options =>
     options.UseSqlServer("Server=.\\SQLEXPRESS;Database=ScheduleLogicDB;Trusted_Connection=True;TrustServerCertificate=True;"));
-builder.Services.AddScoped<DatabaseService>();
-builder.Services.AddScoped<ScheduleService>();
+builder.Services.AddScoped<IDatabaseService, DatabaseService>();
+builder.Services.AddScoped<IScheduleService, ScheduleService>();
+builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
+builder.Services.AddScoped<IEventService, EventService>();
 
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var key = Encoding.UTF8.GetBytes(jwtSettings["SecretKey"]);

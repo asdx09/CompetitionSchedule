@@ -10,6 +10,7 @@ using Microsoft.AspNet.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Authorization;
 using static ScheduleLogic.Server.Class.AuthenticationModels;
+using ScheduleLogic.Server.Services.Interfaces;
 
 namespace ScheduleLogic.Server.Controllers
 {
@@ -17,57 +18,46 @@ namespace ScheduleLogic.Server.Controllers
     [Route("api/[controller]")]
     public class AuthenticationController : ControllerBase
     {
-        private readonly DatabaseService _dbService;
-        private readonly IConfiguration _configuration;
-        private readonly bool _isProd;
+        private readonly IDatabaseService _dbService;
+        private readonly IAuthenticationService _authService;
 
-        public AuthenticationController(DatabaseService dbService, IConfiguration configuration, IWebHostEnvironment env)
+        public AuthenticationController(IDatabaseService dbService, IAuthenticationService authService)
         {
+            _authService = authService;
             _dbService = dbService;
-            _configuration = configuration;
-            _isProd = env.IsProduction();
         }
 
         [HttpPost("login")]
-        public IActionResult Login([FromBody] LoginModel data)
+        public async Task<IActionResult> Login([FromBody] LoginModel data)
         {
-            if (_dbService.LoginUser(data.Username, data.Password))
+
+            var jwtToken = await _authService.LoginUser(data.Username, data.Password);
+
+            if (jwtToken != null)
             {
-                var authClaims = new List<Claim>
-                {
-                new Claim(ClaimTypes.Name, data.Username),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-                };
-
-                var token = GetToken(authClaims);
-                var jwtToken = new JwtSecurityTokenHandler().WriteToken(token);
-
-
                 Response.Cookies.Append("jwt", jwtToken, new CookieOptions
                 {
-                    HttpOnly = true, 
+                    HttpOnly = true,
                     Secure = true,
                     SameSite = SameSiteMode.Strict,
                     Expires = DateTime.UtcNow.AddHours(1),
                 });
-
-                return new JsonResult(new { message = "Login success!" });
+                return Ok();
             }
-
             return Unauthorized();
         }
 
         [HttpPost("register")]
-        public IActionResult Register([FromBody] RegisterModel data)
+        public async Task<IActionResult> Register([FromBody] RegisterModel data)
         {
-            string ok = _dbService.RegisterUser(data.Username, data.Password, data.Email);
-            if (string.IsNullOrEmpty(ok)) return Ok();
-            else return BadRequest(ok);
+            var result = await _authService.RegisterUser(data.Username, data.Password,data.Email);
+            if (string.IsNullOrEmpty(result)) return Ok();
+            else return BadRequest(result);
         }
 
         [Authorize]
         [HttpPost("check-token")]
-        public IActionResult CheckToken()
+        public async Task<IActionResult> CheckToken()
         {
             var expClaim = User.Claims.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Exp);
 
@@ -77,21 +67,10 @@ namespace ScheduleLogic.Server.Controllers
             var expUnix = long.Parse(expClaim.Value);
             var expDate = DateTimeOffset.FromUnixTimeSeconds(expUnix).UtcDateTime;
 
-            if (!_dbService.CheckUserExist(User.Identity.Name)) return Unauthorized();
+            var username = User.Identity?.Name;
+            if (!string.IsNullOrEmpty(username) && await _dbService.CheckUserExist(username) == false) return Unauthorized();
 
             return Ok(expDate);
-        }
-
-        private JwtSecurityToken GetToken(List<Claim> authClaims)
-        {
-            var authSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JwtSettings:SecretKey"]));
-            return new JwtSecurityToken(
-                issuer: _configuration["JwtSettings:Issuer"],
-                audience: _configuration["JwtSettings:Audience"],
-                expires: DateTime.UtcNow.AddHours(1),
-                claims: authClaims,
-                signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha256)
-            );
         }
     }
 }
