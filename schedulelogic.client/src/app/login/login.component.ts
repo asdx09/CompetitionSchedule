@@ -14,6 +14,7 @@ import { environment } from '../../environments/environment';
 })
 export class LoginComponent {
   constructor(private http: HttpClient, private auth: AuthGuardService, private router: Router, private alertService: AlertService) { }
+  PasswordCheckStrength: string[] = ["Short","Common","Weak","Ok","Strong"];
   IsLogin: boolean = true;
   WaitForAnswer = false;
   loginUsername = "";
@@ -84,4 +85,36 @@ export class LoginComponent {
   public get token(): string | null {
     return localStorage.getItem('token');
   }
+
+
+  public checkPasswordStrength(password: string): number {
+      let numberOfElements = 0;
+      numberOfElements = /.*[a-z].*/.test(password) ? ++numberOfElements : numberOfElements;     
+      numberOfElements = /.*[A-Z].*/.test(password) ? ++numberOfElements : numberOfElements;     
+      numberOfElements = /.*[0-9].*/.test(password) ? ++numberOfElements : numberOfElements;     
+      numberOfElements = /[^a-zA-Z0-9]/.test(password) ? ++numberOfElements : numberOfElements;   
+
+      let currentPasswordStrength = 1;
+
+      if (password === null || password.length < 5) {
+          currentPasswordStrength = 1;
+      } else if (this.isPasswordCommon(password) === true) {
+          currentPasswordStrength = 2;
+      } else if (numberOfElements === 0 || numberOfElements === 1 || numberOfElements === 2) {
+          currentPasswordStrength = 3;
+      } else if (numberOfElements === 3) {
+          currentPasswordStrength = 4;
+      } else {
+          currentPasswordStrength = 5;
+      }
+
+      return currentPasswordStrength;
+    }
+
+    public isPasswordCommon(password: string): boolean {
+        return this.commonPasswordPatterns.test(password);
+    }
+
+    private commonPasswordPatterns = /passw.*|12345.*|09876.*|qwert.*|asdfg.*|zxcvb.*|footb.*|baseb.*|drago.*/;
+
 }

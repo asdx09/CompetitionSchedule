@@ -97,37 +97,29 @@ namespace ScheduleLogic.Server.Services
             var worksheet = workbook.Worksheets.Add("Schedule");
 
             worksheet.Cell(1, 1).Value = "Competitor";
-            worksheet.Cell(1, 2).Value = "Event Type";
-            worksheet.Cell(1, 3).Value = "Location";
-            worksheet.Cell(1, 4).Value = "Slot";
-            worksheet.Cell(1, 5).Value = "Start";
-            worksheet.Cell(1, 6).Value = "End";
+            worksheet.Cell(1, 2).Value = "Group";
+            worksheet.Cell(1, 3).Value = "Event Type";
+            worksheet.Cell(1, 4).Value = "Location";
+            worksheet.Cell(1, 5).Value = "Slot";
+            worksheet.Cell(1, 6).Value = "Start";
+            worksheet.Cell(1, 7).Value = "End";
             worksheet.Range(1, 1, 1, 6).Style.Fill.BackgroundColor = XLColor.LightBlue;
             var sortedTimeZones = data.TimeZones
                 .OrderBy(tz => tz.GroupName + tz.Participant)
                 .ToList();
             int row = 2;
-            string lastGroup = "-";
             foreach (var timezone in sortedTimeZones)
             {
-                if (timezone.GroupName != lastGroup)
-                {
-                    lastGroup = timezone.GroupName;
-                    if (timezone.GroupName != "") worksheet.Cell(row, 1).Value = timezone.GroupName + ":";
-                    else worksheet.Cell(row, 1).Value = "Without group:";
-                    worksheet.Range(row, 1, row, 6).Merge();
-                    worksheet.Range(row, 1, row, 6).Style.Fill.BackgroundColor = XLColor.LightCoral;
-                    row++;
-                }
                 worksheet.Cell(row, 1).Value = timezone.Participant;
-                worksheet.Cell(row, 2).Value = timezone.EventType;
-                worksheet.Cell(row, 3).Value = timezone.Location;
-                worksheet.Cell(row, 4).Value = timezone.Slot;
-                worksheet.Cell(row, 5).Value = timezone.StartTime.ToString();
-                worksheet.Cell(row, 6).Value = timezone.EndTime.ToString();
+                worksheet.Cell(row, 2).Value = timezone.GroupName;
+                worksheet.Cell(row, 3).Value = timezone.EventType;
+                worksheet.Cell(row, 4).Value = timezone.Location;
+                worksheet.Cell(row, 5).Value = timezone.Slot;
+                worksheet.Cell(row, 6).Value = timezone.StartTime.ToString();
+                worksheet.Cell(row, 7).Value = timezone.EndTime.ToString();
 
-                if(row % 2 == 0) worksheet.Range(row, 1, row, 6).Style.Fill.BackgroundColor = XLColor.LightBlue;
-                else worksheet.Range(row, 1, row, 6).Style.Fill.BackgroundColor = XLColor.LightCyan;
+                if(row % 2 == 0) worksheet.Range(row, 1, row, 7).Style.Fill.BackgroundColor = XLColor.LightBlue;
+                else worksheet.Range(row, 1, row, 7).Style.Fill.BackgroundColor = XLColor.LightCyan;
                 row++;
             }
             worksheet.SheetView.FreezeRows(1);
