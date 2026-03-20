@@ -31,7 +31,7 @@ export class ScheduleComponent {
   data: data = new data();
   zoomLevel = 1;
   laneHeight = 45;
-  isConstraint = false;
+  isConstraint = true;
   isExporting = false;
 
   ngOnInit()

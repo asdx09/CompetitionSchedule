@@ -69,7 +69,7 @@ namespace ScheduleLogic.Server.Controllers
         {
             if (data.Status == "FEASIBLE" || data.Status == "PARTIAL_SOLUTION" || data.Status == "OPTIMAL" || data.Status == "4" || data.Status == "1")
             {
-                _dbService.NewSchedule(data.Schedule, data.EventId);
+                await _dbService.NewSchedule(data.Schedule, data.EventId);
             }
             else
             {
