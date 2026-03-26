@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace ScheduleLogic.Server.Models;
 
-public partial class Constraint
+public partial class Eventconstraint
 {
     public long ConstraintId { get; set; }
 
@@ -11,11 +11,11 @@ public partial class Constraint
 
     public long ObjectId { get; set; }
 
-    public string ConstraintType { get; set; } = null!;
+    public char Constrainttype { get; set; }
 
-    public DateTime StartTime { get; set; }
+    public DateTime Starttime { get; set; }
 
-    public DateTime EndTime { get; set; }
+    public DateTime Endtime { get; set; }
 
     public virtual Event Event { get; set; } = null!;
 }

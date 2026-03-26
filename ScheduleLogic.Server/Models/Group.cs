@@ -9,7 +9,7 @@ public partial class Group
 
     public long EventId { get; set; }
 
-    public string GroupName { get; set; } = null!;
+    public string Groupname { get; set; } = null!;
 
     public virtual Event Event { get; set; } = null!;
 

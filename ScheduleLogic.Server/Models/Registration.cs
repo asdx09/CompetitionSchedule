@@ -11,11 +11,11 @@ public partial class Registration
 
     public long ParticipantId { get; set; }
 
-    public long EventTypeId { get; set; }
+    public long EventtypeId { get; set; }
 
     public virtual Event Event { get; set; } = null!;
 
-    public virtual EventType EventType { get; set; } = null!;
+    public virtual Eventtype Eventtype { get; set; } = null!;
 
     public virtual Participant Participant { get; set; } = null!;
 }

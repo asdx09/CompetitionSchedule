@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace ScheduleLogic.Server.Models;
 
-public partial class PauseTable
+public partial class Pausetable
 {
     public long PauseId { get; set; }
 

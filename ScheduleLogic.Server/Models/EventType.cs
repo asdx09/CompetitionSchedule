@@ -3,19 +3,19 @@ using System.Collections.Generic;
 
 namespace ScheduleLogic.Server.Models;
 
-public partial class EventType
+public partial class Eventtype
 {
-    public long EventTypeId { get; set; }
+    public long EventtypeId { get; set; }
 
     public long EventId { get; set; }
 
-    public string TypeName { get; set; } = null!;
+    public string Typename { get; set; } = null!;
 
-    public TimeOnly TimeRange { get; set; }
+    public TimeOnly Timerange { get; set; }
 
     public virtual Event Event { get; set; } = null!;
 
-    public virtual ICollection<LocationTable> LocationTables { get; set; } = new List<LocationTable>();
+    public virtual ICollection<Locationtable> Locationtables { get; set; } = new List<Locationtable>();
 
     public virtual ICollection<Registration> Registrations { get; set; } = new List<Registration>();
 

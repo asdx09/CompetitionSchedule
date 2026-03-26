@@ -9,9 +9,9 @@ public partial class Log
 
     public long UserId { get; set; }
 
-    public string LogText { get; set; } = null!;
+    public string Logtext { get; set; } = null!;
 
-    public DateTime LogDate { get; set; }
+    public DateTime Logdate { get; set; }
 
     public virtual User User { get; set; } = null!;
 }

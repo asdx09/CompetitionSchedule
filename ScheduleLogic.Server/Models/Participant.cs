@@ -7,9 +7,9 @@ public partial class Participant
 {
     public long ParticipantId { get; set; }
 
-    public int CompetitorNumber { get; set; }
+    public int Competitornumber { get; set; }
 
-    public string ParticipantName { get; set; } = null!;
+    public string Participantname { get; set; } = null!;
 
     public long EventId { get; set; }
 

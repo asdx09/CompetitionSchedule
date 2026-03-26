@@ -416,9 +416,11 @@ def schedule(req: ScheduleRequestForSolver, printer, container):
 
     # ---------------- Solve ----------------
     solver = cp_model.CpSolver()
-    solver.parameters.max_time_in_seconds = 60*60*3
+    solver.parameters.max_time_in_seconds = 60*60
     solver.parameters.num_search_workers = 4
-    solver.parameters.log_search_progress = False
+    solver.parameters.log_search_progress = True
+    #solver.parameters.max_memory_in_mb = 128
+    #solver.parameters.use_lns = False
     container["solver"] = solver
     cb = printer;
     status = solver.Solve(model,cb)

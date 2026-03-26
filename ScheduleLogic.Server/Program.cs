@@ -27,8 +27,8 @@ builder.Services.AddCors(options =>
         });
 });
 builder.Services.AddControllers();
-builder.Services.AddDbContext<ScheduleLogicDbContext>(options =>
-    options.UseSqlServer("Server=.\\SQLEXPRESS;Database=ScheduleLogicDB;Trusted_Connection=True;TrustServerCertificate=True;"));
+builder.Services.AddDbContext<ScheduleLogicContext>(options =>
+    options.UseNpgsql("Host=localhost;Port=5432;Database=scheduleLogic;Username=app;Password=app;"));
 builder.Services.AddScoped<IDatabaseService, DatabaseService>();
 builder.Services.AddScoped<IScheduleService, ScheduleService>();
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();

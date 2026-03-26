@@ -457,6 +457,8 @@ export class WizardComponent {
       });
     }
 
+    console.log(this.Data.eventTypes);
+
     this.eventsService.NewWizardEvent(this.Data).subscribe({
         next: (res) => {
           this.router.navigate(['home']);

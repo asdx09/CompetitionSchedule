@@ -38,8 +38,8 @@ namespace ScheduleLogic.Server.Controllers
                 Response.Cookies.Append("jwt", jwtToken, new CookieOptions
                 {
                     HttpOnly = true,
-                    Secure = true,
-                    SameSite = SameSiteMode.Strict,
+                    Secure = false,
+                    SameSite = SameSiteMode.Lax,
                     Expires = DateTime.UtcNow.AddHours(1),
                 });
                 return Ok();

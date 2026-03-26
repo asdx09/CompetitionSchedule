@@ -15,7 +15,7 @@ public partial class User
 
     public bool Validated { get; set; }
 
-    public DateOnly RegistrationDate { get; set; }
+    public DateOnly Registrationdate { get; set; }
 
     public virtual ICollection<Event> Events { get; set; } = new List<Event>();
 
