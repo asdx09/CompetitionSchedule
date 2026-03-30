@@ -35,12 +35,18 @@ export class AuthGuardService implements CanActivate {
     return this.http.post(`${this.apiUrl}/register`, { Username: regUsername, Password: regPassword, Email: regEmail });
   }
 
+  deleteUser(): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/delete`, {withCredentials: true});
+  }
+
   checkToken(): Observable<any> {
     return this.http.post(`${this.apiUrl}/check-token`, null);
   }
 
   logout() {
-    localStorage.removeItem('token');
+    localStorage.clear();
+    this.router.navigate(['/login']);
+    return this.http.post(`${this.apiUrl}/logout`, {}, { withCredentials: true })
   }
 
   public get token(): string | null {

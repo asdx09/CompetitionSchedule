@@ -13,7 +13,7 @@ public partial class User
 
     public string Password { get; set; } = null!;
 
-    public bool Validated { get; set; }
+    public string Validated { get; set; } = null!;
 
     public DateOnly Registrationdate { get; set; }
 

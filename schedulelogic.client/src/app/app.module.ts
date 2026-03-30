@@ -17,6 +17,7 @@ import { WizardComponent } from './wizard/wizard.component';
 import { BrowserAnimationsModule } from "@angular/platform-browser/animations";
 import { IgxDatePickerModule, IgxDateRangePickerModule, IgxInputGroupModule } from 'igniteui-angular';
 import { AlertComponent } from './alert/alert.component';
+import { ProfileComponent } from './profile/profile.component';
 
 
 @NgModule({
@@ -29,7 +30,8 @@ import { AlertComponent } from './alert/alert.component';
 		ScheduleComponent,
 		TimezoneInfoComponent,
 		WizardComponent,
-  		AlertComponent
+  		AlertComponent,
+    ProfileComponent
 	],
 	imports: [BrowserModule,
 		HttpClientModule,

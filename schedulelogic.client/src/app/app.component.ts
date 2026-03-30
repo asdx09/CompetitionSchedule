@@ -3,6 +3,8 @@ import { Component, OnInit } from '@angular/core';
 import { AuthGuardService } from './auth-guard.service';
 import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs/internal/operators/filter';
+import { MatDialog } from '@angular/material/dialog';
+import { ProfileComponent } from './profile/profile.component';
 
 @Component({
   selector: 'app-root',
@@ -11,7 +13,7 @@ import { filter } from 'rxjs/internal/operators/filter';
   styleUrl: './app.component.css'
 })
 export class AppComponent implements OnInit {
-  constructor(private router: Router, private AuthGuard: AuthGuardService) { }
+  constructor(private router: Router, private AuthGuard: AuthGuardService, private dialog: MatDialog) { }
   username: string = "";
 
   ngOnInit() {
@@ -56,5 +58,14 @@ export class AppComponent implements OnInit {
   GoToHome()
   {
     this.router.navigate(['home']);
+  }
+
+  showProfileSettings()
+  {
+     this.dialog.open(ProfileComponent, {
+          width: '500px',
+          panelClass: 'custom-dialog-container',
+          data: {name : this.username}
+        });
   }
 }

@@ -177,6 +177,21 @@ b{
   height: 1rem;
 }
 
+.strength-bar {
+  width: 70%;
+  height: 10px;
+  background-color: #eee;
+  border-radius: 5px;
+  overflow: hidden;
+  margin: 0 auto 0 auto;
+}
+
+.strength-level {
+  height: 100%;
+  width: 0%;
+  transition: width 0.3s, background-color 0.3s;
+}
+
 
 
 

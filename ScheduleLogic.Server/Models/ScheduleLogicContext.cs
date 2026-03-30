@@ -45,11 +45,13 @@ public partial class ScheduleLogicContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.HasDefaultSchema("public");
+
         modelBuilder.Entity<Event>(entity =>
         {
             entity.HasKey(e => e.EventId).HasName("event_pkey");
 
-            entity.ToTable("event", "public");
+            entity.ToTable("event");
 
             entity.Property(e => e.EventId).HasColumnName("event_id");
             entity.Property(e => e.Basepausetime).HasColumnName("basepausetime");
@@ -75,7 +77,7 @@ public partial class ScheduleLogicContext : DbContext
         {
             entity.HasKey(e => e.ConstraintId).HasName("eventconstraint_pkey");
 
-            entity.ToTable("eventconstraint", "public");
+            entity.ToTable("eventconstraint");
 
             entity.Property(e => e.ConstraintId).HasColumnName("constraint_id");
             entity.Property(e => e.Constrainttype)
@@ -96,7 +98,7 @@ public partial class ScheduleLogicContext : DbContext
         {
             entity.HasKey(e => e.EventtypeId).HasName("eventtype_pkey");
 
-            entity.ToTable("eventtype", "public");
+            entity.ToTable("eventtype");
 
             entity.Property(e => e.EventtypeId).HasColumnName("eventtype_id");
             entity.Property(e => e.EventId).HasColumnName("event_id");
@@ -114,7 +116,7 @@ public partial class ScheduleLogicContext : DbContext
         {
             entity.HasKey(e => e.GroupId).HasName("groups_pkey");
 
-            entity.ToTable("groups", "public");
+            entity.ToTable("groups");
 
             entity.Property(e => e.GroupId).HasColumnName("group_id");
             entity.Property(e => e.EventId).HasColumnName("event_id");
@@ -132,7 +134,7 @@ public partial class ScheduleLogicContext : DbContext
         {
             entity.HasKey(e => e.LocationId).HasName("location_pkey");
 
-            entity.ToTable("location", "public");
+            entity.ToTable("location");
 
             entity.Property(e => e.LocationId).HasColumnName("location_id");
             entity.Property(e => e.EventId).HasColumnName("event_id");
@@ -151,7 +153,7 @@ public partial class ScheduleLogicContext : DbContext
         {
             entity.HasKey(e => e.LocationtableId).HasName("locationtable_pkey");
 
-            entity.ToTable("locationtable", "public");
+            entity.ToTable("locationtable");
 
             entity.Property(e => e.LocationtableId).HasColumnName("locationtable_id");
             entity.Property(e => e.EventId).HasColumnName("event_id");
@@ -176,7 +178,7 @@ public partial class ScheduleLogicContext : DbContext
         {
             entity.HasKey(e => e.LogId).HasName("log_pkey");
 
-            entity.ToTable("log", "public");
+            entity.ToTable("log");
 
             entity.Property(e => e.LogId).HasColumnName("log_id");
             entity.Property(e => e.Logdate).HasColumnName("logdate");
@@ -195,7 +197,7 @@ public partial class ScheduleLogicContext : DbContext
         {
             entity.HasKey(e => e.ParticipantId).HasName("participant_pkey");
 
-            entity.ToTable("participant", "public");
+            entity.ToTable("participant");
 
             entity.Property(e => e.ParticipantId).HasColumnName("participant_id");
             entity.Property(e => e.Competitornumber).HasColumnName("competitornumber");
@@ -220,7 +222,7 @@ public partial class ScheduleLogicContext : DbContext
         {
             entity.HasKey(e => e.PauseId).HasName("pausetable_pkey");
 
-            entity.ToTable("pausetable", "public");
+            entity.ToTable("pausetable");
 
             entity.Property(e => e.PauseId).HasColumnName("pause_id");
             entity.Property(e => e.EventId).HasColumnName("event_id");
@@ -246,7 +248,7 @@ public partial class ScheduleLogicContext : DbContext
         {
             entity.HasKey(e => e.RegistrationId).HasName("registrations_pkey");
 
-            entity.ToTable("registrations", "public");
+            entity.ToTable("registrations");
 
             entity.Property(e => e.RegistrationId).HasColumnName("registration_id");
             entity.Property(e => e.EventId).HasColumnName("event_id");
@@ -271,7 +273,7 @@ public partial class ScheduleLogicContext : DbContext
         {
             entity.HasKey(e => e.ScheduleId).HasName("schedule_pkey");
 
-            entity.ToTable("schedule", "public");
+            entity.ToTable("schedule");
 
             entity.Property(e => e.ScheduleId).HasColumnName("schedule_id");
             entity.Property(e => e.Endtime).HasColumnName("endtime");
@@ -298,7 +300,7 @@ public partial class ScheduleLogicContext : DbContext
         {
             entity.HasKey(e => e.UserId).HasName("users_pkey");
 
-            entity.ToTable("users", "public");
+            entity.ToTable("users");
 
             entity.Property(e => e.UserId).HasColumnName("user_id");
             entity.Property(e => e.Email)
@@ -311,7 +313,9 @@ public partial class ScheduleLogicContext : DbContext
             entity.Property(e => e.Username)
                 .HasMaxLength(255)
                 .HasColumnName("username");
-            entity.Property(e => e.Validated).HasColumnName("validated");
+            entity.Property(e => e.Validated)
+                .HasMaxLength(255)
+                .HasColumnName("validated");
         });
 
         OnModelCreatingPartial(modelBuilder);

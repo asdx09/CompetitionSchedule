@@ -8,6 +8,14 @@ using System.Text;
 using Microsoft.AspNet.Identity;
 using Microsoft.Extensions.Configuration;
 using ScheduleLogic.Server.Services.Interfaces;
+using System.Net.Mail;
+using System.Net;
+using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
+using DocumentFormat.OpenXml.Office2021.DocumentTasks;
+using System.Numerics;
+using System.Security.Cryptography;
+using DocumentFormat.OpenXml.Spreadsheet;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace ScheduleLogic.Server.Services
 {
@@ -24,26 +32,42 @@ namespace ScheduleLogic.Server.Services
 
         public async Task<String?> LoginUser(string username, string password)
         {
-            if (await _dbService.LoginUser(username, password))
+            var authClaims = new List<Claim>
             {
-                var authClaims = new List<Claim>
-                {
-                    new Claim(ClaimTypes.Name, username),
-                    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-                };
+                new Claim(ClaimTypes.Name, username),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            };
 
-                var token = GetToken(authClaims);
-                var jwtToken = new JwtSecurityTokenHandler().WriteToken(token);
+            var token = GetToken(authClaims);
+            var jwtToken = new JwtSecurityTokenHandler().WriteToken(token);
 
-                return jwtToken;
-            }
-            return null;
+            return jwtToken;
         }
 
         public async Task<String?> RegisterUser(string username, string password, string email)
         {
-            string ok = await _dbService.RegisterUser(username, password, email);
+            string ok = await _dbService.RegisterUser(username, password, email, this);
             return ok;
+        }
+
+        public async System.Threading.Tasks.Task NewValidationEmail(string token, string email, string username)
+        {
+            string confirmationLink = $"https://localhost:7098/api/authentication/confirm?token={token}";
+            string body = $@"
+                <h2>Welcome {username}!</h2>
+                <p>Thanks for signing up!</p>
+
+                <p>Please confirm your email address by clicking the button below:</p>
+
+                <a href=""{confirmationLink}"" 
+                   style=""display:inline-block;padding:10px 20px;background:#4CAF50;color:white;text-decoration:none;border-radius:5px;"">
+                   Confirm Email
+                </a>
+
+                <p>If you did not sign up, you can safely ignore this email.</p>
+                
+            ";
+            await SendEmailAsync(email, "Email confirmation required - ScheduleLogic", body);
         }
 
         private JwtSecurityToken GetToken(List<Claim> authClaims)
@@ -56,6 +80,23 @@ namespace ScheduleLogic.Server.Services
                 claims: authClaims,
                 signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha256)
             );
+        }
+
+        public async System.Threading.Tasks.Task SendEmailAsync(string email, string subject, string _message)
+        {
+            using var message = new MailMessage("noreply@test-y7zpl9875o345vx6.mlsender.net", email, subject, _message)
+            {
+                IsBodyHtml = true
+            };
+
+            var client = new SmtpClient("smtp.mailersend.net")
+            {
+                Port = 587,
+                Credentials = new NetworkCredential("MS_ESz96g@test-y7zpl9875o345vx6.mlsender.net", "mssp.8fE420Y.zr6ke4np089gon12.Thvqi17"),
+                EnableSsl = true,
+            };
+
+            await client.SendMailAsync(message);
         }
     }
 

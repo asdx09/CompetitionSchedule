@@ -1,4 +1,5 @@
 ﻿using DocumentFormat.OpenXml.Drawing.Charts;
+using DocumentFormat.OpenXml.Office2010.Excel;
 using DocumentFormat.OpenXml.Office2016.Drawing.Charts;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -17,27 +18,34 @@ namespace ScheduleLogic.Server.Services
 {
     public class DatabaseService : IDatabaseService
     {
+        const int MinuteConversion = 1;
+
         private readonly ScheduleLogicContext _dbService;
 
         public DatabaseService(ScheduleLogicContext context)
         {
             _dbService = context;
+
         }
 
-        public async Task<bool> LoginUser(string username, string password)
+        public async Task<string> LoginUser(string username, string password)
         {
             var user = await _dbService.Users.FirstOrDefaultAsync(u => u.Username == username);
-            if (user == null) return false;
+            if (user == null) return "Invalid username or password!";
 
             var passwordHasher = new PasswordHasher<User>();
             var result = passwordHasher.VerifyHashedPassword(user, user.Password, password);
 
-            return result == PasswordVerificationResult.Success;
+            if (user.Validated == "") return result == PasswordVerificationResult.Success ? "" : "Invalid username or password!";
+            return "Email validation is not yet complete.";
         }
-        public async Task<string> RegisterUser(string username, string password, string email)
+        public async Task<string> RegisterUser(string username, string password, string email, AuthenticationService Auth_Service)
         {
             if (await _dbService.Users.AnyAsync(u => u.Username == username))
                 return "Username already taken!";
+
+            if (await _dbService.Users.AnyAsync(u => u.Email == email))
+                return "Email already taken!";
 
             var passwordHasher = new PasswordHasher<User>();
             var user = new User
@@ -46,7 +54,9 @@ namespace ScheduleLogic.Server.Services
             };
             user.Password = passwordHasher.HashPassword(user, password);
             user.Email = email;
-            user.Validated = true;
+            var token = Guid.NewGuid().ToString();
+            user.Validated = token;
+            await Auth_Service.NewValidationEmail(token, email, username);
 
             await _dbService.Users.AddAsync(user);
             await _dbService.SaveChangesAsync();
@@ -227,7 +237,7 @@ namespace ScheduleLogic.Server.Services
             }
             return true;
         }
-        public async Task DeleteEvent(int id)
+        public async Task DeleteEvent(long id)
         {
             var EventToRemove = await _dbService.Events.Where(w => w.EventId == id).ToListAsync();
             _dbService.Events.RemoveRange(EventToRemove);
@@ -389,6 +399,8 @@ namespace ScheduleLogic.Server.Services
             var ConstraintsToRemove = _dbService.Eventconstraints.Where(w => w.EventId == id).ToList();
             _dbService.Eventconstraints.RemoveRange(ConstraintsToRemove);
 
+            await _dbService.SaveChangesAsync();
+
             var EventTypeMap = new Dictionary<string, Eventtype>();
             foreach (EventTypeDTO item in Data.EventTypes)
             {
@@ -400,6 +412,8 @@ namespace ScheduleLogic.Server.Services
                 EventTypeMap[item.EventTypeId] = temp;
             }
 
+            await _dbService.SaveChangesAsync();
+
             var GroupMap = new Dictionary<string, Group>();
             foreach (GroupDTO item in Data.Groups)
             {
@@ -409,6 +423,8 @@ namespace ScheduleLogic.Server.Services
                 _dbService.Groups.Add(temp);
                 GroupMap[item.GroupId] = temp;
             }
+
+            await _dbService.SaveChangesAsync();
 
             var LocationMap = new Dictionary<string, Location>();
             foreach (LocationDTO item in Data.Locations)
@@ -421,6 +437,8 @@ namespace ScheduleLogic.Server.Services
                 LocationMap[item.LocationId] = temp;
             }
 
+            await _dbService.SaveChangesAsync();
+
             var LocationTableMap = new Dictionary<string, Locationtable>();
             foreach (LocationTableDTO item in Data.LocationTable)
             {
@@ -431,6 +449,8 @@ namespace ScheduleLogic.Server.Services
                 _dbService.Locationtables.Add(temp);
                 LocationTableMap[item.LocationTableId] = temp;
             }
+
+            await _dbService.SaveChangesAsync();
 
             var ParticipantMap = new Dictionary<string, Participant>();
             foreach (ParticipantDTO item in Data.Participants)
@@ -444,6 +464,8 @@ namespace ScheduleLogic.Server.Services
                 ParticipantMap[item.ParticipantId] = temp;
             }
 
+            await _dbService.SaveChangesAsync();
+
             var pauseTableMap = new Dictionary<string, Pausetable>();
             foreach (PauseTableDTO item in Data.PauseTable)
             {
@@ -456,6 +478,8 @@ namespace ScheduleLogic.Server.Services
                 pauseTableMap[item.PauseId] = temp;
             }
 
+            await _dbService.SaveChangesAsync();
+
             var registrationMap = new Dictionary<string, Registration>();
             foreach (RegistrationDTO item in Data.Registrations)
             {
@@ -466,6 +490,8 @@ namespace ScheduleLogic.Server.Services
                 _dbService.Registrations.Add(temp);
                 registrationMap[item.RegistrationId] = temp;
             }
+
+            await _dbService.SaveChangesAsync();
 
             var ConstraintMap = new Dictionary<string, Eventconstraint>();
             foreach (ConstraintDTO item in Data.Constraints)
@@ -492,8 +518,8 @@ namespace ScheduleLogic.Server.Services
                     }
                 }
                 catch { return false; }
-                temp.Starttime = item.StartTime;
-                temp.Endtime = item.EndTime;
+                temp.Starttime = item.StartTime.ToUniversalTime();
+                temp.Endtime = item.EndTime.ToUniversalTime();
                 _dbService.Eventconstraints.Add(temp);
                 ConstraintMap[item.ConstraintId] = temp;
             }
@@ -544,7 +570,7 @@ namespace ScheduleLogic.Server.Services
             {
                 Id = e.EventtypeId,
                 Name = e.Typename,
-                Duration = e.Timerange.Hour * 60 + e.Timerange.Minute,
+                Duration = (e.Timerange.Hour * 60 + e.Timerange.Minute) / MinuteConversion,
                 PossibleLocations = Locationtables
                     .Where(lt => lt.EventtypeId == e.EventtypeId)
                     .Select(lt => lt.LocationId)
@@ -583,8 +609,8 @@ namespace ScheduleLogic.Server.Services
                 Id = c.ConstraintId,
                 ConstraintType = c.Constrainttype.ToString(),
                 ObjectId = c.ObjectId,
-                StartTime = (int)(c.Starttime - evt.Startdate).TotalMinutes,
-                EndTime = (int)(c.Endtime - evt.Startdate).TotalMinutes
+                StartTime = (int)(c.Starttime - evt.Startdate).TotalMinutes / MinuteConversion,
+                EndTime = (int)(c.Endtime - evt.Startdate).TotalMinutes / MinuteConversion
             }).ToList();
 
             // PauseTable / Travel
@@ -595,15 +621,15 @@ namespace ScheduleLogic.Server.Services
                     Id = p.PauseId,
                     LocationID1 = p.LocationId1,
                     LocationID2 = p.LocationId2,
-                    Pause = p.Pause.Hour * 60 + p.Pause.Minute
+                    Pause = p.Pause.Hour * 60 + p.Pause.Minute / MinuteConversion
                 })
                 .ToListAsync();
 
             // Event info
-            request.DayLength = 24 * 60 - 1;
+            request.DayLength = (24 * 60 - 1) / MinuteConversion;
             request.MaxDays = (evt.Enddate - evt.Startdate).Days + 1;
-            request.BreakTimeLoc = evt.Locationpausetime;
-            request.BasePauseTime = evt.Basepausetime;
+            request.BreakTimeLoc = evt.Locationpausetime / MinuteConversion;
+            request.BasePauseTime = evt.Basepausetime / MinuteConversion;
             request.LocWeight = Math.Min(500, evt.Locweight);
             request.GroupWeight = Math.Min(500, evt.Groupweight);
             request.TypeWeight = Math.Min(500, evt.Typeweight);
@@ -622,8 +648,8 @@ namespace ScheduleLogic.Server.Services
             {
                 Models.Schedule NS = new Models.Schedule();
                 NS.ParticipantId = item.ParticipantId;
-                NS.Starttime = EventStart.AddMinutes(item.Start);
-                NS.Endtime = EventStart.AddMinutes(item.End);
+                NS.Starttime = EventStart.AddMinutes(item.Start * MinuteConversion);
+                NS.Endtime = EventStart.AddMinutes(item.End * MinuteConversion);
                 NS.LocationId = item.LocationId;
                 NS.Slot = item.Slot;
                 NS.EventtypeId = item.EventTypeId;
@@ -700,8 +726,8 @@ namespace ScheduleLogic.Server.Services
                 EventTypeId = item.EventtypeId,
                 ParticipantId = item.ParticipantId,
                 LocationId = item.LocationId,
-                StartTime = Convert.ToInt32((item.Starttime - evt.Startdate.Date).TotalMinutes),
-                EndTime = Convert.ToInt32((item.Endtime - evt.Startdate.Date).TotalMinutes),
+                StartTime = Convert.ToInt32((item.Starttime.ToLocalTime() - evt.Startdate.Date).TotalMinutes),
+                EndTime = Convert.ToInt32((item.Endtime.ToLocalTime() - evt.Startdate.Date).TotalMinutes),
                 Slot = item.Slot
             }).ToList();
 
@@ -812,6 +838,31 @@ namespace ScheduleLogic.Server.Services
                 EndDate = evt.Enddate,
                 TimeZones = timeZones
             };
+        }
+        public async Task<string> ValidateEmail(string token)
+        {
+            var user = await _dbService.Users.FirstOrDefaultAsync(u => u.Validated == token);
+            if (user == null)
+                return "Invalid or expired token.";
+
+            user.Validated = "";
+            await _dbService.SaveChangesAsync();
+            return "";
+        }
+        public async Task DeleteUser(string username)
+        {
+            var userID = await GetUserID(username);
+
+            List<Event> items = _dbService.Events.Where(w => w.Createdby == userID).ToList();
+            foreach (Event item in items)
+            {
+                await DeleteEvent(item.EventId);
+            }
+
+            var ProfileToRemove = await _dbService.Users.Where(w => w.Username == username).ToListAsync();
+            _dbService.Users.RemoveRange(ProfileToRemove);
+
+            await _dbService.SaveChangesAsync();
         }
     }
 }

@@ -81,7 +81,7 @@
         </div>
         <div>
           Time:
-          <input type="time" [(ngModel)]="item.timeRange" (ngModelChange)="condition = 2">
+          <input type="time" step="1" [(ngModel)]="item.timeRange" (ngModelChange)="condition = 2">
         </div>
         <button (click)="openLocationSelector(item.eventTypeId); condition = 2">LOCATIONS</button>
         <button (click)="removeEventType(i)">REMOVE</button>

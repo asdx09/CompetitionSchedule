@@ -101,7 +101,7 @@ export class EventComponent {
     temp.eventTypeId = crypto.randomUUID();
     temp.eventId = this.data.eventData?.eventId ?? -1;
     temp.typeName = "New EventType";
-    temp.timeRange = '00:05';
+    temp.timeRange = '00:05:00';
     this.data.eventTypes.push(temp);
     this.condition = 2;
   }
@@ -160,8 +160,10 @@ export class EventComponent {
     temp.eventId = this.data.eventData?.eventId ?? -1;
     temp.constraintType = 'P';
     temp.constraintId = crypto.randomUUID();
-    temp.startTime = this.data.eventData?.startDate ?? new Date();
-    temp.endTime = this.data.eventData?.endDate ?? new Date();
+    const date = this.data.eventData?.endDate ? new Date(this.data.eventData.endDate) : new Date();
+    temp.startTime = date.toISOString();
+    const date2 = this.data.eventData?.endDate ? new Date(this.data.eventData?.endDate) : new Date();
+    temp.endTime = date2.toISOString();
     this.data.constraints.push(temp);
     this.condition = 2;
   }
@@ -172,7 +174,7 @@ export class EventComponent {
     temp.eventId = this.data.eventData?.eventId ?? -1;
     temp.locationId1 = "0";
     temp.locationId2 = "0";
-    temp.pause = "00:05";
+    temp.pause = "00:05:00";
     temp.pauseId = crypto.randomUUID();
     this.data.pauseTable.push(temp);
     this.condition = 2;
@@ -292,6 +294,7 @@ export class EventComponent {
   {
     if (confirm("Current solution will be deleted. Are you sure?")) {
       this.loading = true;
+      console.log(this.data);
       this.eventsService.SaveEvent(this.data).subscribe({
         next: (res) => {
           this.RefreshData();

@@ -21,7 +21,10 @@ export class LoginComponent {
   loginPassword = "";
   regUsername = "";
   regPassword = "";
+  regPasswordAgain = "";
   regEmail = "";
+  currentPasswordStrength = 1;
+  strengthColor = "transparent";
 
   ngOnInit(){
     localStorage.removeItem('token');
@@ -51,7 +54,7 @@ export class LoginComponent {
          this.WaitForAnswer = false;
       },
       error: (err) => {
-        this.alertService.error("Invalid username or password!");
+        this.alertService.error(err.error);
         if (environment.production == false) 
         {console.error('Login error! ', err);}
          this.WaitForAnswer = false;
@@ -61,21 +64,24 @@ export class LoginComponent {
 
   register() 
   {
-    this.WaitForAnswer = true;
-    this.auth.register(this.regUsername, this.regPassword, this.regEmail).subscribe({
-      next: (res) => {
-        this.loginUsername = this.regUsername;
-        this.loginPassword = this.regPassword;
-        this.login();
-         this.WaitForAnswer = false;
-      },
-      error: (err) => {
-        this.alertService.error("Invalid registration!");
-        if (environment.production == false) 
-        {console.error('Register error! ', err);}
-        this.WaitForAnswer = false;
-      }
-    });
+    if (this.regPassword == this.regPasswordAgain)
+    {
+      this.WaitForAnswer = true;
+      this.auth.register(this.regUsername, this.regPassword, this.regEmail).subscribe({
+        next: (res) => {
+          this.loginUsername = this.regUsername;
+          this.IsLogin = true;
+          this.alertService.info("We’ve sent a confirmation email to your inbox.");
+          this.WaitForAnswer = false;
+        },
+        error: (err) => {
+          this.alertService.error(err.error);
+          if (environment.production == false) 
+          {console.error('Register error! ', err);}
+          this.WaitForAnswer = false;
+        }
+      });
+    }else this.alertService.error("Passwords do not match!");
   }
 
   logout() {
@@ -87,28 +93,30 @@ export class LoginComponent {
   }
 
 
-  public checkPasswordStrength(password: string): number {
+  public checkPasswordStrength() {
       let numberOfElements = 0;
-      numberOfElements = /.*[a-z].*/.test(password) ? ++numberOfElements : numberOfElements;     
-      numberOfElements = /.*[A-Z].*/.test(password) ? ++numberOfElements : numberOfElements;     
-      numberOfElements = /.*[0-9].*/.test(password) ? ++numberOfElements : numberOfElements;     
-      numberOfElements = /[^a-zA-Z0-9]/.test(password) ? ++numberOfElements : numberOfElements;   
+      numberOfElements = /.*[a-z].*/.test(this.regPassword) ? ++numberOfElements : numberOfElements;     
+      numberOfElements = /.*[A-Z].*/.test(this.regPassword) ? ++numberOfElements : numberOfElements;     
+      numberOfElements = /.*[0-9].*/.test(this.regPassword) ? ++numberOfElements : numberOfElements;     
+      numberOfElements = /[^a-zA-Z0-9]/.test(this.regPassword) ? ++numberOfElements : numberOfElements;   
 
-      let currentPasswordStrength = 1;
+      this.currentPasswordStrength = 1;
+      if (numberOfElements > 1) this.currentPasswordStrength++;
+      if (numberOfElements > 2) this.currentPasswordStrength++;
+      if (numberOfElements > 3) this.currentPasswordStrength++;
+      if (this.regPassword.length < 1) this.currentPasswordStrength = 0;
+      if (this.regPassword.length > 5) this.currentPasswordStrength++;
+      if (this.isPasswordCommon(this.regPassword) == true) this.currentPasswordStrength = 1;
 
-      if (password === null || password.length < 5) {
-          currentPasswordStrength = 1;
-      } else if (this.isPasswordCommon(password) === true) {
-          currentPasswordStrength = 2;
-      } else if (numberOfElements === 0 || numberOfElements === 1 || numberOfElements === 2) {
-          currentPasswordStrength = 3;
-      } else if (numberOfElements === 3) {
-          currentPasswordStrength = 4;
-      } else {
-          currentPasswordStrength = 5;
-      }
+      switch (this.currentPasswordStrength) {
+      case 1: this.strengthColor = 'red'; break;
+      case 2: this.strengthColor = 'orange'; break;
+      case 3: this.strengthColor = 'yellow'; break;
+      case 4: this.strengthColor = 'lightgreen'; break;
+      case 5: this.strengthColor = 'green'; break;
+      default: this.strengthColor = 'transparent';
+    }
 
-      return currentPasswordStrength;
     }
 
     public isPasswordCommon(password: string): boolean {
