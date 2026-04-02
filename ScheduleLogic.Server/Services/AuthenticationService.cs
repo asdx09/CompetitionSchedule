@@ -92,7 +92,7 @@ namespace ScheduleLogic.Server.Services
             var client = new SmtpClient("smtp.mailersend.net")
             {
                 Port = 587,
-                Credentials = new NetworkCredential("MS_LFxxSg@schedulelogic.hu", "mssp.eFikY9k.3yxj6ljp3w7ldo2r.yVNmYpV"),
+                Credentials = new NetworkCredential(_configuration["MailSend:User"], _configuration["MailSend:Password"]),
                 EnableSsl = true,
             };
 
