@@ -1,17 +1,18 @@
 <div class="background">
-  <h2>HOME</h2>
-  <button (click)="AddEvent()">Add New Event</button>
+  <div class="header" [ngClass]="{'headerMobile': isMobile,'header': !isMobile}">
+    <button (click)="AddEvent()">Add New Event</button>
+    <button (click)="GoToWizard()">Use WIZARD</button>
+  </div>
   <div class="box">
     @for (item of events; track item) {
-      <div class ="item" (click)="GoToEvent(item.eventId)">
+      <div [ngClass]="{'itemMobile': isMobile,'item': !isMobile}" (click)="GoToEvent(item.eventId)">
         {{ item.eventName }}
-        <button (click)="DeleteEvent(item.eventId, $event);">DELETE</button>
+        <div>
+          <button (click)="GoToSolution(item.eventId);">SOLUTION</button>
+          <button (click)="DeleteEvent(item.eventId, $event);">DELETE</button>
+        </div>
       </div>
     }
-    <div class ="item" (click)="GoToWizard()">
-      Create new event with WIZARD
-    </div>
   </div>
-
 </div>
 

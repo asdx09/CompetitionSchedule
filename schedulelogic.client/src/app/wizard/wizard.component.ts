@@ -6,6 +6,7 @@ import { timeInterval } from 'rxjs';
 import { Router } from '@angular/router';
 import { AlertService } from '../alert.service';
 import { environment } from '../../environments/environment';
+import { AuthGuardService } from '../auth-guard.service';
 
 @Component({
   selector: 'app-wizard',
@@ -14,7 +15,7 @@ import { environment } from '../../environments/environment';
   styleUrl: './wizard.component.css'
 })
 export class WizardComponent {
-  constructor(private eventsService: EventsService, private router: Router , private alertService: AlertService){};
+  constructor(private auth: AuthGuardService, private eventsService: EventsService, private router: Router , private alertService: AlertService){};
   Data: data  = new data;
   selection: number = 0;
   workbook = new ExcelJS.Workbook();
@@ -68,12 +69,20 @@ export class WizardComponent {
 
   ngOnInit()
   {
-    this.Data.eventData = new EventData;
-    const splash = document.getElementById('splash');
-    if (splash) {
-      splash.style.opacity = '0';
-      splash.style.transition = '0.5s';
-    }
+    this.auth.checkToken().subscribe({
+       next: (res) => {
+        this.auth.usernameSubject.next(res.name);
+        this.Data.eventData = new EventData;
+        const splash = document.getElementById('splash');
+        if (splash) {
+          splash.style.opacity = '0';
+          splash.style.transition = '0.5s';
+        }
+       },
+      error: (err) => {
+        this.router.navigate(['login']);
+      }
+    });
   }
 
   Next(except: number = 0){
@@ -326,7 +335,6 @@ export class WizardComponent {
         tempEventType.eventTypeId = row.getCell(headerIndexMap[this.eventType_SelectedIdColumn!]).text;
         tempEventType.timeRange = row.getCell(headerIndexMap[this.eventType_SelectedTimeColumn!]).text;
         tempEventType.typeName = row.getCell(headerIndexMap[this.eventType_SelectedNameColumn!]).text;
-        console.log(row.getCell(headerIndexMap[this.eventType_SelectedLocationsColumn!]).text.split(';'));
         row.getCell(headerIndexMap[this.eventType_SelectedLocationsColumn!]).text.split(';').forEach(element => {
           let tempLocationTable = new LocationTable;
           tempLocationTable.eventTypeId = (row.getCell(headerIndexMap[this.eventType_SelectedIdColumn!]).text);
@@ -456,8 +464,6 @@ export class WizardComponent {
         this.Data.pauseTable.push(tempPauseTable);
       });
     }
-
-    console.log(this.Data.eventTypes);
 
     this.eventsService.NewWizardEvent(this.Data).subscribe({
         next: (res) => {

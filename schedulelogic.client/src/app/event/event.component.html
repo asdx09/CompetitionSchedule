@@ -1,5 +1,5 @@
 <div class="background">
-  <div class="upperbox">
+  <div [ngClass]="{'upperboxMobile': isMobile,'upperbox': !isMobile}">
     <h2>{{data.eventData.eventName}}</h2>
     <button (click)="SaveEvent()" [disabled]="isSolving"
       [ngStyle]="{'border-width': '4px'}"
@@ -17,40 +17,37 @@
     </button>
     <button (click)="GoToSolution()">VIEW SOLUTION</button>
   </div>
-  <div class="FirstListBox">
-    <div class="right">
-      <div class="FirstListItem">
+  <div [ngClass]="{'FirstListBoxMobile': isMobile,'FirstListBox': !isMobile}">
+    <div  [ngClass]="{'right': !isMobile}">
+      <div [ngClass]="{'FirstListItemMobile': isMobile,'FirstListItem': !isMobile}">
         Name: <input type="text" [(ngModel)]="data.eventData.eventName" (ngModelChange)="condition = 2">
       </div>
-      <div class="FirstListItem">
+      <div [ngClass]="{'FirstListItemMobile': isMobile,'FirstListItem': !isMobile}">
         Start Date:
         <input type="date" [ngModel]="getDateString(data.eventData.startDate)"
           (ngModelChange)="updateDate(data.eventData, $event, 'startDate'); condition = 2">
         <input type="time" [ngModel]="getTimeString(data.eventData.startDate)"
           (ngModelChange)="updateTime(data.eventData, $event, 'startDate'); condition = 2">
       </div>
-      <div class="FirstListItem">
+      <div [ngClass]="{'FirstListItemMobile': isMobile,'FirstListItem': !isMobile}">
         End Date:
         <input type="date" [ngModel]="getDateString(data.eventData.endDate)"
           (ngModelChange)="updateDate(data.eventData, $event, 'endDate'); condition = 2">
         <input type="time" [ngModel]="getTimeString(data.eventData.endDate)"
           (ngModelChange)="updateTime(data.eventData, $event, 'endDate'); condition = 2">
       </div>
-      <div class="FirstListItem">
+      <div [ngClass]="{'FirstListItemMobile': isMobile,'FirstListItem': !isMobile}">
         Base travel time: <input type="number" [(ngModel)]="data.eventData.basePauseTime" (ngModelChange)="condition = 2">
       </div>
-      <div class="FirstListItem">
+      <div [ngClass]="{'FirstListItemMobile': isMobile,'FirstListItem': !isMobile}">
         Location pause: <input type="number" [(ngModel)]="data.eventData.locationPauseTime"
           (ngModelChange)="condition = 2">
       </div>
     </div>
-    <div class="left">
-      <div class="Graph">
-        <div class="pie" [style.background]="gradient"></div>
-      </div>
+    <div [ngClass]="{'left': !isMobile}">
       <div class="graphinputs">
         @for (p of points; track p; let i = $index) {
-        <div class="pointBox">
+        <div [ngClass]="{'pointBoxMobile': isMobile,'pointBox': !isMobile}">
           {{p.name}} weight: 
           <input type="number" [(ngModel)]="p.weight" (input)="updatePath(); condition = 2" max="500">
         </div>
@@ -58,7 +55,7 @@
       </div>
     </div>
   </div>
-  <div class="boxHeader">
+ <div [ngClass]="{'boxHeaderMobile': isMobile,'boxHeader': !isMobile}">
     <div class="title">Event Types</div>
     <div class="searchbar">
       <div>
@@ -91,7 +88,7 @@
   </div>
   } @else
   {<div class="more" (click)="switchDropdown(0)">SHOW ITEMS ({{GetEventTypes().length}})</div>}
-  <div class="boxHeader">
+  <div [ngClass]="{'boxHeaderMobile': isMobile,'boxHeader': !isMobile}">
     <div class="title">Groups</div>
     <div class="searchbar">
       <div>
@@ -119,7 +116,7 @@
   </div>
   } @else
   {<div class="more" (click)="switchDropdown(1)">SHOW ITEMS ({{GetGroups().length}})</div>}
-  <div class="boxHeader">
+  <div [ngClass]="{'boxHeaderMobile': isMobile,'boxHeader': !isMobile}">
     <div class="title">Locations</div>
     <div class="searchbar">
       <div>
@@ -155,7 +152,7 @@
   </div>
   } @else
   {<div class="more" (click)="switchDropdown(2)">SHOW ITEMS ({{GetLocations().length}})</div>}
-  <div class="boxHeader">
+  <div [ngClass]="{'boxHeaderMobile': isMobile,'boxHeader': !isMobile}">
     <div class="title">Travel Times</div>
     <div class="searchbar">
       <div>
@@ -204,7 +201,7 @@
   </div>
   } @else
   {<div class="more" (click)="switchDropdown(3)">SHOW ITEMS ({{GetPauseTable().length}})</div>}
-  <div class="boxHeader">
+  <div [ngClass]="{'boxHeaderMobile': isMobile,'boxHeader': !isMobile}">
     <div class="title">Participants</div>
     <div class="searchbar">
       <div>
@@ -256,7 +253,7 @@
   </div>
   } @else
   {<div class="more" (click)="switchDropdown(4)">SHOW ITEMS ({{GetParticipants().length}})</div>}
-  <div class="boxHeader">
+  <div [ngClass]="{'boxHeaderMobile': isMobile,'boxHeader': !isMobile}">
     <div class="title">Registrations</div>
     <div class="searchbar">
       <div>
@@ -315,7 +312,7 @@
   </div>
   } @else
   {<div class="more" (click)="switchDropdown(5)">SHOW ITEMS ({{GetRegistrations().length}})</div>}
-  <div class="boxHeader">
+  <div [ngClass]="{'boxHeaderMobile': isMobile,'boxHeader': !isMobile}">
     <div class="title">Constraints</div>
     <div class="searchbar">
       <div>

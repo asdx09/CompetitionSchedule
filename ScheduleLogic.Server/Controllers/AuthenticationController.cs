@@ -16,6 +16,7 @@ using System.Diagnostics;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication;
 using IAuthenticationService = ScheduleLogic.Server.Services.Interfaces.IAuthenticationService;
+using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace ScheduleLogic.Server.Controllers
 {
@@ -37,25 +38,25 @@ namespace ScheduleLogic.Server.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginModel data)
         {
-
-            string res = await _dbService.LoginUser(data.Username, data.Password);
-            if (res == "")
+            User? user = await _dbService.LoginUser(data.Username, data.Password);
+            if (user != null)
             {
-                var jwtToken = await _authService.LoginUser(data.Username, data.Password);
-
-                if (jwtToken != null)
+                var claims = new List<Claim>
                 {
-                    Response.Cookies.Append("jwt", jwtToken, new CookieOptions
-                    {
-                        HttpOnly = true,
-                        Secure = false,
-                        SameSite = SameSiteMode.Lax,
-                        Expires = DateTime.UtcNow.AddHours(1),
-                    });
-                    return Ok();
-                }
+                    new Claim(ClaimTypes.Name, user.Email),
+                    new Claim("UserId", user.UserId.ToString())
+                };
+                var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+
+                await HttpContext.SignInAsync(
+                    CookieAuthenticationDefaults.AuthenticationScheme,
+                    new ClaimsPrincipal(claimsIdentity),
+                    new AuthenticationProperties { IsPersistent = true, ExpiresUtc = DateTime.UtcNow.AddHours(1) }
+                );
+
+                return Ok();
             }
-            return Unauthorized(res);
+            return Unauthorized("Invalid username/email and password or not verified email!");
         }
 
         [HttpPost("register")]
@@ -70,18 +71,9 @@ namespace ScheduleLogic.Server.Controllers
         [HttpPost("check-token")]
         public async Task<IActionResult> CheckToken()
         {
-            var expClaim = User.Claims.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Exp);
+            string username = await _dbService.GetUsername(User.Identity?.Name!);
 
-            if (expClaim == null)
-                return BadRequest("No expiration claim found.");
-
-            var expUnix = long.Parse(expClaim.Value);
-            var expDate = DateTimeOffset.FromUnixTimeSeconds(expUnix).UtcDateTime;
-
-            var username = User.Identity?.Name;
-            if (!string.IsNullOrEmpty(username) && await _dbService.CheckUserExist(username) == false) return Unauthorized();
-
-            return Ok(expDate);
+            return Ok(new { name = username });
         }
 
 
@@ -101,6 +93,7 @@ namespace ScheduleLogic.Server.Controllers
         [HttpDelete("delete")]
         public async Task<IActionResult> DeleteAccount()
         {
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
             await _dbService.DeleteUser(User.Identity?.Name);
             return Ok();
         }
@@ -109,10 +102,7 @@ namespace ScheduleLogic.Server.Controllers
         [Authorize]
         public async Task<IActionResult> Logout()
         {
-            if (Request.Cookies.ContainsKey("jwt"))
-            {
-                Response.Cookies.Delete("jwt");
-            }
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
             return Ok();
         }
     }

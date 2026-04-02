@@ -1,168 +1,179 @@
-.schedule-container {
-  display: flex;
-  position: relative;
-  margin-left: 5%;
-  margin-right: 5%;
-  margin-bottom: 50px;
-  max-height: 600px;
-  overflow-x: auto;
-  color: white;
-  box-shadow: 0 0 20px 5px rgba(0, 0, 0, 0.5);
-}
-
 .page{
   font-family: "Inter", "Segoe UI", sans-serif;
-  background: 
-    radial-gradient(circle at 20% 30%, #be29ec33, transparent 40%),
-    radial-gradient(circle at 80% 20%, #80008048, transparent 40%),
-    radial-gradient(circle at 50% 80%, rgba(228, 95, 18, 0.12), transparent 40%),
-    #0f172a;
   position: absolute;
   left: 0;
   right: 0;
   color:white;
   top: 0;
-  position: absolute;
   width: 100%;
   padding-top: 100px;
+  display: flex;
+  flex-direction: column;
+}
+
+.background{
+  background: 
+    radial-gradient(circle at 20% 30%, #be29ec33, transparent 40%),
+    radial-gradient(circle at 80% 20%, #80008048, transparent 40%),
+    radial-gradient(circle at 50% 80%, rgba(228, 95, 18, 0.12), transparent 40%),
+    #0f172a;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -10;
+    position: fixed;
 }
 
 h1{
-  margin-top: 50px;
   color: white;
   font-size: 60px;
 }
 
-h2{
-  margin-top: 60px;
-  text-align: left;
-  margin-bottom: 50px;
-  color: white;
-  padding-left: 150px;
-}
-/* Bal oldali sticky box */
-.leftbox {
-  width: 15%;
-  position: sticky;
-  left: 0;
-  z-index: 10;
-  background: var(--bg-light);
-  border-right: 1px solid black;
-  backdrop-filter: blur(5px);
-  box-shadow: 10px 0 5px -2px #0000001e;
-  background-color: rgba(0, 0, 0, 0.568);
-}
-
-.row-label {
-  display: flex;
-  align-items: center;
-  padding-left: 5px;
-  font-weight: bold;
-  justify-content: right;
-  padding-right: 10px;
-}
-
-.rightbox {
-  position: relative;
-  flex: 1;
-  white-space: nowrap;
-}
-
-/* Felső gombok */
 .upperbox{
-  margin-top: 50px;
   display: flex;
-  justify-content: space-between;
+  justify-content: space-around;
   align-items: center;
-  margin-left: 10%;
-  margin-right: 10%;
-  border-bottom: solid 1px white;
-  height: 60px;
+  height: 100px;
 }
 
-/* Órák */
-.time-slot {
-  position: absolute;
-  border-right: 1px solid #ffffff48;
-  overflow: hidden;
-}
-
-.time-label {
-  position: absolute;
-  top: 0;
-  left: 5px;
-  font-size: 14px;
-  text-align: left;
-}
-
-.info{
-  height: 45px;
-}
-
-.range {
-  position: absolute;
-  color: white;
-  border-radius: 100px;
-  font-size: 14px;
-  text-align: center;
-  z-index: 1;
-  overflow: hidden;
-  transition: all 0.2s;
-  height: 43px;
-  white-space: normal;
+.upperboxMobile{
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-}
-
-.rangeConstraint {
-  position: absolute;
-  z-index: 0;
-  overflow: hidden;
-  transition: all 0.2s;
-  height: 43px;
-  background: repeating-linear-gradient(
-    45deg,       
-    #ffffff2a,     
-    #ffffff28 10px, 
-    #00000000 10px,   
-    #00000000 20px
-  );
-}
-
-.range:hover{
-  transform: scale(1.1);
-  filter: brightness(1.1);
-  width: fit-content;
-  z-index: 2;
-  padding: 4px;
-  color: white;
-}
-
-.eventtype-label {
-  cursor: pointer;
-  justify-content:space-between;
-}
-
-.eventtype-label:hover {
-  filter: brightness(1.05);
-}
-
-.eventtype-range {
-  font-weight: bold;
-  border-radius: 100px;
-}
-
-.bakcgorund-lines{
-  position: absolute;
-  width: 100%;
+  margin-bottom: 50px;
 }
 
 .cbox{
-  margin-top: 20px;
-  display:flex;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.calendar{
+  width: 80%;
+  background-color: rgb(255, 255, 255);
+  margin: 0 auto 100px auto;
+  display: grid;
+  overflow: visible;
+  display: grid;
+  height: 600px;
+  filter: brightness(0.9);
+  border: 1px solid white;
+}
+
+.scrollContainer{
+  width: 100%;
+  height: auto;
+  overflow: auto;
+  position: relative;
+  grid-area: 1 / 1;
+}
+
+.hourContainer{
+  display: flex;
+  height: 100%;
+  position: sticky;
+  top: 0;
+}
+
+.hour
+{
+  height: 100%;
+  flex-shrink: 0;
+  border-right: 1px solid #e0e0e0;
+  text-align: right;
+  padding-right: 10px;
+  position: sticky;
+  top: 0;
+  color: #3c4043;
+  font-variant-numeric: tabular-nums;
+}
+
+.rowContainer{
+  height: 40px;
+  position: absolute;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.rangeContainer {
+  display: flex;
+  position: relative;
+  top: 0;
+  left: 0;
+  height: auto;
+  pointer-events: none; 
+}
+
+.range{
+  position: absolute;
+  height: 40px;
+  flex-shrink: 0;
+  z-index: 8;
+  border-radius: 10px;
+  transition: 0.1s;
+  display: flex;
   justify-content: center;
+  align-items: center;
+  text-align: center;
+  overflow: hidden;
+  font-size: 50%;
+}
+
+.range:hover{
+  transform: scale(2);
+  transition: 0.1s;
+  z-index: 9;
+}
+
+.constraintRange{
+  position: absolute;
+  z-index: 8;
+  height: 100%;
+  background: repeating-linear-gradient(
+    45deg,       
+    #ffffffbd,     
+    #ffffffc0 10px, 
+    #000000b7 10px,   
+    #00000041 20px
+  );
+}
+
+.rowName{
+  position: sticky;                      
+  height: 40px;  
+  left: 0;
+  width: 150px;
+  background-color: rgba(0, 0, 0, 0.616);
+  z-index: 10;
+  padding-right: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.resizer {
+  width: 5px;
+  height: 100%;
+  position: absolute;
+  right: 0;
+  top: 0;
+  cursor: ew-resize; 
+  z-index: 11; 
+  background-color: #e0e0e0;
+}
+
+.filterInput{
+  width: 80%;
+  padding: 2px 3px;
+  font-size: 14px;
+  font-family: inherit;
+  color: #3c4043;
+  background-color: #ffffff;
+  border: 1px solid #dadce0; /* Finom szürke keret */
+  border-radius: 4px;
+  outline: none;
+  transition: all 0.2s ease-in-out;
+  box-sizing: border-box;
 }
 
 button {

@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { Component, OnInit } from '@angular/core';
+import { Component, HostListener, OnInit } from '@angular/core';
 import { AuthGuardService } from './auth-guard.service';
 import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs/internal/operators/filter';
@@ -15,22 +15,16 @@ import { ProfileComponent } from './profile/profile.component';
 export class AppComponent implements OnInit {
   constructor(private router: Router, private AuthGuard: AuthGuardService, private dialog: MatDialog) { }
   username: string = "";
+  isMobile = false;
 
   ngOnInit() {
+
+     this.isMobile = window.innerWidth <= 768;
 
     //Get username
     this.AuthGuard.username$.subscribe(name => {
       this.username = name ?? "";
     });
-
-    //Check token
-    this.AuthGuard.checkToken().subscribe({
-      error: (err) => {
-        this.router.navigate(['login']);
-        this.AuthGuard.logout();
-      }
-    });
-    
 
     this.router.events
       .pipe(filter(event => event instanceof NavigationEnd))
@@ -67,5 +61,10 @@ export class AppComponent implements OnInit {
           panelClass: 'custom-dialog-container',
           data: {name : this.username}
         });
+  }
+
+  @HostListener('window:resize', ['$event'])
+  onResize(event: Event) {
+    this.isMobile = window.innerWidth <= 768;
   }
 }

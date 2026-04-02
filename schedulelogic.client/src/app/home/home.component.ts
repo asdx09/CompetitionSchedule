@@ -1,8 +1,9 @@
-import { Component } from '@angular/core';
+import { Component, HostListener } from '@angular/core';
 import { EventsData, EventsService } from '../events.service';
 import { Router } from '@angular/router';
 import { environment } from '../../environments/environment';
 import { AlertService } from '../alert.service';
+import { AuthGuardService } from '../auth-guard.service';
 
 @Component({
   selector: 'app-home',
@@ -12,11 +13,21 @@ import { AlertService } from '../alert.service';
 })
 
 export class HomeComponent {
-  constructor(private eventsService: EventsService, private router: Router, private alertService: AlertService) { }
+  constructor(private auth: AuthGuardService, private eventsService: EventsService, private router: Router, private alertService: AlertService) { }
   events: EventsData[] = [];
+  isMobile = false;
 
   ngOnInit(){
-    this.RefreshList();
+    this.auth.checkToken().subscribe({
+       next: (res) => {
+        this.auth.usernameSubject.next(res.name);
+        this.RefreshList();
+       },
+      error: (err) => {
+        this.router.navigate(['login']);
+      }
+    });
+    this.isMobile = window.innerWidth <= 768;
   }
 
   RefreshList()
@@ -56,29 +67,39 @@ export class HomeComponent {
 
   DeleteEvent(id: number, event: MouseEvent)
   {
-    event.stopPropagation()
-    this.eventsService.DeleteEvent(id.toString()).subscribe({
-      next: (res) => {
-        this.RefreshList();
-      },
-      error: (err) => {
-        this.alertService.error("Something went wrong!");
-        if (environment.production == false) 
-        {console.error('Delete event hiba!', err);}
-        window.location.reload();
-      }
-    });
+    event.stopPropagation();
+    if (confirm("Are you sure you want to permanently delete this event?")) {
+      this.eventsService.DeleteEvent(id.toString()).subscribe({
+        next: (res) => {
+          this.RefreshList();
+        },
+        error: (err) => {
+          this.alertService.error("Something went wrong!");
+          if (environment.production == false) 
+          {console.error('Delete event hiba!', err);}
+          window.location.reload();
+        }
+      });
+    }
   }
 
   GoToEvent(id:number)
   {
-    console.log(this.events);
-    console.log(id);
     this.router.navigate(['event'],{ queryParams: { id: id } });
+  }
+
+  GoToSolution(id:number)
+  {
+    this.router.navigate(['schedule'],{ queryParams: { id: id } });
   }
 
   GoToWizard()
   {
     this.router.navigate(['wizard']);
+  }
+
+  @HostListener('window:resize', ['$event'])
+  onResize(event: Event) {
+    this.isMobile = window.innerWidth <= 768;
   }
 }

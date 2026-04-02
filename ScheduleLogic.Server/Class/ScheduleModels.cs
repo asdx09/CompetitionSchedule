@@ -51,7 +51,7 @@
         }
         public class ScheduleRequestForSolver
         {
-            public string ReturnURL { get; set; } = "https://localhost:7098/api/Schedule/answer";
+            public string ReturnURL { get; set; } = "";
             public int EventId { get; set; }
             public List<LocationModel> Locations { get; set; } = null!;
             public List<EventModel> Events { get; set; } = null!;

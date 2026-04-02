@@ -6,6 +6,7 @@ using ScheduleLogic.Server.Services;
 using ScheduleLogic.Server.Services.Interfaces;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Text.Json;
 
 namespace ScheduleLogic.Server.Controllers
 {
@@ -96,9 +97,8 @@ namespace ScheduleLogic.Server.Controllers
             var username = User.Identity?.Name;
             if (!string.IsNullOrEmpty(username))
             {
-                var result = await _eventService.NewWizardEvent(Data, username);
-                if (result) Ok();
-                else return BadRequest();
+                await _eventService.NewWizardEvent(Data, username);
+                return Ok();
             }
             return Forbid();
         }

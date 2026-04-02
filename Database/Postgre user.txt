@@ -1,3 +1,6 @@
+sudo -i -u postgres
+psql -U postgres -d scheduleLogic
+
 GRANT USAGE ON SCHEMA public TO app;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO app;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO app;

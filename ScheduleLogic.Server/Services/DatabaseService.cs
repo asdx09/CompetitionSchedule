@@ -27,17 +27,17 @@ namespace ScheduleLogic.Server.Services
             _dbService = context;
 
         }
-
-        public async Task<string> LoginUser(string username, string password)
+        public async Task<User?> LoginUser(string username, string password)
         {
+            Console.WriteLine(username);
             var user = await _dbService.Users.FirstOrDefaultAsync(u => u.Username == username);
-            if (user == null) return "Invalid username or password!";
+            if (user == null) user = await _dbService.Users.FirstOrDefaultAsync(u => u.Email == username);
+            if (user == null || user.Validated != "") return null;
 
             var passwordHasher = new PasswordHasher<User>();
             var result = passwordHasher.VerifyHashedPassword(user, user.Password, password);
 
-            if (user.Validated == "") return result == PasswordVerificationResult.Success ? "" : "Invalid username or password!";
-            return "Email validation is not yet complete.";
+            return result == PasswordVerificationResult.Success ? user : null;
         }
         public async Task<string> RegisterUser(string username, string password, string email, AuthenticationService Auth_Service)
         {
@@ -261,19 +261,24 @@ namespace ScheduleLogic.Server.Services
             _dbService.Eventconstraints.RemoveRange(constraintsToRemove);
             await _dbService.SaveChangesAsync();
         }
-        public async Task<long> GetUserID(string username)
+        public async Task<long> GetUserID(string email)
         {
             if (await _dbService.Users.CountAsync() < 1) return 0;
-            return _dbService.Users.Where(w => w.Username == username).First().UserId;
+            return _dbService.Users.Where(w => w.Email == email).First().UserId;
+        }
+        public async Task<string> GetUsername(string email)
+        {
+            if (await _dbService.Users.CountAsync() < 1) return "";
+            return _dbService.Users.Where(w => w.Email == email).First().Username;
         }
         public async Task<bool> CheckUser(string username, string id)
         {
             var userId = await GetUserID(username);
             return await _dbService.Events.Where(w => w.Createdby == userId && w.EventId == Convert.ToInt32(id)).AnyAsync();
         }
-        public async Task<bool> CheckUserExist(string username)
+        public async Task<bool> CheckUserExist(string email)
         {
-            return await _dbService.Users.Where(w => w.Username == username).CountAsync() > 0;
+            return await _dbService.Users.Where(w => w.Email == email).CountAsync() > 0;
         }
         public async Task<List<EventsData>> GetEvents(string username)
         {
@@ -542,6 +547,7 @@ namespace ScheduleLogic.Server.Services
 
             request.EventId = id;
 
+
             var evt = await _dbService.Events
                 .AsNoTracking()
                 .FirstOrDefaultAsync(e => e.EventId == id);
@@ -695,82 +701,103 @@ namespace ScheduleLogic.Server.Services
             await _dbService.SaveChangesAsync();
             return true;
         }
-        public async Task<DataDTO> GetScheduleData(string id)
+        public async Task<DataDTO> GetScheduleData(string id, string username)
         {
-            int eventId = Convert.ToInt32(id);
-            var tempData = new DataDTO();
-            tempData.EventData.EventId = id;
-
-            var evt = await _dbService.Events
-                .AsNoTracking()
-                .FirstOrDefaultAsync(e => e.EventId == eventId);
-
-            if (evt == null) return null;
-
-            tempData.EventData.EventName = evt.Eventname;
-            tempData.EventData.StartDate = evt.Startdate;
-            tempData.EventData.EndDate = evt.Enddate;
+            DataDTO TempData = new DataDTO();
+            var userId = await GetUserID(username);
+            TempData.EventData = await _dbService.Events.AsNoTracking().Where(w => w.Createdby == userId && w.EventId == Convert.ToInt32(id)).Select(e => new EventDTO
+            {
+                EventId = e.EventId.ToString(),
+                EventName = e.Eventname,
+                StartDate = e.Startdate,
+                EndDate = e.Enddate,
+                IsPrivate = e.Isprivate,
+                BasePauseTime = e.Basepausetime,
+                LocationPauseTime = e.Locationpausetime,
+                LocWeight = e.Locweight,
+                GroupWeight = e.Groupweight,
+                TypeWeight = e.Typeweight,
+                CompWeight = e.Compweight
+            }).FirstAsync();
+            TempData.EventTypes = await _dbService.Eventtypes.AsNoTracking().Where(w => w.EventId == Convert.ToInt32(id)).Select(e => new EventTypeDTO
+            {
+                EventId = e.EventId.ToString(),
+                EventTypeId = e.EventtypeId.ToString(),
+                TypeName = e.Typename,
+                TimeRange = e.Timerange
+            }).ToListAsync();
+            TempData.Groups = await _dbService.Groups.AsNoTracking().Where(w => w.EventId == Convert.ToInt32(id)).Select(e => new GroupDTO
+            {
+                GroupId = e.GroupId.ToString(),
+                EventId = e.EventId.ToString(),
+                GroupName = e.Groupname
+            }).ToListAsync();
+            TempData.Locations = await _dbService.Locations.AsNoTracking().Where(w => w.EventId == Convert.ToInt32(id)).Select(e => new LocationDTO
+            {
+                LocationId = e.LocationId.ToString(),
+                EventId = e.EventId.ToString(),
+                LocationName = e.Locationname,
+                Slots = e.Slots
+            }).ToListAsync();
+            TempData.Participants = await _dbService.Participants.AsNoTracking().Where(w => w.EventId == Convert.ToInt32(id)).Select(e => new ParticipantDTO
+            {
+                ParticipantId = e.ParticipantId.ToString(),
+                ParticipantName = e.Participantname,
+                CompetitorNumber = e.Competitornumber,
+                EventId = e.EventId.ToString(),
+                GroupId = e.GroupId.ToString()
+            }).ToListAsync();
+            TempData.Registrations = await _dbService.Registrations.AsNoTracking().Where(w => w.EventId == Convert.ToInt32(id)).Select(e => new RegistrationDTO
+            {
+                RegistrationId = e.RegistrationId.ToString(),
+                EventId = e.EventId.ToString(),
+                ParticipantId = e.ParticipantId.ToString(),
+                EventTypeId = e.EventtypeId.ToString()
+            }).ToListAsync();
+            TempData.PauseTable = await _dbService.Pausetables.AsNoTracking().Where(w => w.EventId == Convert.ToInt32(id)).Select(e => new PauseTableDTO
+            {
+                PauseId = e.PauseId.ToString(),
+                EventId = e.EventId.ToString(),
+                LocationId1 = e.LocationId1.ToString(),
+                LocationId2 = e.LocationId2.ToString(),
+                Pause = e.Pause
+            }).ToListAsync();
+            TempData.LocationTable = await _dbService.Locationtables.AsNoTracking().Where(w => w.EventId == Convert.ToInt32(id)).Select(e => new LocationTableDTO
+            {
+                LocationTableId = e.LocationtableId.ToString(),
+                EventId = e.EventId.ToString(),
+                EventTypeId = e.EventtypeId.ToString(),
+                LocationId = e.LocationId.ToString()
+            }).ToListAsync();
+            TempData.Constraints = await _dbService.Eventconstraints.AsNoTracking().Where(w => w.EventId == Convert.ToInt32(id)).Select(e => new ConstraintDTO
+            {
+                ConstraintId = e.ConstraintId.ToString(),
+                EventId = e.EventId.ToString(),
+                ObjectId = e.ObjectId.ToString(),
+                ConstraintType = e.Constrainttype.ToString(),
+                StartTime = e.Starttime,
+                EndTime = e.Endtime
+            }).ToListAsync();
 
             var typeIDs = await _dbService.Eventtypes
-                .Where(e => e.EventId == eventId)
+                .Where(e => e.EventId == Convert.ToInt32(id))
                 .Select(e => e.EventtypeId)
                 .ToListAsync();
 
-            var schedules = await _dbService.Schedules
-                .Where(s => typeIDs.Contains(s.EventtypeId))
-                .ToListAsync();
+            var startDate = _dbService.Events.AsNoTracking().Where(w => w.Createdby == userId && w.EventId == Convert.ToInt32(id)).First().Startdate.ToLocalTime();
 
-            tempData.TimeZones = schedules.Select(item => new TimeZoneDTO
+            TempData.TimeZones = await _dbService.Schedules.AsNoTracking().Where(w => typeIDs.Contains(w.EventtypeId)).Select(e => new TimeZoneDTO
             {
-                ScheduleId = item.ScheduleId,
-                EventTypeId = item.EventtypeId,
-                ParticipantId = item.ParticipantId,
-                LocationId = item.LocationId,
-                StartTime = Convert.ToInt32((item.Starttime.ToLocalTime() - evt.Startdate.Date).TotalMinutes),
-                EndTime = Convert.ToInt32((item.Endtime.ToLocalTime() - evt.Startdate.Date).TotalMinutes),
-                Slot = item.Slot
-            }).ToList();
+                ScheduleId = e.ScheduleId,
+                EventTypeId = e.EventtypeId,
+                ParticipantId = e.ParticipantId,
+                LocationId = e.LocationId,
+                StartTime = Convert.ToInt32((e.Starttime.ToLocalTime() - startDate.Date).TotalMinutes),
+                EndTime = Convert.ToInt32((e.Endtime.ToLocalTime() - startDate.Date).TotalMinutes),
+                Slot = e.Slot
+            }).ToListAsync();
 
-            tempData.EventTypes = await _dbService.Eventtypes
-                .Where(e => e.EventId == eventId)
-                .Select(e => new EventTypeDTO
-                {
-                    EventTypeId = e.EventtypeId.ToString(),
-                    TypeName = e.Typename
-                })
-                .ToListAsync();
-
-            tempData.Participants = await _dbService.Participants
-                .Where(p => p.EventId == eventId)
-                .Select(p => new ParticipantDTO
-                {
-                    ParticipantId = p.ParticipantId.ToString(),
-                    ParticipantName = p.Participantname
-                })
-                .ToListAsync();
-
-            tempData.Locations = await _dbService.Locations
-                .Where(l => l.EventId == eventId)
-                .Select(l => new LocationDTO
-                {
-                    LocationId = l.LocationId.ToString(),
-                    LocationName = l.Locationname
-                })
-                .ToListAsync();
-
-            tempData.Constraints = await _dbService.Eventconstraints
-                .Where(c => c.EventId == eventId)
-                .Select(c => new ConstraintDTO
-                {
-                    ConstraintId = c.ConstraintId.ToString(),
-                    ConstraintType = c.Constrainttype.ToString(),
-                    ObjectId = c.ObjectId.ToString(),
-                    StartTime = c.Starttime,
-                    EndTime = c.Endtime
-                })
-                .ToListAsync();
-
-            return tempData;
+            return TempData;
         }
         public async Task<ScheduleDataForEXPORT> GetScheduleDataEXPORT(string id)
         {
@@ -859,7 +886,7 @@ namespace ScheduleLogic.Server.Services
                 await DeleteEvent(item.EventId);
             }
 
-            var ProfileToRemove = await _dbService.Users.Where(w => w.Username == username).ToListAsync();
+            var ProfileToRemove = await _dbService.Users.Where(w => w.Email == username).ToListAsync();
             _dbService.Users.RemoveRange(ProfileToRemove);
 
             await _dbService.SaveChangesAsync();

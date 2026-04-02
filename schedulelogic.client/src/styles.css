@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 #splash {
   position: fixed;
   top: 0;
@@ -8,7 +10,11 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background-image: linear-gradient(to bottom right, #0C1443, #1C1853);
+  background: 
+    radial-gradient(circle at 20% 30%, #be29ec33, transparent 40%),
+    radial-gradient(circle at 80% 20%, #80008048, transparent 40%),
+    radial-gradient(circle at 50% 80%, rgba(228, 95, 18, 0.12), transparent 40%),
+    #0f172a;
   z-index: 9999;
   pointer-events: none;
 }

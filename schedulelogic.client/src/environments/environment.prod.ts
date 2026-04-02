@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://192.168.0.211:5000/'
+  apiUrl: 'https://schedulelogic.hu/'
 };

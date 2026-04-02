@@ -20,18 +20,21 @@ namespace ScheduleLogic.Server.Services
     public class ScheduleService : IScheduleService
     {
         private readonly IDatabaseService _dbService;
-        string apiUrl = "http://127.0.0.1:8000/";
+        private readonly IConfiguration _configuration;
 
-        public ScheduleService(IDatabaseService dbService)
+
+        public ScheduleService(IDatabaseService dbService, IConfiguration configuration)
         {
             _dbService = dbService;
+            _configuration = configuration;
         }
         public async Task<ScheduleRequestForSolver> GenerateSchedule(int id)
         {
             var SR = await _dbService.GetScheduleInfo(id);
+            SR.ReturnURL = _configuration["URLS:BackendForSolver"]!.TrimEnd('/') + "/api/Schedule/answer";
             using var client = new HttpClient();
 
-            var httpResponse = await client.PostAsJsonAsync(apiUrl + "schedule", SR);
+            var httpResponse = await client.PostAsJsonAsync(_configuration["URLS:Solver"] + "schedule", SR);
 
             if (httpResponse.IsSuccessStatusCode)
             {
@@ -45,16 +48,16 @@ namespace ScheduleLogic.Server.Services
             return SR;
         }
 
-        public async Task<DataDTO> GetScheduleData(string id)
+        public async Task<DataDTO> GetScheduleData(string id, string username)
         {
-            return await _dbService.GetScheduleData(id);
+            return await _dbService.GetScheduleData(id, username);
         }
 
         public async Task<bool> CheckSolver(string id)
         {
             using var client = new HttpClient();
 
-            var response = await client.GetAsync(apiUrl + "is_solver_running?EventId=" + id);
+            var response = await client.GetAsync(_configuration["URLS:Solver"] + "is_solver_running?EventId=" + id);
 
             if (response.IsSuccessStatusCode)
             {
@@ -74,7 +77,7 @@ namespace ScheduleLogic.Server.Services
         {
             using var client = new HttpClient();
 
-            var response = await client.GetAsync(apiUrl + "stop_solver?EventId=" + id);
+            var response = await client.GetAsync(_configuration["URLS:Solver"] + "stop_solver?EventId=" + id);
 
             if (response.IsSuccessStatusCode)
             {

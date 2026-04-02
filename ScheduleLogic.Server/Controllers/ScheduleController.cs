@@ -37,8 +37,13 @@ namespace ScheduleLogic.Server.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetSchedule(string id)
         {
-            var result = await _scheduleService.GetScheduleData(id);
-            return Ok(result);
+            var username = User.Identity?.Name;
+            if (!string.IsNullOrEmpty(username))
+            {
+                var result = await _scheduleService.GetScheduleData(id, username);
+                return Ok(result);
+            }
+            return Forbid();
         }
 
         [Authorize]

@@ -6,7 +6,7 @@ CREATE TABLE users (
     username VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL,
     password VARCHAR(255) NOT NULL,
-    validated BOOLEAN NOT NULL,
+    validated VARCHAR(255) NOT NULL,
     registrationdate DATE NOT NULL
 );
 
@@ -140,6 +140,10 @@ CREATE TABLE eventconstraint (
     CONSTRAINT constraint_event_id_foreign
         FOREIGN KEY (event_id) REFERENCES event(event_id)
 );
+
+/*
+modelBuilder.HasDefaultSchema("public");
+*/
 
 /*
 dotnet ef dbcontext scaffold "Host=localhost;Database=scheduleLogic;Username=app;Password=app" Npgsql.EntityFrameworkCore.PostgreSQL -o Models -f

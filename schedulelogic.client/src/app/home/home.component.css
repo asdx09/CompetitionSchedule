@@ -1,51 +1,87 @@
 .background{
-    font-family: "Inter", "Segoe UI", sans-serif;
-    background: 
-    radial-gradient(circle at 20% 30%, #be29ec33, transparent 40%),
-    radial-gradient(circle at 80% 20%, #80008048, transparent 40%),
-    radial-gradient(circle at 50% 80%, rgba(228, 95, 18, 0.12), transparent 40%),
-    #0f172a;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    top: 0;
-    position: absolute;
-    width: 100%;
-    padding-top: 100px;
-    font-weight: 500;
+  font-family: "Inter", "Segoe UI", sans-serif;
+  background: 
+  radial-gradient(circle at 20% 30%, #be29ec33, transparent 40%),
+  radial-gradient(circle at 80% 20%, #80008048, transparent 40%),
+  radial-gradient(circle at 50% 80%, rgba(228, 95, 18, 0.12), transparent 40%),
+  #0f172a;
+  position: absolute;
+  left: 0;
+  right: 0;
+  color:white;
+  top: 0;
+  position: absolute;
+  width: 100%;
+  min-height: 100%;
+  padding-top: 100px;
+  text-align: left;
 }
 
 .box{
     list-style: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    flex-wrap: wrap;
     gap: 16px;
-    width: 100%;
+    border: rgba(255, 255, 255, 0.37), 1px, solid;
+    border-radius: 30px;
+    margin: 5%;
     margin-top: 30px;
+    overflow: hidden;
+}
+
+.header{
+  margin-top: 60px;
+  text-align: left;
+  margin-left: 5%;
+}
+
+.headerMobile{
+  margin-top: 60px;
+  text-align: center;
 }
 
 .item{
-    width: calc(30% - 11px); 
+    width: 100%;
     background-color: rgba(224, 224, 224, 0.075);
-    padding: 10px;
-    border-radius: 20px;
+    padding-top: 20px;
+    padding-bottom: 20px;
     overflow: hidden;
     border: 1px solid rgba(255,255,255,0.08);
     box-sizing: border-box;
-    border-radius: 20px;
     margin: 0 auto;
-    height: 100px;
     transition: all 0.2s;
     align-items: center;
     display: flex;
-    justify-content:space-between;
+    justify-content: space-between; 
+    align-items: center;  
     color: white;
+    padding-left: 5%;
+    padding-right: 5%;
+    font-size: 30px;
 }
 
+.itemMobile{
+    width: 100%;
+    background-color: rgba(224, 224, 224, 0.075);
+    padding-top: 20px;
+    padding-bottom: 20px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.08);
+    box-sizing: border-box;
+    margin: 0 auto;
+    transition: all 0.2s;
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center; 
+    align-items: center;  
+    color: white;
+    padding-left: 5%;
+    padding-right: 5%;
+    font-size: 30px;
+}
+
+
 .item:hover{
-    transform: scale(1.05);
+    background-color: rgba(255, 255, 255, 0.226);
 }
 
 h2{
@@ -64,9 +100,9 @@ button {
   cursor: pointer;
   display: inline-block;
   font-family: -apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji";
-  font-size: 14px;
+  font-size: 20px;
   font-weight: 600;
-  line-height: 20px;
+  line-height: 30px;
   padding: 6px 16px;
   position: relative;
   text-align: center;

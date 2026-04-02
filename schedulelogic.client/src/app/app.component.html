@@ -1,9 +1,15 @@
-﻿<div class="upperbox">
-  <div class="left"> SCHEDULE LOGIC </div>
+﻿<div class="upperbox" *ngIf="!isMobile">
+  <div class="left" (click)="GoToHome()"> SCHEDULE LOGIC </div>
   <div class="buttons">
     <div class="button" (click)="GoToHome()"> HOME </div>
   </div>
   <div class="right" (click)="showProfileSettings()">{{username}} </div>
+  <div class="background2"></div>
+  <div class="background"></div>
+</div>
+<div class="upperboxMobile" *ngIf="isMobile">
+  <div class="MobileTitle" (click)="GoToHome()"> SCHEDULE LOGIC </div>
+  <div class="mobileUser" (click)="showProfileSettings()">{{username}} </div>
   <div class="background2"></div>
   <div class="background"></div>
 </div>

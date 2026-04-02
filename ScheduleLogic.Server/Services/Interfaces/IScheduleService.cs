@@ -7,7 +7,7 @@ namespace ScheduleLogic.Server.Services.Interfaces
     {
         public Task<ScheduleRequestForSolver> GenerateSchedule(int id);
 
-        public Task<DataDTO> GetScheduleData(string id);
+        public Task<DataDTO> GetScheduleData(string id, string username);
 
         public Task<bool> CheckSolver(string id);
 

@@ -7,12 +7,13 @@ namespace ScheduleLogic.Server.Services.Interfaces
 {
     public interface IDatabaseService
     {
-        public Task<string> LoginUser(string username, string password);
+        public Task<User?> LoginUser(string username, string password);
         public Task<string> RegisterUser(string username, string password, string email, AuthenticationService Auth_Service);
         public Task<long> NewEvent(string username);
         public Task<bool> NewWizardEvent(DataDTO Data, string username);
         public Task DeleteEvent(long id);
-        public Task<long> GetUserID(string username);
+        public Task<long> GetUserID(string email);
+        public Task<string> GetUsername(string email);
         public Task<bool> CheckUser(string username, string id);
         public Task<bool> CheckUserExist(string username);
         public Task<List<EventsData>> GetEvents(string username);
@@ -20,7 +21,7 @@ namespace ScheduleLogic.Server.Services.Interfaces
         public Task<bool> SaveEvent(DataDTO Data);
         public Task<ScheduleRequestForSolver> GetScheduleInfo(int id);
         public Task<bool> NewSchedule(List<ScheduleModel> request, int Event_id);
-        public Task<DataDTO> GetScheduleData(string id);
+        public Task<DataDTO> GetScheduleData(string id, string username);
         public Task<ScheduleDataForEXPORT> GetScheduleDataEXPORT(string id);
         public Task<string> ValidateEmail(string token);
         public Task DeleteUser(string username);

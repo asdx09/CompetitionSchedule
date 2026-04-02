@@ -12,7 +12,8 @@ const routes: Routes = [
   { path: 'event', component: EventComponent },
   { path: 'schedule', component: ScheduleComponent },
   { path: 'wizard', component: WizardComponent },
-  { path: 'login', component: LoginComponent }
+  { path: 'login', component: LoginComponent },
+  { path: '**', component: HomeComponent }
 ];
 
 @NgModule({

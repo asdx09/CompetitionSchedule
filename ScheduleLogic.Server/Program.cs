@@ -7,26 +7,46 @@ using ScheduleLogic.Server.Services;
 using System.Text;
 using System.Reflection;
 using ScheduleLogic.Server.Services.Interfaces;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.Google;
+using System.Text.Json;
 
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddExceptionHandler<ExceptionHandler>();
 builder.Services.AddProblemDetails();
+builder.Services.AddControllersWithViews();
 
 // CORS policy
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAngularApp",
-        policy =>
+    options.AddPolicy("AllowAngularApp", policy =>
+    {
+        if (builder.Environment.IsDevelopment())
         {
-            policy.WithOrigins("https://localhost:58921") 
+            policy.WithOrigins("https://localhost:58921")
                   .AllowAnyHeader()
                   .AllowAnyMethod()
                   .AllowCredentials();
-        });
+        }
+        else
+        {
+            policy.WithOrigins("https://schedulelogic.hu")
+                  .AllowAnyHeader()
+                  .AllowAnyMethod()
+                  .AllowCredentials();
+        }
+    });
 });
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+        options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.Never;
+        options.JsonSerializerOptions.WriteIndented = true;
+        options.JsonSerializerOptions.Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping;
+    }); ;
 builder.Services.AddDbContext<ScheduleLogicContext>(options =>
     options.UseNpgsql("Host=localhost;Port=5432;Database=scheduleLogic;Username=app;Password=app;"));
 builder.Services.AddScoped<IDatabaseService, DatabaseService>();
@@ -39,35 +59,36 @@ var key = Encoding.UTF8.GetBytes(jwtSettings["SecretKey"]);
 
 builder.Services.AddAuthentication(options =>
 {
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultAuthenticateScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme;
 })
-.AddJwtBearer(options =>
+.AddCookie(options =>
 {
-    options.TokenValidationParameters = new TokenValidationParameters
+    options.LoginPath = "/api/Authentication/login";
+    options.LogoutPath = "/api/Authentication/logout";
+    options.Cookie.HttpOnly = true;
+    options.ExpireTimeSpan = TimeSpan.FromHours(1);
+    if (builder.Environment.IsProduction())
     {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ClockSkew = TimeSpan.Zero,
-        ValidateIssuerSigningKey = true,
-        ValidIssuer = jwtSettings["Issuer"],
-        ValidAudience = jwtSettings["Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(key)
-    };
-
-    options.Events = new JwtBearerEvents
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+        options.Cookie.SameSite = SameSiteMode.None;
+        options.Cookie.Domain = "schedulelogic.hu"; 
+    }
+    else
     {
-        OnMessageReceived = context =>
-        {
-            if (context.Request.Cookies.ContainsKey("jwt"))
-            {
-                context.Token = context.Request.Cookies["jwt"];
-            }
-            return Task.CompletedTask;
-        }
-    };
+        options.Cookie.SecurePolicy = CookieSecurePolicy.None;
+        options.Cookie.SameSite = SameSiteMode.Lax;
+    }
+    
 });
+/*.AddGoogle(options =>
+{
+    options.ClientId = builder.Configuration["Authentication:Google:ClientId"];
+    options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
+    options.CallbackPath = "/api/auth/google-callback";
+});*/
 
 var isProd = !builder.Environment.IsDevelopment();
 var app = builder.Build();
@@ -84,6 +105,11 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapControllerRoute(
+    name: "admin",
+    pattern: "admin/{action=Index}/{id?}",
+    defaults: new { controller = "Admin" });
+
 app.MapFallbackToFile("/index.html");
 
 app.Run();

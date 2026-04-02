@@ -52,7 +52,7 @@ namespace ScheduleLogic.Server.Services
 
         public async System.Threading.Tasks.Task NewValidationEmail(string token, string email, string username)
         {
-            string confirmationLink = $"https://localhost:7098/api/authentication/confirm?token={token}";
+            string confirmationLink = $"https://schedulelogic.hu/api/authentication/confirm?token={token}";
             string body = $@"
                 <h2>Welcome {username}!</h2>
                 <p>Thanks for signing up!</p>
@@ -84,7 +84,7 @@ namespace ScheduleLogic.Server.Services
 
         public async System.Threading.Tasks.Task SendEmailAsync(string email, string subject, string _message)
         {
-            using var message = new MailMessage("noreply@test-y7zpl9875o345vx6.mlsender.net", email, subject, _message)
+            using var message = new MailMessage("noreply@schedulelogic.hu", email, subject, _message)
             {
                 IsBodyHtml = true
             };
@@ -92,7 +92,7 @@ namespace ScheduleLogic.Server.Services
             var client = new SmtpClient("smtp.mailersend.net")
             {
                 Port = 587,
-                Credentials = new NetworkCredential("MS_ESz96g@test-y7zpl9875o345vx6.mlsender.net", "mssp.8fE420Y.zr6ke4np089gon12.Thvqi17"),
+                Credentials = new NetworkCredential("MS_LFxxSg@schedulelogic.hu", "mssp.eFikY9k.3yxj6ljp3w7ldo2r.yVNmYpV"),
                 EnableSsl = true,
             };
 

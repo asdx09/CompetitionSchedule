@@ -44,7 +44,7 @@ export class ProfileComponent {
       error: (err) => {
         this.alertService.error("Something went wrong!");
         if (environment.production == false) 
-        {console.error('Delete error! ', err);}
+        {console.error('Logout error! ', err);}
       }
     });
     this.dialogRef.close();

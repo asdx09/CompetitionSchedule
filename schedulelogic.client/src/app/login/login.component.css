@@ -1,189 +1,118 @@
 .background{
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background: 
+  font-family: "Inter", "Segoe UI", sans-serif;
+  position: absolute;
+  left: 0;
+  right: 0;
+  color:white;
+  top: 0;
+  position: absolute;
+  width: 100%;
+  z-index: 150;
+  height: 100%;
+}
+
+.background2{
+  background: 
     radial-gradient(circle at 20% 30%, #be29ec33, transparent 40%),
     radial-gradient(circle at 80% 20%, #80008048, transparent 40%),
     radial-gradient(circle at 50% 80%, rgba(228, 95, 18, 0.12), transparent 40%),
     #0f172a;
-    background-size:cover;
-    background-position:bottom;
-    position: absolute;
-    font-family: Verdana, Geneva, Tahoma, sans-serif;
-    z-index: 200;
-}
-
-h1{
-  font-size: 45px;
-  line-height: 50px;
-  text-align: center;
-  margin-bottom: 40px;
-  margin-top: 30px;
-  color: white;
-}
-
-.centerbox{
-    width: 60%;
-    height: 60%;
-    margin-left: 50%;
-    transform: translate(-50%, 0%);
-    position: absolute;
-    top: 20%;
-    box-shadow: 0px 0px 25px rgba(0, 0, 0, 0.397);
-    min-width: 400px;
-    min-height: 350px;
-}
-
-.leftbox{
-  float: left;
-  width: 40%;
-  height: 100%;
-  background-color: white;
-  overflow: hidden;
-  transition: 1s;
-}
-.leftboxreg{
-  float: left;
-  width: 60%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  flex-direction: column;
-  color: white;
-  line-height: 25px;
-  background-image: url('/bg.svg');
-  background-position: right;
-  background-size: cover;
-  overflow: hidden;
-  transition: 1s;
-}
-
-p{
-  color: white;
-}
-
-b{
-  color: white;
-}
-
-.rightbox{
-  float: right;
-  width: 60%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  flex-direction: column;
-  color: white;
-  line-height: 25px;
-  background-image: url('/bg.svg');
-  background-position: right;
-  background-size: cover;
-  overflow: hidden;
-  transition: 1s;
-}
-
-.rightboxreg{
-  float: right;
-  width: 40%;
-  height: 100%;
-  background-color: white;
-  overflow: hidden;
-  transition: 1s;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 100;
+    position: fixed;
 }
 
 
-.gradient-text {
-  background: linear-gradient(to bottom, rgb(120, 7, 148), rgb(158, 2, 49));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
-}
-
-.gradient-text:hover {
-  background: linear-gradient(to bottom, rgb(219, 76, 255), rgb(255, 6, 81));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
-  cursor:pointer;
-}
-
-.rightbox p{
-  margin-top: 3px;
-}
-
-
-.upperbox{
-  width: 100%;
-  height: 20%;
+.auth-wrapper {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-bottom: 10%;
-  margin-top: 10%;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  padding: 10px;
+  z-index: 110;
+  height: 100%;
 }
 
-.bottombox{
+
+.title{
+  text-align: center;
+  color: #333;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  height: 30px;
+  font-size: 35px;
+  margin: 0 auto 30px 0;
+}
+
+.auth-card {
+  background: #ffffff;
+  padding: 50px;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
   width: 100%;
-  margin-top: 10%;
+  max-width: 400px;
+  transform: 1s;
 }
 
-
-
-
-.group {
-  display: flex;
-  line-height: 30px;
-  align-items: center;
-  position: relative;
-  width: 80%;
-  margin: 0 auto 0 auto;
-}
-
-.input {
+.auth-cardMobile {
+  background: #ffffff;
+  padding: 5px;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
   width: 100%;
-  height: 45px;
-  line-height: 30px;
-  padding-left: 2rem;
-  padding-right: 1rem;
-  border: 2px solid transparent;
-  border-radius: 10px;
+  max-width: 400px;
+  transform: 1s;
+}
+
+.form-container{
+  height: 100%;
+  width: 100%;
+}
+
+h2 {
+  text-align: center;
+  color: #333;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  height: 30px;
+  font-size: 30px;
+  margin: 0 auto 50px 0;
+}
+
+.form-group {
+  margin-bottom: 10px;
+}
+
+label {
+  display: block;
+  margin-top: 5px;
+  font-weight: 600;
+  color: #555;
+}
+
+input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  box-sizing: border-box; 
+  font-size: 16px;
+  margin-top: 5px;
+}
+
+input:focus {
   outline: none;
-  background-color: #eef1f5;
-  color: #0d0c22;
-  transition: .2s ease;
-  margin: 5px;
-}
-
-.input::placeholder {
-  color: #94a3b8;
-}
-
-.input:focus, input:hover {
-  outline: none;
-  border-color: #5626b1;
-  background-color: #fff;
-  box-shadow: 0 0 0 2px rgba(70, 0, 46, 0.3);
-}
-
-.icon {
-  position: absolute;
-  left: 1rem;
-  fill: none;
-  width: 1rem;
-  height: 1rem;
+  border-color: #4A90E2;
+  box-shadow: 0 0 5px rgba(74, 144, 226, 0.3);
 }
 
 .strength-bar {
-  width: 70%;
+  width: 100%;
   height: 10px;
   background-color: #eee;
-  border-radius: 5px;
+  border-radius: 0px;
   overflow: hidden;
-  margin: 0 auto 0 auto;
+  margin: 5px auto 0 auto;
 }
 
 .strength-level {
@@ -192,58 +121,41 @@ b{
   transition: width 0.3s, background-color 0.3s;
 }
 
-
-
-
-
 button {
-  appearance: none;
+  width: 100%;
+  padding: 12px;
   background: linear-gradient(135deg, #7b5cff, #5d3df5);
+  color: white;
   border: none;
   border-radius: 6px;
-  box-shadow: rgba(27, 31, 35, .1) 0 1px 0;
-  box-sizing: border-box;
-  color: #fff;
+  font-size: 16px;
+  font-weight: bold;
   cursor: pointer;
-  display: inline-block;
-  font-family: -apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji";
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 20px;
-  padding: 6px 16px;
-  position: relative;
-  text-align: center;
-  text-decoration: none;
-  user-select: none;
-  -webkit-user-select: none;
-  touch-action: manipulation;
-  vertical-align: middle;
-  white-space: nowrap;
-  margin: 5px;
-}
-
-button:focus:not(:focus-visible):not(.focus-visible) {
-  box-shadow: none;
-  outline: none;
+  transition: background 0.3s ease;
 }
 
 button:hover {
-  filter: brightness(1.1);
+  background: linear-gradient(135deg, #8a72f5, #7359f7);
 }
 
-button:focus {
-  box-shadow: rgba(9, 93, 119, 0.4) 0 0 0 3px;
-  outline: none;
+.toggle-text {
+  text-align: center;
+  margin-top: 20px;
+  font-size: 14px;
+  color: #777;
 }
 
-button:disabled {
-  background-color: #b6a1b3;
-  border-color: rgba(27, 31, 35, .1);
-  color: rgba(255, 255, 255, .8);
-  cursor: default;
+.toggle-text span {
+  color: #914ae2;
+  cursor: pointer;
+  font-weight: bold;
+  text-decoration: underline;
 }
 
-button:active {
-  background-color: #5626b1;
-  box-shadow: rgba(20, 70, 32, .2) 0 1px 0 inset;
+
+@media (max-width: 480px) {
+  .auth-card {
+    padding: 25px;
+    box-shadow: none;
+  }
 }

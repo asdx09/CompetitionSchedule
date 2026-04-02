@@ -10,7 +10,7 @@ import { environment } from '../environments/environment';
 export class AuthGuardService implements CanActivate {
   constructor(private router: Router, private http: HttpClient) { }
   private apiUrl = `${environment.apiUrl}api/Authentication`;
-  private usernameSubject = new BehaviorSubject<string | null>(localStorage.getItem('username'));
+  usernameSubject = new BehaviorSubject<string | null>(localStorage.getItem('username'));
   username$ = this.usernameSubject.asObservable();
 
   canActivate(): boolean {
@@ -27,7 +27,7 @@ export class AuthGuardService implements CanActivate {
 
     return this.http.post(`${this.apiUrl}/login`, 
       { Username: loginUsername, Password: loginPassword }, 
-      { withCredentials: true } 
+      { withCredentials: true, headers: { 'Content-Type': 'application/json' } } 
     );
   }
   
@@ -40,7 +40,7 @@ export class AuthGuardService implements CanActivate {
   }
 
   checkToken(): Observable<any> {
-    return this.http.post(`${this.apiUrl}/check-token`, null);
+    return this.http.post(`${this.apiUrl}/check-token`, {}, { withCredentials: true });
   }
 
   logout() {

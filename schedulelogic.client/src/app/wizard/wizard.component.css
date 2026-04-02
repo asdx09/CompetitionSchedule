@@ -18,7 +18,7 @@
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 1200px;
+  width: 420px;
   height: 600px;
   max-height: 80%;
   max-width: 80%;
@@ -33,9 +33,8 @@
 }
 
 .leftbox{
-    width: 50%;
+    width: 100%;
     height: 100%;
-    float: left;
 }
 .rightbox{
     width: 50%;
@@ -63,7 +62,7 @@
 }
 
 h1{
-  font-size: 70px;
+  font-size: 40px;
 }
 
 
@@ -131,7 +130,7 @@ button:active {
 .input-container {
   position: relative;
   margin: 50px auto;
-  width: 400px;
+  width: 90%
 }
 
 .input-container input[type="text"] {

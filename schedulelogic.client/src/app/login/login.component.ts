@@ -1,10 +1,12 @@
 import { HttpClient } from '@angular/common/http';
-import { Component } from '@angular/core';
+import { Component, HostListener } from '@angular/core';
 import { Observable } from 'rxjs';
 import { AuthGuardService } from '../auth-guard.service';
 import { Router } from '@angular/router';
 import { AlertService } from '../alert.service';
 import { environment } from '../../environments/environment';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { NgForm } from '@angular/forms';
 
 @Component({
   selector: 'app-login',
@@ -14,6 +16,9 @@ import { environment } from '../../environments/environment';
 })
 export class LoginComponent {
   constructor(private http: HttpClient, private auth: AuthGuardService, private router: Router, private alertService: AlertService) { }
+
+  isMobile = false;
+
   PasswordCheckStrength: string[] = ["Short","Common","Weak","Ok","Strong"];
   IsLogin: boolean = true;
   WaitForAnswer = false;
@@ -27,8 +32,27 @@ export class LoginComponent {
   strengthColor = "transparent";
 
   ngOnInit(){
-    localStorage.removeItem('token');
-    localStorage.removeItem('username');
+    this.auth.checkToken().subscribe({
+       next: (res) => {
+        this.auth.logout().subscribe({
+          next: () => {
+            localStorage.clear();
+          },
+          error: (err) => {
+            if (environment.production == false) 
+            {console.error('Logout error! ', err);}
+          }
+        });
+       },
+      error: (err) => {
+        return;
+      }
+    });
+  }
+
+  @HostListener('window:resize', ['$event'])
+  onResize(event: Event) {
+    this.isMobile = window.innerWidth <= 768;
   }
 
   ngAfterViewInit() {

@@ -9,6 +9,7 @@ import { HostListener } from '@angular/core';
 import { DateRange } from 'igniteui-angular';
 import { environment } from '../../environments/environment';
 import { AlertService } from '../alert.service';
+import { AuthGuardService } from '../auth-guard.service';
 
 @Component({
   selector: 'app-event',
@@ -17,8 +18,9 @@ import { AlertService } from '../alert.service';
   styleUrl: './event.component.css'
 })
 export class EventComponent {
-  constructor(private eventsService: EventsService, private route: ActivatedRoute, private router: Router, public dialog: MatDialog, public scheduleService: ScheduleService, private alertService: AlertService) { }
+  constructor(private auth: AuthGuardService, private eventsService: EventsService, private route: ActivatedRoute, private router: Router, public dialog: MatDialog, public scheduleService: ScheduleService, private alertService: AlertService) { }
 
+  isMobile = false;
   id: string = "";
   data: data = new data();
   condition: number = 0;
@@ -47,10 +49,19 @@ export class EventComponent {
   }
 
   ngOnInit(){
-    this.route.queryParamMap.subscribe(params => {
-        this.id = params.get('id') ?? "";
-      });
-    this.RefreshData();
+    this.auth.checkToken().subscribe({
+       next: (res) => {
+        this.auth.usernameSubject.next(res.name);
+        this.route.queryParamMap.subscribe(params => {
+          this.id = params.get('id') ?? "";
+        });
+        this.RefreshData();
+       },
+      error: (err) => {
+        this.router.navigate(['login']);
+      }
+    });
+    this.isMobile = window.innerWidth <= 768;
   }
 
   @HostListener('window:beforeunload', ['$event'])
@@ -450,6 +461,11 @@ export class EventComponent {
 
   GoToSolution() {
      this.router.navigate(['schedule'],{ queryParams: { id: this.id } });
+  }
+
+  @HostListener('window:resize', ['$event'])
+  onResize(event: Event) {
+    this.isMobile = window.innerWidth <= 768;
   }
 
 
