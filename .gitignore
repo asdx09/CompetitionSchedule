@@ -362,3 +362,5 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 /ScheduleLogic.Server/appsettings.json
+/ScheduleLogic.Server/appsettings.Development.json
+/ScheduleLogic.Server/appsettings.Production.json
