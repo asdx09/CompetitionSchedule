@@ -1,161 +1,385 @@
-.background{
-  font-family: "Inter", "Segoe UI", sans-serif;
-  position: absolute;
-  left: 0;
-  right: 0;
-  color:white;
-  top: 0;
-  position: absolute;
-  width: 100%;
-  z-index: 150;
-  height: 100%;
+.background {
+font-family: "Inter", "Segoe UI", sans-serif;
+
+position: fixed;
+inset: 0;
+
+width: 100%;
+height: 100%;
+
+color: white;
+
+z-index: 150;
 }
 
-.background2{
-  background: 
-    radial-gradient(circle at 20% 30%, #be29ec33, transparent 40%),
-    radial-gradient(circle at 80% 20%, #80008048, transparent 40%),
-    radial-gradient(circle at 50% 80%, rgba(228, 95, 18, 0.12), transparent 40%),
-    #0f172a;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 100;
-    position: fixed;
-}
+.background2 {
+position: fixed;
+inset: 0;
 
+width: 100%;
+height: 100%;
+
+background:
+radial-gradient(circle at 20% 30%, #be29ec33, transparent 40%),
+radial-gradient(circle at 80% 20%, #80008048, transparent 40%),
+radial-gradient(circle at 50% 80%, rgba(228, 95, 18, 0.12), transparent 40%),
+#0f172a;
+
+z-index: 100;
+}
 
 .auth-wrapper {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  padding: 10px;
-  z-index: 110;
-  height: 100%;
+width: 100%;
+height: 100%;
+
+box-sizing: border-box;
+
+display: flex;
+justify-content: center;
+align-items: center;
+
+padding: 20px;
 }
 
+/* =========================
+AUTH CARD
+========================= */
 
-.title{
-  text-align: center;
-  color: #333;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  height: 30px;
-  font-size: 35px;
-  margin: 0 auto 30px 0;
-}
-
-.auth-card {
-  background: #ffffff;
-  padding: 50px;
-  border-radius: 12px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-  width: 100%;
-  max-width: 400px;
-  transform: 1s;
-}
-
+.auth-card,
 .auth-cardMobile {
-  background: #ffffff;
-  padding: 5px;
-  border-radius: 12px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-  width: 100%;
-  max-width: 400px;
-  transform: 1s;
+width: min(440px, 100%);
+
+box-sizing: border-box;
+
+padding: 40px;
+
+background: rgba(224, 224, 224, 0.075);
+
+border: 1px solid rgba(255, 255, 255, 0.18);
+
+border-radius: 30px;
+
+box-shadow:
+0 20px 60px rgba(0, 0, 0, 0.35),
+inset 0 1px 0 rgba(255, 255, 255, 0.05);
+
+backdrop-filter: blur(14px);
+-webkit-backdrop-filter: blur(14px);
+
+transition:
+transform 0.2s ease,
+box-shadow 0.2s ease;
 }
 
-.form-container{
-  height: 100%;
-  width: 100%;
+.auth-card:hover {
+box-shadow:
+0 25px 70px rgba(0, 0, 0, 0.4),
+inset 0 1px 0 rgba(255, 255, 255, 0.07);
 }
+
+/* =========================
+TITLE
+========================= */
+
+.title {
+text-align: center;
+
+color: white;
+
+font-family:
+"Inter",
+"Segoe UI",
+sans-serif;
+
+font-size: 32px;
+font-weight: 700;
+
+letter-spacing: 1px;
+
+margin: 0 0 12px;
+
+background: linear-gradient(
+135deg,
+#c8baff,
+#8d73ff
+);
+
+-webkit-background-clip: text;
+-webkit-text-fill-color: transparent;
+background-clip: text;
+}
+
+/* =========================
+HEADINGS
+========================= */
 
 h2 {
-  text-align: center;
-  color: #333;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  height: 30px;
-  font-size: 30px;
-  margin: 0 auto 50px 0;
+text-align: center;
+
+color: rgba(255, 255, 255, 0.95);
+
+font-family:
+"Inter",
+"Segoe UI",
+sans-serif;
+
+font-size: 28px;
+font-weight: 600;
+
+margin: 0 0 32px;
+}
+
+/* =========================
+FORM
+========================= */
+
+.form-container {
+width: 100%;
 }
 
 .form-group {
-  margin-bottom: 10px;
+margin-bottom: 18px;
 }
 
 label {
-  display: block;
-  margin-top: 5px;
-  font-weight: 600;
-  color: #555;
+display: block;
+
+margin-bottom: 7px;
+
+font-size: 14px;
+font-weight: 600;
+
+color: rgba(255, 255, 255, 0.78);
 }
 
+/* =========================
+INPUT
+========================= */
+
 input {
-  width: 100%;
-  padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  box-sizing: border-box; 
-  font-size: 16px;
-  margin-top: 5px;
+width: 100%;
+
+box-sizing: border-box;
+
+padding: 14px 16px;
+
+border: 1px solid rgba(255, 255, 255, 0.14);
+
+border-radius: 10px;
+
+background: rgba(0, 0, 0, 0.20);
+
+color: white;
+
+font-family:
+"Inter",
+"Segoe UI",
+sans-serif;
+
+font-size: 16px;
+
+outline: none;
+
+transition:
+border-color 0.2s ease,
+background-color 0.2s ease,
+box-shadow 0.2s ease;
+}
+
+input::placeholder {
+color: rgba(255, 255, 255, 0.40);
+}
+
+input:hover {
+background: rgba(0, 0, 0, 0.25);
 }
 
 input:focus {
-  outline: none;
-  border-color: #4A90E2;
-  box-shadow: 0 0 5px rgba(74, 144, 226, 0.3);
+outline: none;
+
+border-color: rgba(123, 92, 255, 0.85);
+
+background: rgba(0, 0, 0, 0.28);
+
+box-shadow:
+0 0 0 3px rgba(123, 92, 255, 0.15);
 }
 
+/* =========================
+PASSWORD STRENGTH
+========================= */
+
 .strength-bar {
-  width: 100%;
-  height: 10px;
-  background-color: #eee;
-  border-radius: 0px;
-  overflow: hidden;
-  margin: 5px auto 0 auto;
+width: 100%;
+
+height: 6px;
+
+background: rgba(255, 255, 255, 0.10);
+
+border-radius: 10px;
+
+overflow: hidden;
+
+margin: 0 0 8px;
 }
 
 .strength-level {
-  height: 100%;
-  width: 0%;
-  transition: width 0.3s, background-color 0.3s;
+height: 100%;
+
+width: 0%;
+
+border-radius: 10px;
+
+transition:
+width 0.3s ease,
+background-color 0.3s ease;
 }
 
+/* =========================
+BUTTON
+========================= */
+
 button {
-  width: 100%;
-  padding: 12px;
-  background: linear-gradient(135deg, #7b5cff, #5d3df5);
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 16px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background 0.3s ease;
+width: 100%;
+
+box-sizing: border-box;
+
+padding: 12px 16px;
+
+margin-top: 8px;
+
+background:
+linear-gradient(
+135deg,
+#7b5cff,
+#5d3df5
+);
+
+color: white;
+
+border: none;
+
+border-radius: 9px;
+
+font-family:
+"Inter",
+"Segoe UI",
+sans-serif;
+
+font-size: 17px;
+
+font-weight: 600;
+
+cursor: pointer;
+
+transition:
+filter 0.2s ease,
+transform 0.2s ease,
+box-shadow 0.2s ease;
 }
 
 button:hover {
-  background: linear-gradient(135deg, #8a72f5, #7359f7);
+filter: brightness(1.1);
+
+transform: translateY(-1px);
+
+box-shadow:
+0 8px 20px rgba(93, 61, 245, 0.25);
+}
+
+button:active {
+transform: translateY(0);
+}
+
+button:focus {
+outline: none;
+
+box-shadow:
+0 0 0 3px rgba(123, 92, 255, 0.25);
+}
+
+/* =========================
+LOGIN / REGISTER LINKS
+========================= */
+
+.toggle-text {
+text-align: center;
+
+margin: 20px 0 0;
+
+font-size: 14px;
+
+line-height: 1.5;
+
+color: rgba(255, 255, 255, 0.60);
+}
+
+.toggle-text span,
+.toggle-text a {
+color: #a995ff;
+
+cursor: pointer;
+
+font-weight: 600;
+
+text-decoration: none;
+
+transition:
+color 0.2s ease,
+filter 0.2s ease;
+}
+
+.toggle-text span:hover,
+.toggle-text a:hover {
+color: white;
+
+filter: brightness(1.1);
+
+text-decoration: underline;
+}
+
+/* =========================
+MOBILE
+========================= */
+
+@media (max-width: 600px) {
+
+.auth-wrapper {
+padding: 15px;
+}
+
+.auth-card,
+.auth-cardMobile {
+padding: 30px 22px;
+
+border-radius: 24px;
+
+max-width: 440px;
+
+}
+
+.title {
+font-size: 27px;
+}
+
+h2 {
+font-size: 24px;
+
+margin-bottom: 26px;
+
+}
+
+input {
+font-size: 16px;
+
+padding: 13px 14px;
+}
+
+button {
+font-size: 16px;
 }
 
 .toggle-text {
-  text-align: center;
-  margin-top: 20px;
-  font-size: 14px;
-  color: #777;
+font-size: 13px;
 }
-
-.toggle-text span {
-  color: #914ae2;
-  cursor: pointer;
-  font-weight: bold;
-  text-decoration: underline;
-}
-
-
-@media (max-width: 480px) {
-  .auth-card {
-    padding: 25px;
-    box-shadow: none;
-  }
 }

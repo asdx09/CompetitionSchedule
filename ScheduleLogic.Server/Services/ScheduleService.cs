@@ -1,103 +1,126 @@
-﻿using System;
-using System.Net.Http;
-using System.Net.Http.Json;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using Azure.Core;
-using Microsoft.AspNetCore.Http;
+﻿using ScheduleLogic.Server.Services.Interfaces;
 using System.Text.Json;
-using ScheduleLogic.Server.Controllers;
-using Microsoft.Extensions.Logging;
-using ClosedXML.Excel;
-using DocumentFormat.OpenXml.Drawing;
-using ScheduleLogic.Server.Class;
 using static ScheduleLogic.Server.Class.EventModels;
 using static ScheduleLogic.Server.Class.ScheduleModels;
-using ScheduleLogic.Server.Services.Interfaces;
 
 namespace ScheduleLogic.Server.Services
 {
     public class ScheduleService : IScheduleService
     {
-        private readonly IDatabaseService _dbService;
+        private readonly IScheduleRepository _schedules;
+        private readonly IEventRepository _events;
+        private readonly IHttpClientFactory _httpClientFactory;
         private readonly IConfiguration _configuration;
+        private readonly ILogger<ScheduleService> _logger;
 
-
-        public ScheduleService(IDatabaseService dbService, IConfiguration configuration)
+        public ScheduleService(
+            IScheduleRepository schedules,
+            IEventRepository events,
+            IHttpClientFactory httpClientFactory,
+            IConfiguration configuration,
+            ILogger<ScheduleService> logger)
         {
-            _dbService = dbService;
+            _schedules = schedules;
+            _events = events;
+            _httpClientFactory = httpClientFactory;
             _configuration = configuration;
-        }
-        public async Task<ScheduleRequestForSolver> GenerateSchedule(int id)
-        {
-            var SR = await _dbService.GetScheduleInfo(id);
-            SR.ReturnURL = _configuration["URLS:BackendForSolver"]!.TrimEnd('/') + "/api/Schedule/answer";
-            using var client = new HttpClient();
-
-            var httpResponse = await client.PostAsJsonAsync(_configuration["URLS:Solver"] + "schedule", SR);
-
-            if (httpResponse.IsSuccessStatusCode)
-            {
-                var jsonString = await httpResponse.Content.ReadAsStringAsync();
-            }
-            else
-            {
-                var error = await httpResponse.Content.ReadAsStringAsync();
-                Console.WriteLine(error);
-            }
-            return SR;
+            _logger = logger;
         }
 
-        public async Task<DataDTO> GetScheduleData(string id, string username)
+        public async Task<ScheduleRequestForSolver?> GenerateSchedule(long eventId, long userId)
         {
-            return await _dbService.GetScheduleData(id, username);
+            if (!await _events.IsOwnedByUserAsync(eventId, userId))
+                return null;
+
+            var request = await _schedules.GetScheduleInfoAsync(eventId);
+
+            request.ReturnURL =
+                _configuration["URLS:Backend"]!.TrimEnd('/') +
+                "/api/Schedule/answer";
+
+            var client = _httpClientFactory.CreateClient("Solver");
+
+            var response = await client.PostAsJsonAsync("schedule", request);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadAsStringAsync();
+
+                _logger.LogWarning(
+                    "Solver rejected the schedule request for event {EventId}: {Error}",
+                    eventId,
+                    error);
+            }
+
+            return request;
         }
 
-        public async Task<bool> CheckSolver(string id)
+        public async Task<DataDTO?> GetScheduleData(long eventId, long userId)
         {
-            using var client = new HttpClient();
+            if (!await _events.IsOwnedByUserAsync(eventId, userId)) return null;
+            return await _schedules.GetScheduleDataAsync(eventId);
+        }
 
-            var response = await client.GetAsync(_configuration["URLS:Solver"] + "is_solver_running?EventId=" + id);
+        public async Task<bool?> CheckSolver(long eventId, long userId)
+        {
+            if (!await _events.IsOwnedByUserAsync(eventId, userId)) return null;
 
-            if (response.IsSuccessStatusCode)
+            var client = _httpClientFactory.CreateClient("Solver");
+            var response = await client.GetAsync($"is_solver_running?EventId={eventId}");
+
+            if (!response.IsSuccessStatusCode)
             {
-                var jsonString = await response.Content.ReadAsStringAsync();
-                var result = JsonSerializer.Deserialize<SolverStatusResponse>(jsonString);
-
-                return result?.Running ?? false;
-            }
-            else
-            {
-                Console.WriteLine("API call error: " + response.StatusCode);
+                _logger.LogWarning("Solver status check failed for event {EventId}: {Status}", eventId, response.StatusCode);
                 return false;
             }
+
+            var json = await response.Content.ReadAsStringAsync();
+            var result = JsonSerializer.Deserialize<SolverStatusResponse>(json);
+            return result?.Running ?? false;
         }
 
-        public async Task<bool> StopSolver(string id)
+        public async Task<bool?> StopSolver(long eventId, long userId)
         {
-            using var client = new HttpClient();
+            if (!await _events.IsOwnedByUserAsync(eventId, userId)) return null;
 
-            var response = await client.GetAsync(_configuration["URLS:Solver"] + "stop_solver?EventId=" + id);
+            var client = _httpClientFactory.CreateClient("Solver");
+            var response = await client.GetAsync($"stop_solver?EventId={eventId}");
 
-            if (response.IsSuccessStatusCode)
+            if (!response.IsSuccessStatusCode)
             {
-                var jsonString = await response.Content.ReadAsStringAsync();
-                var result = JsonSerializer.Deserialize<StopSolverResponse>(jsonString);
+                _logger.LogWarning("Solver stop failed for event {EventId}: {Status}", eventId, response.StatusCode);
+                return false;
+            }
 
-                return result?.Status == "STOPPED";
+            var json = await response.Content.ReadAsStringAsync();
+            var result = JsonSerializer.Deserialize<StopSolverResponse>(json);
+            return result?.Status == "STOPPED";
+        }
+
+        // A solver hívja, felhasználói kontextus (userId) nélkül -
+        // a jogosultságot a controller a kérés forrás IP-je alapján
+        // (localhost-only) dönti el, nem itt.
+        public async Task ReceiveSolverAnswer(SolverResponse data)
+        {
+            bool hasSolution = data.Status is "FEASIBLE" or "PARTIAL_SOLUTION" or "OPTIMAL";
+            if (hasSolution && data.Schedule != null)
+            {
+                await _schedules.SaveSolverResultAsync(data.Schedule, data.EventId);
             }
             else
             {
-                Console.WriteLine("API call error: " + response.StatusCode);
-                return false;
+                _logger.LogInformation("No solution for event {EventId}, solver status: {Status}", data.EventId, data.Status);
             }
         }
 
-        public async Task<byte[]> GetScheduleFile(string id)
+        public async Task<byte[]?> GetScheduleFile(long eventId, long userId)
         {
-            var data = await _dbService.GetScheduleDataEXPORT(id);
+            if (!await _events.IsOwnedByUserAsync(eventId, userId)) return null;
 
-            using var workbook = new XLWorkbook();
+            var data = await _schedules.GetExportDataAsync(eventId);
+            if (data == null) return null;
+
+            using var workbook = new ClosedXML.Excel.XLWorkbook();
             var worksheet = workbook.Worksheets.Add("Schedule");
 
             worksheet.Cell(1, 1).Value = "Competitor";
@@ -107,32 +130,34 @@ namespace ScheduleLogic.Server.Services
             worksheet.Cell(1, 5).Value = "Slot";
             worksheet.Cell(1, 6).Value = "Start";
             worksheet.Cell(1, 7).Value = "End";
-            worksheet.Range(1, 1, 1, 6).Style.Fill.BackgroundColor = XLColor.LightBlue;
+            worksheet.Range(1, 1, 1, 7).Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.LightBlue;
+
             var sortedTimeZones = data.TimeZones
                 .OrderBy(tz => tz.GroupName + tz.Participant)
                 .ToList();
-            int row = 2;
-            foreach (var timezone in sortedTimeZones)
-            {
-                worksheet.Cell(row, 1).Value = timezone.Participant;
-                worksheet.Cell(row, 2).Value = timezone.GroupName;
-                worksheet.Cell(row, 3).Value = timezone.EventType;
-                worksheet.Cell(row, 4).Value = timezone.Location;
-                worksheet.Cell(row, 5).Value = timezone.Slot;
-                worksheet.Cell(row, 6).Value = timezone.StartTime.ToString();
-                worksheet.Cell(row, 7).Value = timezone.EndTime.ToString();
 
-                if(row % 2 == 0) worksheet.Range(row, 1, row, 7).Style.Fill.BackgroundColor = XLColor.LightBlue;
-                else worksheet.Range(row, 1, row, 7).Style.Fill.BackgroundColor = XLColor.LightCyan;
+            int row = 2;
+            foreach (var tz in sortedTimeZones)
+            {
+                worksheet.Cell(row, 1).SetValue(tz.Participant);
+                worksheet.Cell(row, 2).SetValue(tz.GroupName);
+                worksheet.Cell(row, 3).SetValue(tz.EventType);
+                worksheet.Cell(row, 4).SetValue(tz.Location);
+                worksheet.Cell(row, 5).Value = tz.Slot;
+                worksheet.Cell(row, 6).SetValue(tz.StartTime.ToString());
+                worksheet.Cell(row, 7).SetValue(tz.EndTime.ToString());
+
+                var fill = row % 2 == 0 ? ClosedXML.Excel.XLColor.LightBlue : ClosedXML.Excel.XLColor.LightCyan;
+                worksheet.Range(row, 1, row, 7).Style.Fill.BackgroundColor = fill;
                 row++;
             }
+
             worksheet.SheetView.FreezeRows(1);
             worksheet.Columns().AdjustToContents();
 
             using var stream = new MemoryStream();
             workbook.SaveAs(stream);
             return stream.ToArray();
-
         }
     }
 }

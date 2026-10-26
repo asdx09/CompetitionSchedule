@@ -125,6 +125,7 @@ export class ScheduleComponent {
       next: (res) => {
         if(res == null) this.router.navigate(['home']);
           this.data = res;
+          console.log(res);
           this.makeCalendars();
           this.refreshData();
           const splash = document.getElementById('splash');

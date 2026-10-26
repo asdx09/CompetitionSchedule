@@ -1,11 +1,9 @@
-﻿using Azure;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using ScheduleLogic.Server.Services;
 using ScheduleLogic.Server.Services.Interfaces;
-using System.Text.Json;
+using System.Net;
+using System.Security.Claims;
 using static ScheduleLogic.Server.Class.ScheduleModels;
-
 
 namespace ScheduleLogic.Server.Controllers
 {
@@ -13,95 +11,85 @@ namespace ScheduleLogic.Server.Controllers
     [Route("api/[controller]")]
     public class ScheduleController : ControllerBase
     {
-        private readonly IDatabaseService _dbService;
-        private readonly IConfiguration _configuration;
         private readonly IScheduleService _scheduleService;
+        private readonly ILogger<ScheduleController> _logger;
 
-        public ScheduleController(IDatabaseService dbService, IConfiguration configuration, IScheduleService scheduleService)
+        public ScheduleController(IScheduleService scheduleService, ILogger<ScheduleController> logger)
         {
-            _dbService = dbService;
-            _configuration = configuration;
             _scheduleService = scheduleService;
+            _logger = logger;
         }
 
+        private long UserId =>
+            long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
         [Authorize]
-        [HttpPost("{id}")]
-        public async Task<IActionResult> GenerateSchedule(int id)
+        [HttpPost("{id:long}")]
+        public async Task<IActionResult> GenerateSchedule(long id)
         {
-            var result = await _scheduleService.GenerateSchedule(id);
-            return Ok(result);
+            var result = await _scheduleService.GenerateSchedule(id, UserId);
+            return result != null ? Ok(result) : NotFound();
         }
 
         [Authorize]
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetSchedule(string id)
+        [HttpGet("{id:long}")]
+        public async Task<IActionResult> GetSchedule(long id)
         {
-            var username = User.Identity?.Name;
-            if (!string.IsNullOrEmpty(username))
-            {
-                var result = await _scheduleService.GetScheduleData(id, username);
-                return Ok(result);
-            }
-            return Forbid();
+            var result = await _scheduleService.GetScheduleData(id, UserId);
+            return result != null ? Ok(result) : NotFound();
         }
 
         [Authorize]
         [HttpGet("isRunning")]
-        public async Task<IActionResult> CheckSolver(string id)
+        public async Task<IActionResult> CheckSolver([FromQuery] long id)
         {
-            try
-            {
-                var result = await _scheduleService.CheckSolver(id);
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return NotFound(ex);
-            }
+            var result = await _scheduleService.CheckSolver(id, UserId);
+            if (result == null) return NotFound();
+            return Ok(result);
         }
 
         [Authorize]
         [HttpPost("stop")]
-        public async Task<IActionResult> StopSolver(string id)
+        public async Task<IActionResult> StopSolver([FromQuery] long id)
         {
-            var result = await _scheduleService.StopSolver(id);
-            return Ok();
+            var result = await _scheduleService.StopSolver(id, UserId);
+            if (result == null) return NotFound();
+            return Ok(result);
         }
 
+        // A solver hívja vissza, nincs bejelentkezett felhasználó, ezért
+        // [Authorize] helyett a hívó IP-jét ellenőrizzük: csak ugyanarról
+        // a gépről (localhost) fogadjuk el. Ha a solver külön szerveren/
+        // konténerben fut, ez a kliens gép IP-je lesz, és ezt a listát
+        // (vagy egy reverse-proxy szabályt) kell majd bővíteni.
         [HttpPost("answer")]
-        public async Task<IActionResult> SolverAnswer(SolverResponse data)
+        public async Task<IActionResult> SolverAnswer([FromBody] SolverResponse data)
         {
-            if (data.Status == "FEASIBLE" || data.Status == "PARTIAL_SOLUTION" || data.Status == "OPTIMAL" || data.Status == "4" || data.Status == "1")
+            var remoteIp = HttpContext.Connection.RemoteIpAddress;
+            bool isLocal = remoteIp != null && IPAddress.IsLoopback(remoteIp);
+
+            if (!isLocal)
             {
-                await _dbService.NewSchedule(data.Schedule, data.EventId);
+                _logger.LogWarning("Rejected /answer call from non-local address {Ip}", remoteIp);
+                return Forbid();
             }
-            else
-            {
-                Console.WriteLine("No solution found! " + data.Status);
-            }
+
+            await _scheduleService.ReceiveSolverAnswer(data);
             return Ok();
         }
 
         [Authorize]
         [HttpGet("export")]
-        public async Task<IActionResult> GetExport(string id)
+        public async Task<IActionResult> GetExport([FromQuery] long id)
         {
-            try
-            {
-                var content = await _scheduleService.GetScheduleFile(id);
-                return File(
-                    content,
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    $"schedule.xlsx"
-                );
-            }
-            catch (Exception ex)
-            {
-                return NotFound(ex);
-            }
+            var content = await _scheduleService.GetScheduleFile(id, UserId);
+            if (content == null) return NotFound();
+
+            return File(
+                content,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "schedule.xlsx"
+            );
         }
-        
     }
 }
-

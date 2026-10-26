@@ -1,150 +1,216 @@
-DROP SCHEMA public CASCADE;
-CREATE SCHEMA public;
+-- ====================================
+-- ScheduleLogic - PostgreSQL scheme
+-- ====================================
+
+BEGIN;
+
+CREATE EXTENSION IF NOT EXISTS citext;
 
 CREATE TABLE users (
-    user_id BIGSERIAL PRIMARY KEY,
-    username VARCHAR(255) NOT NULL,
-    email VARCHAR(255) NOT NULL,
-    password VARCHAR(255) NOT NULL,
-    validated VARCHAR(255) NOT NULL,
-    registrationdate DATE NOT NULL
+    user_id          BIGSERIAL PRIMARY KEY,
+    username         CITEXT       NOT NULL,
+    email            CITEXT       NOT NULL,
+    password         VARCHAR(255) NOT NULL,
+    validated        VARCHAR(255) NOT NULL,
+    registrationdate DATE         NOT NULL DEFAULT CURRENT_DATE,
+	passwordresettoken   VARCHAR(255) NULL,
+	passwordresetexpires TIMESTAMPTZ  NULL,
+    CONSTRAINT users_username_key UNIQUE (username),
+    CONSTRAINT users_email_key    UNIQUE (email),
+    CONSTRAINT users_username_chk
+        CHECK (btrim(username::text) <> '' AND char_length(username::text) <= 255),
+    CONSTRAINT users_email_chk
+        CHECK (position('@' IN email::text) > 1 AND char_length(email::text) <= 255)
 );
 
+CREATE UNIQUE INDEX users_validated_token_idx
+    ON users (validated)
+    WHERE validated <> '';
+	
+CREATE INDEX users_passwordresettoken_idx
+    ON users (passwordresettoken)
+    WHERE passwordresettoken IS NOT NULL;
+
 CREATE TABLE event (
-    event_id BIGSERIAL PRIMARY KEY,
-    eventname VARCHAR(255) NOT NULL,
-    startdate timestamptz NOT NULL,
-    enddate timestamptz NOT NULL,
-    createdby BIGINT,
-    isprivate BOOLEAN NOT NULL,
-    locationpausetime INT NOT NULL,
-    basepausetime INT NOT NULL,
-    locweight INT NOT NULL,
-    typeweight INT NOT NULL,
-    compweight INT NOT NULL,
-    groupweight INT NOT NULL,
+    event_id          BIGSERIAL PRIMARY KEY,
+    eventname         VARCHAR(255) NOT NULL,
+    startdate         TIMESTAMPTZ  NOT NULL,
+    enddate           TIMESTAMPTZ  NOT NULL,
+    createdby         BIGINT       NOT NULL,
+    isprivate         BOOLEAN      NOT NULL DEFAULT TRUE,
+    locationpausetime INT          NOT NULL DEFAULT 5,
+    basepausetime     INT          NOT NULL DEFAULT 5,
+    locweight         INT          NOT NULL DEFAULT 1,
+    typeweight        INT          NOT NULL DEFAULT 1,
+    compweight        INT          NOT NULL DEFAULT 1,
+    groupweight       INT          NOT NULL DEFAULT 1,
     CONSTRAINT event_createdby_foreign
-        FOREIGN KEY (createdby) REFERENCES users(user_id)
+        FOREIGN KEY (createdby) REFERENCES users (user_id) ON DELETE CASCADE,
+    -- A solver feladatmérete a napok számától függ, ezért felső korlát kell.
+    CONSTRAINT event_dates_chk
+        CHECK (enddate >= startdate AND enddate - startdate <= INTERVAL '366 days'),
+    CONSTRAINT event_pause_chk
+        CHECK (locationpausetime >= 0 AND basepausetime >= 0),
+    CONSTRAINT event_weights_chk
+        CHECK (locweight   BETWEEN 0 AND 500
+           AND typeweight  BETWEEN 0 AND 500
+           AND compweight  BETWEEN 0 AND 500
+           AND groupweight BETWEEN 0 AND 500)
 );
+
+CREATE INDEX event_createdby_idx ON event (createdby);
 
 CREATE TABLE eventtype (
     eventtype_id BIGSERIAL PRIMARY KEY,
-    event_id BIGINT NOT NULL,
-    typename VARCHAR(255) NOT NULL,
-    timerange TIME NOT NULL,
+    event_id     BIGINT       NOT NULL,
+    typename     VARCHAR(255) NOT NULL,
+    timerange    TIME         NOT NULL,
     CONSTRAINT eventtype_event_id_foreign
-        FOREIGN KEY (event_id) REFERENCES event(event_id) ON DELETE CASCADE
+        FOREIGN KEY (event_id) REFERENCES event (event_id) ON DELETE CASCADE,
+    CONSTRAINT eventtype_timerange_chk CHECK (timerange > TIME '00:00')
 );
+
+CREATE INDEX eventtype_event_id_idx ON eventtype (event_id);
 
 CREATE TABLE groups (
-    group_id BIGSERIAL PRIMARY KEY,
-    event_id BIGINT NOT NULL,
+    group_id  BIGSERIAL PRIMARY KEY,
+    event_id  BIGINT       NOT NULL,
     groupname VARCHAR(255) NOT NULL,
     CONSTRAINT group_event_id_foreign
-        FOREIGN KEY (event_id) REFERENCES event(event_id)
+        FOREIGN KEY (event_id) REFERENCES event (event_id) ON DELETE CASCADE
 );
+
+CREATE INDEX groups_event_id_idx ON groups (event_id);
 
 CREATE TABLE participant (
-    participant_id BIGSERIAL PRIMARY KEY,
-    competitornumber INT NOT NULL,
-    participantname VARCHAR(255) NOT NULL,
-    event_id BIGINT NOT NULL,
-    group_id BIGINT,
+    participant_id   BIGSERIAL PRIMARY KEY,
+    competitornumber INT          NOT NULL,
+    participantname  VARCHAR(255) NOT NULL,
+    event_id         BIGINT       NOT NULL,
+    group_id         BIGINT,
     CONSTRAINT participant_event_id_foreign
-        FOREIGN KEY (event_id) REFERENCES event(event_id),
+        FOREIGN KEY (event_id) REFERENCES event (event_id) ON DELETE CASCADE,
     CONSTRAINT participant_group_id_foreign
-        FOREIGN KEY (group_id) REFERENCES groups(group_id) ON DELETE CASCADE
+        FOREIGN KEY (group_id) REFERENCES groups (group_id) ON DELETE SET NULL
 );
+
+CREATE INDEX participant_event_id_idx ON participant (event_id);
+CREATE INDEX participant_group_id_idx ON participant (group_id);
 
 CREATE TABLE location (
-    location_id BIGSERIAL PRIMARY KEY,
-    event_id BIGINT NOT NULL,
+    location_id  BIGSERIAL PRIMARY KEY,
+    event_id     BIGINT       NOT NULL,
     locationname VARCHAR(255) NOT NULL,
-    slots INT NOT NULL,
+    slots        INT          NOT NULL,
     CONSTRAINT location_event_id_foreign
-        FOREIGN KEY (event_id) REFERENCES event(event_id)
+        FOREIGN KEY (event_id) REFERENCES event (event_id) ON DELETE CASCADE,
+    CONSTRAINT location_slots_chk CHECK (slots > 0)
 );
 
+CREATE INDEX location_event_id_idx ON location (event_id);
+
 CREATE TABLE schedule (
-    schedule_id BIGSERIAL PRIMARY KEY,
-    eventtype_id BIGINT NOT NULL,
-    participant_id BIGINT NOT NULL,
-    location_id BIGINT NOT NULL,
-    starttime timestamptz NOT NULL,
-    endtime timestamptz NOT NULL,
-    slot INT NOT NULL,
+    schedule_id    BIGSERIAL PRIMARY KEY,
+    eventtype_id   BIGINT      NOT NULL,
+    participant_id BIGINT      NOT NULL,
+    location_id    BIGINT      NOT NULL,
+    starttime      TIMESTAMPTZ NOT NULL,
+    endtime        TIMESTAMPTZ NOT NULL,
+    slot           INT         NOT NULL,
     CONSTRAINT schedule_eventtype_id_foreign
-        FOREIGN KEY (eventtype_id) REFERENCES eventtype(eventtype_id) ON DELETE CASCADE,
+        FOREIGN KEY (eventtype_id)   REFERENCES eventtype (eventtype_id)     ON DELETE CASCADE,
     CONSTRAINT schedule_participant_id_foreign
-        FOREIGN KEY (participant_id) REFERENCES participant(participant_id) ON DELETE CASCADE,
+        FOREIGN KEY (participant_id) REFERENCES participant (participant_id) ON DELETE CASCADE,
     CONSTRAINT schedule_location_id_foreign
-        FOREIGN KEY (location_id) REFERENCES location(location_id) ON DELETE CASCADE
+        FOREIGN KEY (location_id)    REFERENCES location (location_id)       ON DELETE CASCADE,
+    CONSTRAINT schedule_time_chk CHECK (endtime > starttime),
+    CONSTRAINT schedule_slot_chk CHECK (slot >= 0)
 );
+
+CREATE INDEX schedule_eventtype_id_idx   ON schedule (eventtype_id);
+CREATE INDEX schedule_participant_id_idx ON schedule (participant_id);
+CREATE INDEX schedule_location_id_idx    ON schedule (location_id);
 
 CREATE TABLE registrations (
     registration_id BIGSERIAL PRIMARY KEY,
-    event_id BIGINT NOT NULL,
-    participant_id BIGINT NOT NULL,
-    eventtype_id BIGINT NOT NULL,
+    event_id        BIGINT NOT NULL,
+    participant_id  BIGINT NOT NULL,
+    eventtype_id    BIGINT NOT NULL,
     CONSTRAINT registrations_event_id_foreign
-        FOREIGN KEY (event_id) REFERENCES event(event_id),
+        FOREIGN KEY (event_id)       REFERENCES event (event_id)             ON DELETE CASCADE,
     CONSTRAINT registrations_participant_id_foreign
-        FOREIGN KEY (participant_id) REFERENCES participant(participant_id) ON DELETE CASCADE,
+        FOREIGN KEY (participant_id) REFERENCES participant (participant_id) ON DELETE CASCADE,
     CONSTRAINT registrations_eventtype_id_foreign
-        FOREIGN KEY (eventtype_id) REFERENCES eventtype(eventtype_id) ON DELETE CASCADE
+        FOREIGN KEY (eventtype_id)   REFERENCES eventtype (eventtype_id)     ON DELETE CASCADE,
+    CONSTRAINT registrations_participant_eventtype_key
+        UNIQUE (participant_id, eventtype_id)
 );
+
+CREATE INDEX registrations_event_id_idx     ON registrations (event_id);
+CREATE INDEX registrations_eventtype_id_idx ON registrations (eventtype_id);
 
 CREATE TABLE pausetable (
-    pause_id BIGSERIAL PRIMARY KEY,
-    event_id BIGINT NOT NULL,
+    pause_id     BIGSERIAL PRIMARY KEY,
+    event_id     BIGINT NOT NULL,
     location_id1 BIGINT NOT NULL,
     location_id2 BIGINT NOT NULL,
-    pause TIME NOT NULL,
+    pause        TIME   NOT NULL,
     CONSTRAINT pausetable_event_id_foreign
-        FOREIGN KEY (event_id) REFERENCES event(event_id) ON DELETE CASCADE,
+        FOREIGN KEY (event_id)     REFERENCES event (event_id)       ON DELETE CASCADE,
     CONSTRAINT pausetable_location_id1_foreign
-        FOREIGN KEY (location_id1) REFERENCES location(location_id) ON DELETE CASCADE,
+        FOREIGN KEY (location_id1) REFERENCES location (location_id) ON DELETE CASCADE,
     CONSTRAINT pausetable_location_id2_foreign
-        FOREIGN KEY (location_id2) REFERENCES location(location_id)
+        FOREIGN KEY (location_id2) REFERENCES location (location_id) ON DELETE CASCADE
 );
 
-CREATE TABLE log (
-    log_id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT NOT NULL,
-    logtext VARCHAR(255) NOT NULL,
-    logdate timestamptz NOT NULL,
-    CONSTRAINT log_user_id_foreign
-        FOREIGN KEY (user_id) REFERENCES users(user_id)
-);
+CREATE INDEX pausetable_event_id_idx     ON pausetable (event_id);
+CREATE INDEX pausetable_location_id1_idx ON pausetable (location_id1);
+CREATE INDEX pausetable_location_id2_idx ON pausetable (location_id2);
 
 CREATE TABLE locationtable (
     locationtable_id BIGSERIAL PRIMARY KEY,
-    event_id BIGINT NOT NULL,
-    eventtype_id BIGINT NOT NULL,
-    location_id BIGINT NOT NULL,
+    event_id         BIGINT NOT NULL,
+    eventtype_id     BIGINT NOT NULL,
+    location_id      BIGINT NOT NULL,
     CONSTRAINT locationtable_event_id_foreign
-        FOREIGN KEY (event_id) REFERENCES event(event_id),
+        FOREIGN KEY (event_id)     REFERENCES event (event_id)         ON DELETE CASCADE,
     CONSTRAINT locationtable_eventtype_id_foreign
-        FOREIGN KEY (eventtype_id) REFERENCES eventtype(eventtype_id) ON DELETE CASCADE,
+        FOREIGN KEY (eventtype_id) REFERENCES eventtype (eventtype_id) ON DELETE CASCADE,
     CONSTRAINT locationtable_location_id_foreign
-        FOREIGN KEY (location_id) REFERENCES location(location_id) ON DELETE CASCADE
+        FOREIGN KEY (location_id)  REFERENCES location (location_id)   ON DELETE CASCADE,
+    CONSTRAINT locationtable_eventtype_location_key
+        UNIQUE (eventtype_id, location_id)
 );
+
+CREATE INDEX locationtable_event_id_idx    ON locationtable (event_id);
+CREATE INDEX locationtable_location_id_idx ON locationtable (location_id);
 
 CREATE TABLE eventconstraint (
-    constraint_id BIGSERIAL PRIMARY KEY,
-    event_id BIGINT NOT NULL,
-    object_id BIGINT NOT NULL,
-    constrainttype CHAR(1) NOT NULL,
-    starttime timestamptz NOT NULL,
-    endtime timestamptz NOT NULL,
+    constraint_id  BIGSERIAL PRIMARY KEY,
+    event_id       BIGINT      NOT NULL,
+    object_id      BIGINT      NOT NULL,
+    constrainttype CHAR(1)     NOT NULL,
+    starttime      TIMESTAMPTZ NOT NULL,
+    endtime        TIMESTAMPTZ NOT NULL,
     CONSTRAINT constraint_event_id_foreign
-        FOREIGN KEY (event_id) REFERENCES event(event_id)
+        FOREIGN KEY (event_id) REFERENCES event (event_id) ON DELETE CASCADE,
+    CONSTRAINT eventconstraint_type_chk CHECK (constrainttype IN ('L', 'G', 'C', 'T')),
+    CONSTRAINT eventconstraint_time_chk CHECK (endtime > starttime)
 );
 
-/*
-modelBuilder.HasDefaultSchema("public");
-*/
+CREATE INDEX eventconstraint_event_id_idx ON eventconstraint (event_id);
 
-/*
-dotnet ef dbcontext scaffold "Host=localhost;Database=scheduleLogic;Username=app;Password=app" Npgsql.EntityFrameworkCore.PostgreSQL -o Models -f
-*/
+CREATE TABLE log (
+    log_id  BIGSERIAL PRIMARY KEY,
+    user_id BIGINT       NOT NULL,
+    logtext VARCHAR(255) NOT NULL,
+    logdate TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    CONSTRAINT log_user_id_foreign
+        FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE
+);
+
+CREATE INDEX log_user_id_idx ON log (user_id);
+
+COMMIT;
+
+-- dotnet ef dbcontext scaffold "Host=localhost;Database=scheduleLogic;Username=<user>;Password=<jelszó>" Npgsql.EntityFrameworkCore.PostgreSQL -o Models -f

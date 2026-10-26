@@ -17,6 +17,10 @@ public partial class User
 
     public DateOnly Registrationdate { get; set; }
 
+    public string? Passwordresettoken { get; set; }
+
+    public DateTime? Passwordresetexpires { get; set; }
+
     public virtual ICollection<Event> Events { get; set; } = new List<Event>();
 
     public virtual ICollection<Log> Logs { get; set; } = new List<Log>();

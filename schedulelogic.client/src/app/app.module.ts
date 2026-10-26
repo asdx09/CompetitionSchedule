@@ -7,7 +7,7 @@ import { AppComponent } from './app.component';
 import { LoginComponent } from './login/login.component';
 import { HomeComponent } from './home/home.component';
 import { FormsModule } from '@angular/forms';
-import { JwtInterceptor } from './jwt.interceptor';
+import { CredentialsInterceptor, AuthErrorInterceptor } from './auth.interceptor';
 import { EventComponent } from './event/event.component';
 import { LocationSelectorComponent } from './location-selector/location-selector.component';
 import { MatDialogModule } from '@angular/material/dialog';
@@ -18,6 +18,8 @@ import { BrowserAnimationsModule } from "@angular/platform-browser/animations";
 import { IgxDatePickerModule, IgxDateRangePickerModule, IgxInputGroupModule } from 'igniteui-angular';
 import { AlertComponent } from './alert/alert.component';
 import { ProfileComponent } from './profile/profile.component';
+import { ForgotPasswordComponent } from './forgot-password/forgot-password.component';
+import { ResetPasswordComponent } from './reset-password/reset-password.component';
 
 
 @NgModule({
@@ -31,7 +33,9 @@ import { ProfileComponent } from './profile/profile.component';
 		TimezoneInfoComponent,
 		WizardComponent,
   		AlertComponent,
-    ProfileComponent
+    	ProfileComponent,
+    	ForgotPasswordComponent,
+    	ResetPasswordComponent
 	],
 	imports: [BrowserModule,
 		HttpClientModule,
@@ -45,7 +49,12 @@ import { ProfileComponent } from './profile/profile.component';
 	providers: [
 		{
 			provide: HTTP_INTERCEPTORS,
-			useClass: JwtInterceptor,
+			useClass: CredentialsInterceptor,
+			multi: true
+		},
+		{
+			provide: HTTP_INTERCEPTORS,
+			useClass: AuthErrorInterceptor,
 			multi: true
 		}
 	],

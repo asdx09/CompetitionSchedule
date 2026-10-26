@@ -1,6 +1,25 @@
-<div class="background">
-    <p>User: {{data.name}}</p>
-    <button (click)="logout()"><span>Logout</span></button>
-    <button (click)="deleteAccount()"><span>Delete account</span></button>
-</div>
+<div class="profile-dialog">
 
+  <div class="profile-icon">
+    {{ data.name?.charAt(0)?.toUpperCase() }}
+  </div>
+
+  <h2>Profile</h2>
+
+  <p class="username">
+    {{ data.name }}
+  </p>
+
+  <div class="actions">
+
+        <button class="primary-button" (click)="logout()">
+        Logout
+        </button>
+
+        <button class="danger-button" (click)="deleteAccount()">
+        Delete account
+        </button>
+
+  </div>
+
+</div>

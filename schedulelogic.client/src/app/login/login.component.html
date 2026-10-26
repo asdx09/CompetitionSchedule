@@ -1,57 +1,138 @@
 <div class="background2"></div>
+
 <div class="background">
   <div class="auth-wrapper">
-    <div [ngClass]="{'auth-cardMobile': isMobile,'auth-card': !isMobile}">
+    <div [ngClass]="{'auth-cardMobile': isMobile, 'auth-card': !isMobile}">
+
+      <!-- LOGIN -->
       <div *ngIf="IsLogin" class="form-container">
+
         <div class="title">SCHEDULE LOGIC</div>
+
         <h2>LOGIN</h2>
+
         <form (submit)="login()">
+
           <div class="form-group">
             <label>Username / Email Address</label>
-            <input type="email" placeholder="example@email.com" required name="username" [(ngModel)]="loginUsername">
+
+            <input
+              type="text"
+              placeholder="Username or email"
+              required
+              name="username"
+              [(ngModel)]="loginUsername"
+            >
           </div>
+
           <div class="form-group">
             <label>Password</label>
-            <input type="password" placeholder="******" required name="password" [(ngModel)]="loginPassword">
+
+            <input
+              type="password"
+              placeholder="Password"
+              required
+              name="password"
+              [(ngModel)]="loginPassword"
+            >
           </div>
-          <button type="submit" class="btn-primary">Sign In</button>
+
+          <button type="submit" class="btn-primary">
+            Sign In
+          </button>
+
         </form>
+
         <p class="toggle-text">
-          Don't have an account? 
-          <span (click)="toggleIsLogin()">Register here!</span>
+          Don't have an account?
+          <span (click)="toggleIsLogin()">Register here</span>
         </p>
+
+        <p class="toggle-text">
+          Forgot your password?
+          <a routerLink="/forgot-password">Reset it here</a>
+        </p>
+
       </div>
 
+
+      <!-- REGISTER -->
       <div *ngIf="!IsLogin" class="form-container">
+
+        <div class="title">SCHEDULE LOGIC</div>
+
         <h2>REGISTER</h2>
+
         <form (submit)="register()">
+
           <div class="form-group">
             <label>Username</label>
-            <input type="text" placeholder="Username" [(ngModel)]="regUsername" required name="username" >
+
+            <input
+              type="text"
+              placeholder="Username"
+              [(ngModel)]="regUsername"
+              required
+              name="username"
+            >
           </div>
+
           <div class="form-group">
             <label>Email Address</label>
-            <input type="email" placeholder="example@email.com" [(ngModel)]="regEmail" required name="email">
+
+            <input
+              type="email"
+              placeholder="example@email.com"
+              [(ngModel)]="regEmail"
+              required
+              name="email"
+            >
           </div>
+
           <div class="form-group">
+
             <label>Password</label>
+
             <div class="strength-bar">
-              <div 
-                class="strength-level" 
+              <div
+                class="strength-level"
                 [ngStyle]="{
-                  'width.%': currentPasswordStrength * 20, 
+                  'width.%': currentPasswordStrength * 20,
                   'background-color': strengthColor
-                }"></div>
+                }">
+              </div>
             </div>
-            <input type="password" [(ngModel)]="regPassword" (input)="checkPasswordStrength()" placeholder="At least 6 characters" required name="password">
-            <input type="password" [(ngModel)]="regPasswordAgain" placeholder="Repeat password" required name="passwordAgain">
+
+            <input
+              type="password"
+              [(ngModel)]="regPassword"
+              (input)="checkPasswordStrength()"
+              placeholder="At least 6 characters"
+              required
+              name="password"
+            >
+
+            <input
+              type="password"
+              [(ngModel)]="regPasswordAgain"
+              placeholder="Repeat password"
+              required
+              name="passwordAgain"
+            >
+
           </div>
-          <button type="submit" class="btn-primary">Create Account</button>
+
+          <button type="submit" class="btn-primary">
+            Create Account
+          </button>
+
         </form>
+
         <p class="toggle-text">
-          Already have an account? 
-          <span (click)="toggleIsLogin()">Login here!</span>
+          Already have an account?
+          <span (click)="toggleIsLogin()">Login here</span>
         </p>
+
       </div>
 
     </div>

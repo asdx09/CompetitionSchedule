@@ -1,7 +1,4 @@
-﻿using DocumentFormat.OpenXml.Office2010.Excel;
-using Microsoft.AspNetCore.Mvc;
-using ScheduleLogic.Server.Class;
-using ScheduleLogic.Server.Models;
+﻿using ScheduleLogic.Server.Class;
 using ScheduleLogic.Server.Services.Interfaces;
 using static ScheduleLogic.Server.Class.EventModels;
 
@@ -9,48 +6,45 @@ namespace ScheduleLogic.Server.Services
 {
     public class EventService : IEventService
     {
-        private readonly IDatabaseService _dbService;
+        private readonly IEventRepository _events;
 
-        public EventService(IDatabaseService dbService)
+        public EventService(IEventRepository events)
         {
-            _dbService = dbService;
+            _events = events;
         }
-        public async Task<bool> NewEvent(string username)
+
+        public async Task NewEvent(long userId)
         {
-            await _dbService.NewEvent(username);
+            await _events.CreateEventAsync(userId);
+        }
+
+        public async Task<bool> DeleteEvent(long eventId, long userId)
+        {
+            if (!await _events.IsOwnedByUserAsync(eventId, userId)) return false;
+            await _events.DeleteEventAsync(eventId);
             return true;
         }
 
-        public async Task<bool> DeleteEvent(string id, string username)
+        public Task<List<EventsData>> GetEvents(long userId) =>
+            _events.GetEventsAsync(userId);
+
+        public async Task<DataDTO?> GetEvent(long eventId, long userId)
         {
-            var check = await _dbService.CheckUser(username, id);
-            if (check == false) return false; 
-            await _dbService.DeleteEvent(Convert.ToInt32(id));
-            return true;
+            if (!await _events.IsOwnedByUserAsync(eventId, userId)) return null;
+            return await _events.GetEventAsync(eventId);
         }
 
-        public async Task<List<EventsData>> GetEvents(string username)
+        public async Task<bool> SaveEvent(DataDTO data, long userId)
         {
-            return await _dbService.GetEvents(username);
+            long eventId = long.Parse(data.EventData.EventId);
+            if (!await _events.IsOwnedByUserAsync(eventId, userId)) return false;
+            return await _events.SaveEventAsync(data);
         }
 
-        public async Task<DataDTO?> GetEvent(string id, string username)
+        public async Task<bool> NewWizardEvent(DataDTO data, long userId)
         {
-            if (await _dbService.CheckUser(username, id) == false) return null;
-            return await _dbService.GetEvent(id, username);
-        }
-
-        public async Task<bool> SaveEvent(DataDTO Data, string username)
-        {
-            if (await _dbService.CheckUser(username, Data.EventData.EventId.ToString()) == false) return false;
-            if (await _dbService.SaveEvent(Data)) return true;
-            else return false;
-        }
-
-        public async Task<bool> NewWizardEvent(DataDTO Data, string username)
-        {
-            await _dbService.NewWizardEvent(Data, username);
-            return true;
+            long eventId = await _events.CreateEventAsync(userId);
+            return await _events.FillWizardEventAsync(eventId, data);
         }
     }
 }

@@ -1,65 +1,209 @@
-.background{
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    margin-top: 20px;
-    margin-bottom: 50px;
-    color: black;
+.profile-dialog {
+font-family: "Inter", "Segoe UI", sans-serif;
+
+width: 100%;
+
+box-sizing: border-box;
+
+padding: 35px 35px 30px;
+
+background:
+radial-gradient(
+circle at 20% 0%,
+rgba(190, 41, 236, 0.12),
+transparent 45%
+),
+radial-gradient(
+circle at 90% 10%,
+rgba(128, 0, 128, 0.12),
+transparent 45%
+),
+#0f172a;
+
+color: white;
+
+text-align: center;
 }
 
-p{
-    font-size: 30px;
+/* =========================
+PROFILE ICON
+========================= */
+
+.profile-icon {
+width: 70px;
+height: 70px;
+
+margin: 0 auto 18px;
+
+display: flex;
+align-items: center;
+justify-content: center;
+
+border-radius: 50%;
+
+background:
+linear-gradient(
+135deg,
+#7b5cff,
+#5d3df5
+);
+
+color: white;
+
+font-size: 30px;
+font-weight: 700;
+
+box-shadow:
+0 8px 25px rgba(93, 61, 245, 0.3);
 }
 
+/* =========================
+TITLE
+========================= */
+
+h2 {
+margin: 0;
+
+color: white;
+
+font-size: 27px;
+font-weight: 600;
+}
+
+/* =========================
+USERNAME
+========================= */
+
+.username {
+margin: 8px 0 30px;
+
+color: rgba(255, 255, 255, 0.65);
+
+font-size: 16px;
+}
+
+/* =========================
+BUTTONS
+========================= */
+
+.actions {
+display: flex;
+
+flex-direction: column;
+
+gap: 10px;
+}
 
 button {
-  appearance: none;
-  background: linear-gradient(135deg, #7b5cff, #5d3df5);
-  border: none;
-  border-radius: 6px;
-  box-shadow: rgba(27, 31, 35, .1) 0 1px 0;
-  box-sizing: border-box;
-  color: #fff;
-  cursor: pointer;
-  display: inline-block;
-  font-family: -apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji";
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 20px;
-  padding: 6px 16px;
-  position: relative;
-  text-align: center;
-  text-decoration: none;
-  user-select: none;
-  -webkit-user-select: none;
-  touch-action: manipulation;
-  vertical-align: middle;
-  white-space: nowrap;
-  margin: 5px;
+width: 100%;
+
+box-sizing: border-box;
+
+padding: 12px 16px;
+
+border: none;
+
+border-radius: 9px;
+
+font-family:
+"Inter",
+"Segoe UI",
+sans-serif;
+
+font-size: 16px;
+font-weight: 600;
+
+cursor: pointer;
+
+transition:
+filter 0.2s ease,
+transform 0.2s ease,
+box-shadow 0.2s ease;
 }
 
-button:focus:not(:focus-visible):not(.focus-visible) {
-  box-shadow: none;
-  outline: none;
+/* =========================
+LOGOUT
+========================= */
+
+.primary-button {
+background:
+linear-gradient(
+135deg,
+#7b5cff,
+#5d3df5
+);
+
+color: white;
+
+box-shadow:
+0 5px 15px rgba(93, 61, 245, 0.2);
 }
 
-button:hover {
-  filter: brightness(1.1);
+.primary-button:hover {
+filter: brightness(1.1);
+
+transform: translateY(-1px);
+
+box-shadow:
+0 8px 20px rgba(93, 61, 245, 0.3);
 }
+
+/* =========================
+DELETE
+========================= */
+
+.danger-button {
+background: rgba(220, 50, 70, 0.12);
+
+border: 1px solid rgba(255, 90, 110, 0.25);
+
+color: #ff8f9d;
+}
+
+.danger-button:hover {
+background: rgba(220, 50, 70, 0.20);
+
+border-color: rgba(255, 90, 110, 0.4);
+
+color: #ffb0ba;
+
+transform: translateY(-1px);
+}
+
+/* =========================
+FOCUS
+========================= */
 
 button:focus {
-  box-shadow: rgba(9, 93, 119, 0.4) 0 0 0 3px;
-  outline: none;
+outline: none;
+
+box-shadow:
+0 0 0 3px rgba(123, 92, 255, 0.25);
 }
 
-button:disabled {
-  background-color: #b6a1b3;
-  border-color: rgba(27, 31, 35, .1);
-  color: rgba(255, 255, 255, .8);
-  cursor: default;
+.danger-button:focus {
+box-shadow:
+0 0 0 3px rgba(255, 90, 110, 0.18);
 }
 
-button:active {
-  background-color: #5626b1;
-  box-shadow: rgba(20, 70, 32, .2) 0 1px 0 inset;
+/* =========================
+MOBILE
+========================= */
+
+@media (max-width: 500px) {
+.profile-dialog {
+padding: 30px 22px 25px;
+}
+
+.profile-icon {
+width: 60px;
+height: 60px;
+
+font-size: 25px;
+
+}
+
+h2 {
+font-size: 24px;
+}
 }

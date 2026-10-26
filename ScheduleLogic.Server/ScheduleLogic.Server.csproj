@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -7,6 +7,7 @@
     <SpaRoot>..\schedulelogic.client</SpaRoot>
     <SpaProxyLaunchCommand>npm start</SpaProxyLaunchCommand>
     <SpaProxyServerUrl>https://localhost:58921</SpaProxyServerUrl>
+    <UserSecretsId>3ed9a405-dd29-4812-85cc-89a441e52809</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

@@ -5,14 +5,11 @@ namespace ScheduleLogic.Server.Services.Interfaces
 {
     public interface IScheduleService
     {
-        public Task<ScheduleRequestForSolver> GenerateSchedule(int id);
-
-        public Task<DataDTO> GetScheduleData(string id, string username);
-
-        public Task<bool> CheckSolver(string id);
-
-        public Task<bool> StopSolver(string id);
-
-        public Task<byte[]> GetScheduleFile(string id);
+        Task<ScheduleRequestForSolver?> GenerateSchedule(long eventId, long userId);
+        Task<DataDTO?> GetScheduleData(long eventId, long userId);
+        Task<bool?> CheckSolver(long eventId, long userId);
+        Task<bool?> StopSolver(long eventId, long userId);
+        Task ReceiveSolverAnswer(SolverResponse data);
+        Task<byte[]?> GetScheduleFile(long eventId, long userId);
     }
 }

@@ -13,7 +13,7 @@ public partial class Event
 
     public DateTime Enddate { get; set; }
 
-    public long? Createdby { get; set; }
+    public long Createdby { get; set; }
 
     public bool Isprivate { get; set; }
 
@@ -29,7 +29,7 @@ public partial class Event
 
     public int Groupweight { get; set; }
 
-    public virtual User? CreatedbyNavigation { get; set; }
+    public virtual User CreatedbyNavigation { get; set; } = null!;
 
     public virtual ICollection<Eventconstraint> Eventconstraints { get; set; } = new List<Eventconstraint>();
 

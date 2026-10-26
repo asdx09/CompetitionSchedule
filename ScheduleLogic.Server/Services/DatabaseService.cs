@@ -16,9 +16,9 @@ using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace ScheduleLogic.Server.Services
 {
-    public class DatabaseService : IDatabaseService
+    public class DatabaseService //: IDatabaseService
     {
-        const int MinuteConversion = 1;
+       /* const int MinuteConversion = 1;
 
         private readonly ScheduleLogicContext _dbService;
 
@@ -41,7 +41,7 @@ namespace ScheduleLogic.Server.Services
         }
         public async Task<string> RegisterUser(string username, string password, string email, AuthenticationService Auth_Service)
         {
-            if (await _dbService.Users.AnyAsync(u => u.Username == username))
+            /*if (await _dbService.Users.AnyAsync(u => u.Username == username))
                 return "Username already taken!";
 
             if (await _dbService.Users.AnyAsync(u => u.Email == email))
@@ -59,7 +59,7 @@ namespace ScheduleLogic.Server.Services
             await Auth_Service.NewValidationEmail(token, email, username);
 
             await _dbService.Users.AddAsync(user);
-            await _dbService.SaveChangesAsync();
+            await _dbService.SaveChangesAsync();*//*
             return "";
         }
         public async Task<long> NewEvent(string username)
@@ -890,6 +890,6 @@ namespace ScheduleLogic.Server.Services
             _dbService.Users.RemoveRange(ProfileToRemove);
 
             await _dbService.SaveChangesAsync();
-        }
+        }*/
     }
 }

@@ -41,11 +41,11 @@ public partial class ScheduleLogicContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseNpgsql("Host=localhost;Database=scheduleLogic;Username=app;Password=app");
+        => optionsBuilder.UseNpgsql("Host=localhost;Database=scheduleLogic;Username=schedulelogic_app;Password=K7mQ2vL9xP4a");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.HasDefaultSchema("public");
+        modelBuilder.HasPostgresExtension("citext");
 
         modelBuilder.Entity<Event>(entity =>
         {
@@ -53,20 +53,36 @@ public partial class ScheduleLogicContext : DbContext
 
             entity.ToTable("event");
 
+            entity.HasIndex(e => e.Createdby, "event_createdby_idx");
+
             entity.Property(e => e.EventId).HasColumnName("event_id");
-            entity.Property(e => e.Basepausetime).HasColumnName("basepausetime");
-            entity.Property(e => e.Compweight).HasColumnName("compweight");
+            entity.Property(e => e.Basepausetime)
+                .HasDefaultValue(5)
+                .HasColumnName("basepausetime");
+            entity.Property(e => e.Compweight)
+                .HasDefaultValue(1)
+                .HasColumnName("compweight");
             entity.Property(e => e.Createdby).HasColumnName("createdby");
             entity.Property(e => e.Enddate).HasColumnName("enddate");
             entity.Property(e => e.Eventname)
                 .HasMaxLength(255)
                 .HasColumnName("eventname");
-            entity.Property(e => e.Groupweight).HasColumnName("groupweight");
-            entity.Property(e => e.Isprivate).HasColumnName("isprivate");
-            entity.Property(e => e.Locationpausetime).HasColumnName("locationpausetime");
-            entity.Property(e => e.Locweight).HasColumnName("locweight");
+            entity.Property(e => e.Groupweight)
+                .HasDefaultValue(1)
+                .HasColumnName("groupweight");
+            entity.Property(e => e.Isprivate)
+                .HasDefaultValue(true)
+                .HasColumnName("isprivate");
+            entity.Property(e => e.Locationpausetime)
+                .HasDefaultValue(5)
+                .HasColumnName("locationpausetime");
+            entity.Property(e => e.Locweight)
+                .HasDefaultValue(1)
+                .HasColumnName("locweight");
             entity.Property(e => e.Startdate).HasColumnName("startdate");
-            entity.Property(e => e.Typeweight).HasColumnName("typeweight");
+            entity.Property(e => e.Typeweight)
+                .HasDefaultValue(1)
+                .HasColumnName("typeweight");
 
             entity.HasOne(d => d.CreatedbyNavigation).WithMany(p => p.Events)
                 .HasForeignKey(d => d.Createdby)
@@ -79,6 +95,8 @@ public partial class ScheduleLogicContext : DbContext
 
             entity.ToTable("eventconstraint");
 
+            entity.HasIndex(e => e.EventId, "eventconstraint_event_id_idx");
+
             entity.Property(e => e.ConstraintId).HasColumnName("constraint_id");
             entity.Property(e => e.Constrainttype)
                 .HasMaxLength(1)
@@ -90,7 +108,6 @@ public partial class ScheduleLogicContext : DbContext
 
             entity.HasOne(d => d.Event).WithMany(p => p.Eventconstraints)
                 .HasForeignKey(d => d.EventId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("constraint_event_id_foreign");
         });
 
@@ -99,6 +116,8 @@ public partial class ScheduleLogicContext : DbContext
             entity.HasKey(e => e.EventtypeId).HasName("eventtype_pkey");
 
             entity.ToTable("eventtype");
+
+            entity.HasIndex(e => e.EventId, "eventtype_event_id_idx");
 
             entity.Property(e => e.EventtypeId).HasColumnName("eventtype_id");
             entity.Property(e => e.EventId).HasColumnName("event_id");
@@ -118,6 +137,8 @@ public partial class ScheduleLogicContext : DbContext
 
             entity.ToTable("groups");
 
+            entity.HasIndex(e => e.EventId, "groups_event_id_idx");
+
             entity.Property(e => e.GroupId).HasColumnName("group_id");
             entity.Property(e => e.EventId).HasColumnName("event_id");
             entity.Property(e => e.Groupname)
@@ -126,7 +147,6 @@ public partial class ScheduleLogicContext : DbContext
 
             entity.HasOne(d => d.Event).WithMany(p => p.Groups)
                 .HasForeignKey(d => d.EventId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("group_event_id_foreign");
         });
 
@@ -135,6 +155,8 @@ public partial class ScheduleLogicContext : DbContext
             entity.HasKey(e => e.LocationId).HasName("location_pkey");
 
             entity.ToTable("location");
+
+            entity.HasIndex(e => e.EventId, "location_event_id_idx");
 
             entity.Property(e => e.LocationId).HasColumnName("location_id");
             entity.Property(e => e.EventId).HasColumnName("event_id");
@@ -145,7 +167,6 @@ public partial class ScheduleLogicContext : DbContext
 
             entity.HasOne(d => d.Event).WithMany(p => p.Locations)
                 .HasForeignKey(d => d.EventId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("location_event_id_foreign");
         });
 
@@ -155,6 +176,12 @@ public partial class ScheduleLogicContext : DbContext
 
             entity.ToTable("locationtable");
 
+            entity.HasIndex(e => e.EventId, "locationtable_event_id_idx");
+
+            entity.HasIndex(e => new { e.EventtypeId, e.LocationId }, "locationtable_eventtype_location_key").IsUnique();
+
+            entity.HasIndex(e => e.LocationId, "locationtable_location_id_idx");
+
             entity.Property(e => e.LocationtableId).HasColumnName("locationtable_id");
             entity.Property(e => e.EventId).HasColumnName("event_id");
             entity.Property(e => e.EventtypeId).HasColumnName("eventtype_id");
@@ -162,7 +189,6 @@ public partial class ScheduleLogicContext : DbContext
 
             entity.HasOne(d => d.Event).WithMany(p => p.Locationtables)
                 .HasForeignKey(d => d.EventId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("locationtable_event_id_foreign");
 
             entity.HasOne(d => d.Eventtype).WithMany(p => p.Locationtables)
@@ -180,8 +206,12 @@ public partial class ScheduleLogicContext : DbContext
 
             entity.ToTable("log");
 
+            entity.HasIndex(e => e.UserId, "log_user_id_idx");
+
             entity.Property(e => e.LogId).HasColumnName("log_id");
-            entity.Property(e => e.Logdate).HasColumnName("logdate");
+            entity.Property(e => e.Logdate)
+                .HasDefaultValueSql("now()")
+                .HasColumnName("logdate");
             entity.Property(e => e.Logtext)
                 .HasMaxLength(255)
                 .HasColumnName("logtext");
@@ -189,7 +219,6 @@ public partial class ScheduleLogicContext : DbContext
 
             entity.HasOne(d => d.User).WithMany(p => p.Logs)
                 .HasForeignKey(d => d.UserId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("log_user_id_foreign");
         });
 
@@ -198,6 +227,10 @@ public partial class ScheduleLogicContext : DbContext
             entity.HasKey(e => e.ParticipantId).HasName("participant_pkey");
 
             entity.ToTable("participant");
+
+            entity.HasIndex(e => e.EventId, "participant_event_id_idx");
+
+            entity.HasIndex(e => e.GroupId, "participant_group_id_idx");
 
             entity.Property(e => e.ParticipantId).HasColumnName("participant_id");
             entity.Property(e => e.Competitornumber).HasColumnName("competitornumber");
@@ -209,12 +242,11 @@ public partial class ScheduleLogicContext : DbContext
 
             entity.HasOne(d => d.Event).WithMany(p => p.Participants)
                 .HasForeignKey(d => d.EventId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("participant_event_id_foreign");
 
             entity.HasOne(d => d.Group).WithMany(p => p.Participants)
                 .HasForeignKey(d => d.GroupId)
-                .OnDelete(DeleteBehavior.Cascade)
+                .OnDelete(DeleteBehavior.SetNull)
                 .HasConstraintName("participant_group_id_foreign");
         });
 
@@ -223,6 +255,12 @@ public partial class ScheduleLogicContext : DbContext
             entity.HasKey(e => e.PauseId).HasName("pausetable_pkey");
 
             entity.ToTable("pausetable");
+
+            entity.HasIndex(e => e.EventId, "pausetable_event_id_idx");
+
+            entity.HasIndex(e => e.LocationId1, "pausetable_location_id1_idx");
+
+            entity.HasIndex(e => e.LocationId2, "pausetable_location_id2_idx");
 
             entity.Property(e => e.PauseId).HasColumnName("pause_id");
             entity.Property(e => e.EventId).HasColumnName("event_id");
@@ -240,7 +278,6 @@ public partial class ScheduleLogicContext : DbContext
 
             entity.HasOne(d => d.LocationId2Navigation).WithMany(p => p.PausetableLocationId2Navigations)
                 .HasForeignKey(d => d.LocationId2)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("pausetable_location_id2_foreign");
         });
 
@@ -250,6 +287,12 @@ public partial class ScheduleLogicContext : DbContext
 
             entity.ToTable("registrations");
 
+            entity.HasIndex(e => e.EventId, "registrations_event_id_idx");
+
+            entity.HasIndex(e => e.EventtypeId, "registrations_eventtype_id_idx");
+
+            entity.HasIndex(e => new { e.ParticipantId, e.EventtypeId }, "registrations_participant_eventtype_key").IsUnique();
+
             entity.Property(e => e.RegistrationId).HasColumnName("registration_id");
             entity.Property(e => e.EventId).HasColumnName("event_id");
             entity.Property(e => e.EventtypeId).HasColumnName("eventtype_id");
@@ -257,7 +300,6 @@ public partial class ScheduleLogicContext : DbContext
 
             entity.HasOne(d => d.Event).WithMany(p => p.Registrations)
                 .HasForeignKey(d => d.EventId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("registrations_event_id_foreign");
 
             entity.HasOne(d => d.Eventtype).WithMany(p => p.Registrations)
@@ -274,6 +316,12 @@ public partial class ScheduleLogicContext : DbContext
             entity.HasKey(e => e.ScheduleId).HasName("schedule_pkey");
 
             entity.ToTable("schedule");
+
+            entity.HasIndex(e => e.EventtypeId, "schedule_eventtype_id_idx");
+
+            entity.HasIndex(e => e.LocationId, "schedule_location_id_idx");
+
+            entity.HasIndex(e => e.ParticipantId, "schedule_participant_id_idx");
 
             entity.Property(e => e.ScheduleId).HasColumnName("schedule_id");
             entity.Property(e => e.Endtime).HasColumnName("endtime");
@@ -302,16 +350,32 @@ public partial class ScheduleLogicContext : DbContext
 
             entity.ToTable("users");
 
+            entity.HasIndex(e => e.Email, "users_email_key").IsUnique();
+
+            entity.HasIndex(e => e.Passwordresettoken, "users_passwordresettoken_idx").HasFilter("(passwordresettoken IS NOT NULL)");
+
+            entity.HasIndex(e => e.Username, "users_username_key").IsUnique();
+
+            entity.HasIndex(e => e.Validated, "users_validated_token_idx")
+                .IsUnique()
+                .HasFilter("((validated)::text <> ''::text)");
+
             entity.Property(e => e.UserId).HasColumnName("user_id");
             entity.Property(e => e.Email)
-                .HasMaxLength(255)
+                .HasColumnType("citext")
                 .HasColumnName("email");
             entity.Property(e => e.Password)
                 .HasMaxLength(255)
                 .HasColumnName("password");
-            entity.Property(e => e.Registrationdate).HasColumnName("registrationdate");
-            entity.Property(e => e.Username)
+            entity.Property(e => e.Passwordresetexpires).HasColumnName("passwordresetexpires");
+            entity.Property(e => e.Passwordresettoken)
                 .HasMaxLength(255)
+                .HasColumnName("passwordresettoken");
+            entity.Property(e => e.Registrationdate)
+                .HasDefaultValueSql("CURRENT_DATE")
+                .HasColumnName("registrationdate");
+            entity.Property(e => e.Username)
+                .HasColumnType("citext")
                 .HasColumnName("username");
             entity.Property(e => e.Validated)
                 .HasMaxLength(255)

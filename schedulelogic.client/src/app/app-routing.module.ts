@@ -5,6 +5,8 @@ import { HomeComponent } from './home/home.component';
 import { EventComponent } from './event/event.component';
 import { ScheduleComponent } from './schedule/schedule.component';
 import { WizardComponent } from './wizard/wizard.component';
+import { ForgotPasswordComponent } from './forgot-password/forgot-password.component';
+import { ResetPasswordComponent } from './reset-password/reset-password.component';
 
 const routes: Routes = [
   { path: '', component: HomeComponent },
@@ -13,6 +15,8 @@ const routes: Routes = [
   { path: 'schedule', component: ScheduleComponent },
   { path: 'wizard', component: WizardComponent },
   { path: 'login', component: LoginComponent },
+  { path: 'forgot-password', component: ForgotPasswordComponent },
+  { path: 'reset-password', component: ResetPasswordComponent },
   { path: '**', component: HomeComponent }
 ];
 

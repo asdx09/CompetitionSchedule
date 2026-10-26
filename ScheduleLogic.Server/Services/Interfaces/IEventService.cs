@@ -4,16 +4,11 @@ namespace ScheduleLogic.Server.Services.Interfaces
 {
     public interface IEventService
     {
-        public Task<bool> NewEvent(string username);
-
-        public Task<bool> DeleteEvent(string id, string username);
-
-        public Task<List<EventsData>> GetEvents(string username);
-
-        public Task<DataDTO?> GetEvent(string id, string username);
-
-        public Task<bool> SaveEvent(DataDTO Data, string username);
-
-        public Task<bool> NewWizardEvent(DataDTO Data, string username);
+        Task NewEvent(long userId);
+        Task<bool> DeleteEvent(long eventId, long userId);
+        Task<List<EventsData>> GetEvents(long userId);
+        Task<DataDTO?> GetEvent(long eventId, long userId);
+        Task<bool> SaveEvent(DataDTO data, long userId);
+        Task<bool> NewWizardEvent(DataDTO data, long userId);
     }
 }

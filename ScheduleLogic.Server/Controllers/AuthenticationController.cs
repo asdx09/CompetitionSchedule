@@ -1,22 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using ScheduleLogic.Server.Services;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
-using ScheduleLogic.Server.Models;
-using Microsoft.AspNet.Identity;
-using Microsoft.Extensions.Configuration;
-using Microsoft.AspNetCore.Authorization;
-using static ScheduleLogic.Server.Class.AuthenticationModels;
-using ScheduleLogic.Server.Services.Interfaces;
-using Microsoft.AspNetCore.WebUtilities;
-using System.Diagnostics;
+﻿using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using ScheduleLogic.Server.Services.Interfaces;
+using System.Security.Claims;
+using static ScheduleLogic.Server.Class.AuthenticationModels;
 using IAuthenticationService = ScheduleLogic.Server.Services.Interfaces.IAuthenticationService;
-using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace ScheduleLogic.Server.Controllers
 {
@@ -24,58 +13,95 @@ namespace ScheduleLogic.Server.Controllers
     [Route("api/[controller]")]
     public class AuthenticationController : ControllerBase
     {
-        private readonly IDatabaseService _dbService;
         private readonly IAuthenticationService _authService;
         private readonly IConfiguration _configuration;
 
-        public AuthenticationController(IDatabaseService dbService, IAuthenticationService authService, IConfiguration configuration)
+        public AuthenticationController(IAuthenticationService authService, IConfiguration configuration)
         {
             _authService = authService;
-            _dbService = dbService;
             _configuration = configuration;
         }
 
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginModel data)
         {
-            User? user = await _dbService.LoginUser(data.Username, data.Password);
-            if (user != null)
+            var user = await _authService.LoginUser(data.Username, data.Password);
+            if (user == null)
+                return Unauthorized("Invalid username/email and password or not verified email!");
+
+            var claims = new List<Claim>
             {
-                var claims = new List<Claim>
-                {
-                    new Claim(ClaimTypes.Name, user.Email),
-                    new Claim("UserId", user.UserId.ToString())
-                };
-                var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+                new(ClaimTypes.NameIdentifier, user.UserId.ToString()),
+                new(ClaimTypes.Name, user.Username)
+            };
+            var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
 
-                await HttpContext.SignInAsync(
-                    CookieAuthenticationDefaults.AuthenticationScheme,
-                    new ClaimsPrincipal(claimsIdentity),
-                    new AuthenticationProperties { IsPersistent = true, ExpiresUtc = DateTime.UtcNow.AddHours(1) }
-                );
+            // Az ExpiresUtc-t szándékosan nem adjuk meg: a cookie séma
+            // options.ExpireTimeSpan-je (1 óra) és a SlidingExpiration
+            // már beállítja, itt csak felülírná feleslegesen.
+            await HttpContext.SignInAsync(
+                CookieAuthenticationDefaults.AuthenticationScheme,
+                new ClaimsPrincipal(identity),
+                new AuthenticationProperties { IsPersistent = true }
+            );
 
-                return Ok();
-            }
-            return Unauthorized("Invalid username/email and password or not verified email!");
+            return Ok();
         }
 
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterModel data)
         {
-            string result = await _authService.RegisterUser(data.Username, data.Password,data.Email) ?? "ERROR";
-            if (string.IsNullOrEmpty(result)) return Ok();
-            else return BadRequest(result);
+            var result = await _authService.RegisterUser(data.Username, data.Password, data.Email);
+            if (!result.Success) return BadRequest(result.Error);
+
+            // A fiók mindkét esetben létrejött; az emailSent jelzi a
+            // kliensnek, ha a levél kézbesítése nem sikerült, hogy fel
+            // tudja ajánlani az újraküldést, ne csak csendben landoljon
+            // a felhasználó egy soha meg nem erősíthető fiókban.
+            return Ok(new { emailSent = result.EmailSent });
+        }
+
+        [HttpPost("resend-confirmation")]
+        public async Task<IActionResult> ResendConfirmation([FromBody] ResendConfirmationModel data)
+        {
+            // Szándékosan mindig Ok()-ot adunk vissza, hogy a válaszból ne
+            // lehessen kitalálni, létezik-e a megadott felhasználó/e-mail.
+            await _authService.ResendConfirmationEmailAsync(data.UsernameOrEmail);
+            return Ok();
+        }
+
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordModel data)
+        {
+            // Ugyanaz az elv, mint a resend-confirmation-nél: mindig Ok(),
+            // hogy ne lehessen vele felhasználót/e-mailt találgatni.
+            await _authService.ForgotPasswordAsync(data.UsernameOrEmail);
+            return Ok();
+        }
+
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordModel data)
+        {
+            if (string.IsNullOrWhiteSpace(data.NewPassword) || data.NewPassword.Length < 8)
+                return BadRequest("Password must be at least 8 characters.");
+
+            bool success = await _authService.ResetPasswordAsync(data.Token, data.NewPassword);
+
+            // Itt már NEM kell elrejteni, hogy a token érvénytelen/lejárt -
+            // ezt a felhasználó úgyis a saját linkjéről tudja, nem más
+            // fiókjáról szerez vele infót.
+            return success ? Ok() : BadRequest("Invalid or expired reset link.");
         }
 
         [Authorize]
-        [HttpPost("check-token")]
-        public async Task<IActionResult> CheckToken()
+        [HttpGet("check-token")]
+        public IActionResult CheckToken()
         {
-            string username = await _dbService.GetUsername(User.Identity?.Name!);
-
+            // A felhasználónév már benne van a cookie-ban lévő claimekben,
+            // erre nem kell adatbázist hívni.
+            var username = User.FindFirstValue(ClaimTypes.Name);
             return Ok(new { name = username });
         }
-
 
         [HttpGet("confirm")]
         public async Task<IActionResult> ConfirmEmail(string token)
@@ -83,23 +109,28 @@ namespace ScheduleLogic.Server.Controllers
             if (string.IsNullOrEmpty(token))
                 return BadRequest("Invalid confirmation request.");
 
+            bool confirmed = await _authService.ConfirmEmailAsync(token);
 
-            await _dbService.ValidateEmail(token);
-
-            return Redirect(_configuration["URLS:Frontend"] ?? "");
+            string frontendUrl = _configuration["URLS:Frontend"] ?? "";
+            return Redirect(confirmed ? frontendUrl : $"{frontendUrl}?confirm=failed");
         }
 
         [Authorize]
         [HttpDelete("delete")]
         public async Task<IActionResult> DeleteAccount()
         {
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!long.TryParse(userIdClaim, out var userId))
+                return Unauthorized();
+
+            await _authService.DeleteAccountAsync(userId);
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-            await _dbService.DeleteUser(User.Identity?.Name);
+
             return Ok();
         }
 
-        [HttpPost("logout")]
         [Authorize]
+        [HttpPost("logout")]
         public async Task<IActionResult> Logout()
         {
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);

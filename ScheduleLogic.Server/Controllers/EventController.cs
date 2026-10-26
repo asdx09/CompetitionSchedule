@@ -1,106 +1,72 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using ScheduleLogic.Server.Class;
-using ScheduleLogic.Server.Services;
 using ScheduleLogic.Server.Services.Interfaces;
-using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text.Json;
 
 namespace ScheduleLogic.Server.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class EventController : ControllerBase
     {
         private readonly IConfiguration _configuration;
         private readonly IEventService _eventService;
 
-        public EventController(IConfiguration configuration , IEventService eventService)
+        public EventController(IConfiguration configuration, IEventService eventService)
         {
             _configuration = configuration;
             _eventService = eventService;
         }
 
-        [Authorize]
+        // A UserId a bejelentkezéskor kiállított cookie-ban lévő claimből jön,
+        // nincs hozzá adatbázis-keresés. [Authorize] miatt a claim mindig jelen
+        // van, ha idáig eljutott a kérés, ezért ez itt sosem "Unauthorized",
+        // hanem programozási hiba jele lenne — ezért dob, nem Forbid()-ot ad.
+        private long UserId =>
+            long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
         [HttpPost("new-event")]
         public async Task<IActionResult> NewEvent()
         {
-            var username = User.Identity?.Name;
-            if (!string.IsNullOrEmpty(username))
-            {
-                await _eventService.NewEvent(username);
-                return Ok();
-            }
-            return Unauthorized();
+            await _eventService.NewEvent(UserId);
+            return Ok();
         }
 
-        [Authorize]
         [HttpDelete("delete-event")]
-        public async Task<IActionResult> DeleteEvent([FromQuery] string id)
+        public async Task<IActionResult> DeleteEvent([FromQuery] long id)
         {
-            var username = User.Identity?.Name;
-            if (!string.IsNullOrEmpty(username))
-            {
-                await _eventService.DeleteEvent(id, username);
-                return Ok();
-            }
-            return Forbid();
+            var deleted = await _eventService.DeleteEvent(id, UserId);
+            return deleted ? Ok() : NotFound();
         }
 
-        [Authorize]
         [HttpGet("get-events")]
         public async Task<IActionResult> GetEvents()
         {
-            var username = User.Identity?.Name;
-            if (!string.IsNullOrEmpty(username))
-            {
-                var result = await _eventService.GetEvents(username);
-                return Ok(result);
-            }
-            return Forbid();
+            var result = await _eventService.GetEvents(UserId);
+            return Ok(result);
         }
 
-        [Authorize]
         [HttpGet("get-event")]
-        public async Task<IActionResult> GetEvent([FromQuery] string id)
+        public async Task<IActionResult> GetEvent([FromQuery] long id)
         {
-            var username = User.Identity?.Name;
-            if (!string.IsNullOrEmpty(username))
-            {
-                var result = await _eventService.GetEvent(id, username);
-                if (result != null) return Ok(result);
-                else return BadRequest();
-            }
-            return Forbid();
+            var result = await _eventService.GetEvent(id, UserId);
+            return result != null ? Ok(result) : NotFound();
         }
 
-        [Authorize]
         [HttpPost("save-event")]
-        public async Task<IActionResult> SaveEvent([FromBody] EventModels.DataDTO Data)
+        public async Task<IActionResult> SaveEvent([FromBody] EventModels.DataDTO data)
         {
-            var username = User.Identity?.Name;
-            if (!string.IsNullOrEmpty(username))
-            {
-                bool result = await _eventService.SaveEvent(Data,username);
-                if (result) return Ok();
-                else return BadRequest();
-            }
-            return Forbid();
+            var result = await _eventService.SaveEvent(data, UserId);
+            return result ? Ok() : BadRequest();
         }
 
-        [Authorize]
         [HttpPost("new-wizard")]
-        public async Task<IActionResult> NewWizardEvent([FromBody] EventModels.DataDTO Data)
+        public async Task<IActionResult> NewWizardEvent([FromBody] EventModels.DataDTO data)
         {
-            var username = User.Identity?.Name;
-            if (!string.IsNullOrEmpty(username))
-            {
-                await _eventService.NewWizardEvent(Data, username);
-                return Ok();
-            }
-            return Forbid();
+            var result = await _eventService.NewWizardEvent(data, UserId);
+            return result ? Ok() : BadRequest();
         }
     }
 }
