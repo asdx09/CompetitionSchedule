@@ -1,0 +1,19 @@
+# Fejlesztői HTTPS a PHP backend elé.
+#
+# Az Angular kliens https://localhost:7098-at hív (environment.ts, proxy.conf.js),
+# a beépített PHP szerver viszont csak HTTP-t tud. A Caddy a 7098-as porton
+# HTTPS-t ad (saját, helyi tanúsítvánnyal), és mindent továbbít a PHP-nak
+# a 7099-es portra. Így a frontend és a solver beállításain semmit nem kell
+# módosítani: pontosan úgy érik el a PHP backendet, mint eddig a .NET-et.
+#
+# Első indításkor a Windows megkérdezi, hogy megbízzon-e a Caddy helyi
+# tanúsítványkiadójában - erre "Igen"-t kell mondani (egyszer kell).
+
+{
+	local_certs
+	admin off
+}
+
+localhost:7098 {
+	reverse_proxy 127.0.0.1:7099
+}

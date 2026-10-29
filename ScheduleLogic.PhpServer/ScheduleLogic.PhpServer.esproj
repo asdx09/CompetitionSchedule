@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.VisualStudio.JavaScript.Sdk/1.0.2191419">
+  <!--
+    A PHP backend "projektje" a Visual Studio számára.
+    A VS-nek nincs PHP projekttípusa, ezért a JavaScript projekt SDK-t használjuk
+    (ugyanazt, mint a schedulelogic.client): ez a mappa összes fájlját mutatja,
+    és F5-re lefuttatja a StartupCommand-ot. Fordítani, npm install-t futtatni nem kell.
+  -->
+  <PropertyGroup>
+    <StartupCommand>dev\start-dev.cmd</StartupCommand>
+    <ShouldRunNpmInstall>false</ShouldRunNpmInstall>
+    <ShouldRunBuildScript>false</ShouldRunBuildScript>
+    <DefaultItemExcludes>$(DefaultItemExcludes);storage\**;tests\_mail\**;tests\__pycache__\**</DefaultItemExcludes>
+  </PropertyGroup>
+</Project>

@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScheduleLogic.Server", "Sch
 EndProject
 Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "ScheduleSolver", "ScheduleSolver\ScheduleSolver.pyproj", "{C1240862-6943-41B2-AA1A-D17447E997E8}"
 EndProject
+Project("{54A90642-561A-4BB1-A94E-469ADEE60C69}") = "ScheduleLogic.PhpServer", "ScheduleLogic.PhpServer\ScheduleLogic.PhpServer.esproj", "{9182ECDB-624F-4A37-B7FC-49E15A2CC6FA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,12 @@ Global
 		{06A49E46-E9DB-4977-B454-B4046CC4772E}.Release|Any CPU.Build.0 = Release|Any CPU
 		{C1240862-6943-41B2-AA1A-D17447E997E8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{C1240862-6943-41B2-AA1A-D17447E997E8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9182ECDB-624F-4A37-B7FC-49E15A2CC6FA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9182ECDB-624F-4A37-B7FC-49E15A2CC6FA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9182ECDB-624F-4A37-B7FC-49E15A2CC6FA}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{9182ECDB-624F-4A37-B7FC-49E15A2CC6FA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9182ECDB-624F-4A37-B7FC-49E15A2CC6FA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9182ECDB-624F-4A37-B7FC-49E15A2CC6FA}.Release|Any CPU.Deploy.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

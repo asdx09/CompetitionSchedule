@@ -1,0 +1,19 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "edge",
+      "request": "launch",
+      "name": "PHP backend admin (Edge)",
+      "url": "https://localhost:7098/admin",
+      "webRoot": "${workspaceFolder}"
+    },
+    {
+      "type": "chrome",
+      "request": "launch",
+      "name": "PHP backend admin (Chrome)",
+      "url": "https://localhost:7098/admin",
+      "webRoot": "${workspaceFolder}"
+    }
+  ]
+}
