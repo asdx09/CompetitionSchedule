@@ -1,17 +1,24 @@
-﻿namespace ScheduleLogic.Server.Class
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace ScheduleLogic.Server.Class
 {
     public class AuthenticationModels
     {
         public class LoginModel
         {
+            [Required]
             public string Username { get; set; } = null!;
+            [Required]
             public string Password { get; set; } = null!;
         }
 
         public class RegisterModel
         {
+            [Required]
             public string Username { get; set; } = null!;
+            [Required]
             public string Password { get; set; } = null!;
+            [Required]
             public string Email { get; set; } = null!;
         }
 

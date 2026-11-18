@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using ScheduleLogic.Server.Models;
 using ScheduleLogic.Server.Services.Interfaces;
+using ScheduleLogic.Server.Services.Security;
 using static ScheduleLogic.Server.Class.AdminModels;
 
 namespace ScheduleLogic.Server.Services
@@ -11,17 +12,20 @@ namespace ScheduleLogic.Server.Services
         private readonly ScheduleLogicContext _db;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<AdminService> _logger;
+        private readonly ServerSideTicketStore _sessions;
 
         public AdminService(
             IUserRepository users,
             ScheduleLogicContext db,
             IHttpClientFactory httpClientFactory,
-            ILogger<AdminService> logger)
+            ILogger<AdminService> logger,
+            ServerSideTicketStore sessions)
         {
             _users = users;
             _db = db;
             _httpClientFactory = httpClientFactory;
             _logger = logger;
+            _sessions = sessions;
         }
 
         public async Task<AdminStatsDTO> GetStatsAsync()
@@ -75,6 +79,8 @@ namespace ScheduleLogic.Server.Services
         public async Task<bool> DeleteUserAsync(long userId)
         {
             await _users.DeleteAsync(userId);
+            // A törölt felhasználó bejelentkezett munkamenetei is azonnal megszűnnek.
+            _sessions.RemoveAllForUser(userId);
             return true;
         }
     }

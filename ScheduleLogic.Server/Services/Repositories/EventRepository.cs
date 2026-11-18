@@ -171,7 +171,7 @@ namespace ScheduleLogic.Server.Services
 
         public async Task<bool> SaveEventAsync(DataDTO data)
         {
-            long eventId = long.Parse(data.EventData.EventId);
+            if (!long.TryParse(data.EventData.EventId, out long eventId)) return false;
 
             using var tx = await _db.Database.BeginTransactionAsync();
             try
@@ -199,17 +199,19 @@ namespace ScheduleLogic.Server.Services
             catch
             {
                 await tx.RollbackAsync();
+                // A sikertelen mentés követett entitásai ne maradjanak a contextben.
+                _db.ChangeTracker.Clear();
                 return false;
             }
         }
 
-        public async Task<bool> FillWizardEventAsync(long eventId, DataDTO data)
+        public async Task<bool> CreateWizardEventAsync(long userId, DataDTO data)
         {
             using var tx = await _db.Database.BeginTransactionAsync();
             try
             {
-                var existingEvent = await _db.Events.FirstOrDefaultAsync(e => e.EventId == eventId);
-                if (existingEvent == null) return false;
+                long eventId = await CreateEventAsync(userId);
+                var existingEvent = await _db.Events.FirstAsync(e => e.EventId == eventId);
 
                 existingEvent.Eventname = data.EventData.EventName;
                 existingEvent.Startdate = data.EventData.StartDate.ToUniversalTime();
@@ -225,7 +227,9 @@ namespace ScheduleLogic.Server.Services
             }
             catch
             {
+                // A verseny létrehozása is visszavonódik, nem marad üres verseny.
                 await tx.RollbackAsync();
+                _db.ChangeTracker.Clear();
                 return false;
             }
         }

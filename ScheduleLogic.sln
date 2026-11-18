@@ -11,6 +11,12 @@ Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "ScheduleSolver", "ScheduleS
 EndProject
 Project("{54A90642-561A-4BB1-A94E-469ADEE60C69}") = "ScheduleLogic.PhpServer", "ScheduleLogic.PhpServer\ScheduleLogic.PhpServer.esproj", "{9182ECDB-624F-4A37-B7FC-49E15A2CC6FA}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ScheduleLogic.TestKit", "ScheduleLogic.TestKit\ScheduleLogic.TestKit.csproj", "{4C1E2B7A-5D3F-4A8E-9B6C-1F2A3B4C5D61}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ScheduleLogic.TestRunner", "ScheduleLogic.TestRunner\ScheduleLogic.TestRunner.csproj", "{7E2F3C8B-6A4D-4B9F-8C7D-2A3B4C5D6E72}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ScheduleLogic.TestCli", "ScheduleLogic.TestCli\ScheduleLogic.TestCli.csproj", "{9F3A4D9C-7B5E-4CA0-9D8E-3B4C5D6E7F83}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -35,6 +41,18 @@ Global
 		{9182ECDB-624F-4A37-B7FC-49E15A2CC6FA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9182ECDB-624F-4A37-B7FC-49E15A2CC6FA}.Release|Any CPU.Build.0 = Release|Any CPU
 		{9182ECDB-624F-4A37-B7FC-49E15A2CC6FA}.Release|Any CPU.Deploy.0 = Release|Any CPU
+		{4C1E2B7A-5D3F-4A8E-9B6C-1F2A3B4C5D61}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4C1E2B7A-5D3F-4A8E-9B6C-1F2A3B4C5D61}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4C1E2B7A-5D3F-4A8E-9B6C-1F2A3B4C5D61}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4C1E2B7A-5D3F-4A8E-9B6C-1F2A3B4C5D61}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7E2F3C8B-6A4D-4B9F-8C7D-2A3B4C5D6E72}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7E2F3C8B-6A4D-4B9F-8C7D-2A3B4C5D6E72}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7E2F3C8B-6A4D-4B9F-8C7D-2A3B4C5D6E72}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7E2F3C8B-6A4D-4B9F-8C7D-2A3B4C5D6E72}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9F3A4D9C-7B5E-4CA0-9D8E-3B4C5D6E7F83}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9F3A4D9C-7B5E-4CA0-9D8E-3B4C5D6E7F83}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9F3A4D9C-7B5E-4CA0-9D8E-3B4C5D6E7F83}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9F3A4D9C-7B5E-4CA0-9D8E-3B4C5D6E7F83}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

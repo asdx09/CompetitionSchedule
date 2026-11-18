@@ -1,18 +1,21 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
+using Npgsql;
 using ScheduleLogic.Server.Class;
 using ScheduleLogic.Server.Models;
 using ScheduleLogic.Server.Services;
-using System.Text;
-using System.Reflection;
 using ScheduleLogic.Server.Services.Interfaces;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication.Google;
+using ScheduleLogic.Server.Services.Security;
+using System.Net;
 using System.Text.Json;
-using Microsoft.AspNetCore.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Konfiguráció: appsettings.json -> appsettings.{Környezet}.json -> User Secrets
+// (csak Development) -> környezeti változók (pl. Database__Password).
+// Jelszó, kulcs, token NEM kerülhet az appsettings fájlokba, lásd KONFIGURACIO.md.
 
 builder.Services.AddExceptionHandler<ExceptionHandler>();
 builder.Services.AddProblemDetails();
@@ -46,22 +49,30 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.Never;
         options.JsonSerializerOptions.WriteIndented = true;
         options.JsonSerializerOptions.Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping;
-    }); ;
+    });
 
+// --- Adatbázis ---------------------------------------------------------------
+// A kapcsolati adatok a "Database" szekcióból jönnek; a jelszó User Secretsből
+// (fejlesztés) vagy a Database__Password környezeti változóból (éles).
+// A builder escape-eli az értékeket (pl. ';' a jelszóban nem töri el a stringet).
 var database = builder.Configuration.GetSection("Database");
+if (string.IsNullOrEmpty(database["Password"]))
+{
+    throw new InvalidOperationException(
+        "Hiányzik az adatbázis jelszava (Database:Password). Fejlesztéskor: " +
+        "dotnet user-secrets set \"Database:Password\" \"...\" --project ScheduleLogic.Server; " +
+        "élesben a Database__Password környezeti változó. Részletek: KONFIGURACIO.md");
+}
+var connectionString = new NpgsqlConnectionStringBuilder
+{
+    Host = database["Host"] ?? "localhost",
+    Port = int.TryParse(database["Port"], out var dbPort) ? dbPort : 5432,
+    Database = database["Name"] ?? "scheduleLogic",
+    Username = database["User"],
+    Password = database["Password"],
+}.ConnectionString;
 
-builder.Services.AddDbContext<ScheduleLogicContext>(options =>
-    options.UseNpgsql(
-        $"Host={database["Host"]};" +
-        $"Port={database["Port"]};" +
-        $"Database={database["Name"]};" +
-        $"Username={database["User"]};" +
-        $"Password={database["Password"]};"
-    )
-);
-
-builder.Services.AddDbContext<ScheduleLogicContext>(options =>
-    options.UseNpgsql("Host=localhost;Port=5432;Database=scheduleLogic;Username=app;Password=app;"));
+builder.Services.AddDbContext<ScheduleLogicContext>(options => options.UseNpgsql(connectionString));
 
 builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
@@ -81,6 +92,26 @@ builder.Services.AddHttpClient("Solver", client =>
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
+
+// --- Biztonság ---------------------------------------------------------------
+builder.Services.AddSingleton<SolverCallbackSigner>();
+builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<ServerSideTicketStore>();
+builder.Services.AddScheduleLogicRateLimiting(builder.Configuration);
+
+// Reverse proxy (nginx) mögött a valódi kliens IP-je és sémája az
+// X-Forwarded-For / X-Forwarded-Proto fejlécből jön, de csak a megbízható
+// proxytól (ForwardedHeaders:KnownProxies, alapból a localhost).
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownProxies.Clear();
+    options.KnownNetworks.Clear();
+    var proxies = builder.Configuration.GetSection("ForwardedHeaders:KnownProxies").Get<string[]>()
+                  ?? new[] { "127.0.0.1", "::1" };
+    foreach (var proxy in proxies)
+        if (IPAddress.TryParse(proxy, out var ip)) options.KnownProxies.Add(ip);
+});
 
 builder.Services.AddAuthentication(options =>
 {
@@ -110,21 +141,18 @@ builder.Services.AddAuthentication(options =>
         return Task.CompletedTask;
     };
 
-    if (builder.Environment.IsProduction())
-    {
-        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-        options.Cookie.SameSite = SameSiteMode.None;
-        options.Cookie.Domain = "schedulelogic.hu";
-    }
-    else
-    {
-        options.Cookie.SecurePolicy = CookieSecurePolicy.None;
-        options.Cookie.SameSite = SameSiteMode.Lax;
-    }
+    // SameSite=Lax mindenhol: a frontend ugyanarról a domainről fut, így a
+    // korábbi SameSite=None csak azt tette lehetővé, hogy egy idegen oldal a
+    // felhasználó nevében küldjön kéréseket (CSRF). Domain sincs megadva, így
+    // a süti csak a pontos hosztra megy (aldomainekre nem).
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+        ? CookieSecurePolicy.SameAsRequest
+        : CookieSecurePolicy.Always;
 })
 .AddCookie("AdminCookie", options =>
 {
-    options.Cookie.Name = "sl_admin_auth"; 
+    options.Cookie.Name = "sl_admin_auth";
     options.Cookie.HttpOnly = true;
     options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
     options.Cookie.SameSite = SameSiteMode.Strict;
@@ -144,32 +172,39 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-/*.AddGoogle(options =>
+// Mindkét séma szerveroldali munkamenetet használ: kijelentkezéskor a régi
+// süti azonnal érvénytelen lesz (lásd ServerSideTicketStore).
+foreach (var scheme in new[] { CookieAuthenticationDefaults.AuthenticationScheme, "AdminCookie" })
 {
-    options.ClientId = builder.Configuration["Authentication:Google:ClientId"];
-    options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
-    options.CallbackPath = "/api/auth/google-callback";
-});*/
+    builder.Services.AddOptions<CookieAuthenticationOptions>(scheme)
+        .Configure<ServerSideTicketStore>((options, store) => options.SessionStore = store);
+}
 
-var isProd = !builder.Environment.IsDevelopment();
 var app = builder.Build();
 
+app.UseForwardedHeaders();
 app.UseExceptionHandler();
 app.UseHttpsRedirection();
 
+app.Use(async (context, next) =>
+{
+    // A böngésző ne találgassa a tartalomtípust, és az oldal ne legyen
+    // beágyazható más oldalba (clickjacking).
+    context.Response.Headers.XContentTypeOptions = "nosniff";
+    context.Response.Headers.XFrameOptions = "DENY";
+    await next();
+});
+
 app.UseCors("AllowAngularApp");
 
-app.UseDefaultFiles();  
+app.UseDefaultFiles();
 app.UseStaticFiles();
 
 app.UseAuthentication();
+app.UseRateLimiter();
 app.UseAuthorization();
 
 app.MapControllers();
-/*app.MapControllerRoute(
-    name: "admin",
-    pattern: "admin/{action=Index}/{id?}",
-    defaults: new { controller = "Admin" });*/
 
 app.MapFallbackToFile("/index.html");
 

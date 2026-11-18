@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Parancssoros futtató: ugyanazok a tesztek és mérések, mint a GUI-ban,
+       szkriptből / CI-ból indítható, megismételhető formában. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>sltest</AssemblyName>
+    <RootNamespace>ScheduleLogic.TestCli</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ScheduleLogic.TestKit\ScheduleLogic.TestKit.csproj" />
+  </ItemGroup>
+
+</Project>

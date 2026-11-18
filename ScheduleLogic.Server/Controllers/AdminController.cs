@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using ScheduleLogic.Server.Services.Security;
 using ScheduleLogic.Server.Services.Interfaces;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -33,6 +35,7 @@ namespace ScheduleLogic.Server.Controllers
         [AllowAnonymous]
         [HttpPost("login")]
         [ValidateAntiForgeryToken]
+        [EnableRateLimiting(RateLimitingSetup.AdminLogin)]
         public async Task<IActionResult> Login([FromForm] string username, [FromForm] string password)
         {
             if (!IsValidCredential(username, password))

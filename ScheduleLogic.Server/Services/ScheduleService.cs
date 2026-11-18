@@ -1,4 +1,5 @@
 ﻿using ScheduleLogic.Server.Services.Interfaces;
+using ScheduleLogic.Server.Services.Security;
 using System.Text.Json;
 using static ScheduleLogic.Server.Class.EventModels;
 using static ScheduleLogic.Server.Class.ScheduleModels;
@@ -12,19 +13,27 @@ namespace ScheduleLogic.Server.Services
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IConfiguration _configuration;
         private readonly ILogger<ScheduleService> _logger;
+        private readonly SolverCallbackSigner _signer;
+
+        // A solver kisbetűs kulcsokat küld ("status", "Running" vegyesen), ezért
+        // kis/nagybetű-érzéketlenül olvasunk. Korábban a StopSolver emiatt
+        // mindig false-t adott vissza.
+        private static readonly JsonSerializerOptions SolverJson = new() { PropertyNameCaseInsensitive = true };
 
         public ScheduleService(
             IScheduleRepository schedules,
             IEventRepository events,
             IHttpClientFactory httpClientFactory,
             IConfiguration configuration,
-            ILogger<ScheduleService> logger)
+            ILogger<ScheduleService> logger,
+            SolverCallbackSigner signer)
         {
             _schedules = schedules;
             _events = events;
             _httpClientFactory = httpClientFactory;
             _configuration = configuration;
             _logger = logger;
+            _signer = signer;
         }
 
         public async Task<ScheduleRequestForSolver?> GenerateSchedule(long eventId, long userId)
@@ -34,9 +43,13 @@ namespace ScheduleLogic.Server.Services
 
             var request = await _schedules.GetScheduleInfoAsync(eventId);
 
+            // A solver erre az URL-re küldi vissza az eredményt. A "key" a
+            // versenyhez kötött HMAC kulcs, ezzel hitelesíti magát az answer végponton.
+            var backendForSolver = _configuration["URLS:BackendForSolver"];
+            if (string.IsNullOrWhiteSpace(backendForSolver)) backendForSolver = _configuration["URLS:Backend"]!;
             request.ReturnURL =
-                _configuration["URLS:Backend"]!.TrimEnd('/') +
-                "/api/Schedule/answer";
+                backendForSolver.TrimEnd('/') +
+                "/api/Schedule/answer?key=" + _signer.KeyFor(eventId);
 
             var client = _httpClientFactory.CreateClient("Solver");
 
@@ -52,6 +65,8 @@ namespace ScheduleLogic.Server.Services
                     error);
             }
 
+            // A visszahívási kulcs nem tartozik a böngészőre.
+            request.ReturnURL = "";
             return request;
         }
 
@@ -75,7 +90,7 @@ namespace ScheduleLogic.Server.Services
             }
 
             var json = await response.Content.ReadAsStringAsync();
-            var result = JsonSerializer.Deserialize<SolverStatusResponse>(json);
+            var result = JsonSerializer.Deserialize<SolverStatusResponse>(json, SolverJson);
             return result?.Running ?? false;
         }
 
@@ -93,24 +108,25 @@ namespace ScheduleLogic.Server.Services
             }
 
             var json = await response.Content.ReadAsStringAsync();
-            var result = JsonSerializer.Deserialize<StopSolverResponse>(json);
+            var result = JsonSerializer.Deserialize<StopSolverResponse>(json, SolverJson);
             return result?.Status == "STOPPED";
         }
 
-        // A solver hívja, felhasználói kontextus (userId) nélkül -
-        // a jogosultságot a controller a kérés forrás IP-je alapján
-        // (localhost-only) dönti el, nem itt.
-        public async Task ReceiveSolverAnswer(SolverResponse data)
+        // A solver hívja, felhasználói kontextus (userId) nélkül - a
+        // jogosultságot (HMAC kulcs) a kontroller már ellenőrizte.
+        public async Task<bool> ReceiveSolverAnswer(SolverResponse data)
         {
             bool hasSolution = data.Status is "FEASIBLE" or "PARTIAL_SOLUTION" or "OPTIMAL";
-            if (hasSolution && data.Schedule != null)
-            {
-                await _schedules.SaveSolverResultAsync(data.Schedule, data.EventId);
-            }
-            else
+            if (!hasSolution || data.Schedule == null)
             {
                 _logger.LogInformation("No solution for event {EventId}, solver status: {Status}", data.EventId, data.Status);
+                return true;
             }
+
+            bool saved = await _schedules.SaveSolverResultAsync(data.Schedule, data.EventId);
+            if (!saved)
+                _logger.LogWarning("Solver answer for event {EventId} references foreign objects - rejected.", data.EventId);
+            return saved;
         }
 
         public async Task<byte[]?> GetScheduleFile(long eventId, long userId)

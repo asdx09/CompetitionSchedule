@@ -10,6 +10,6 @@ namespace ScheduleLogic.Server.Services.Interfaces
         Task<List<EventsData>> GetEventsAsync(long userId);
         Task<DataDTO?> GetEventAsync(long eventId);
         Task<bool> SaveEventAsync(DataDTO data);
-        Task<bool> FillWizardEventAsync(long eventId, DataDTO data);
+        Task<bool> CreateWizardEventAsync(long userId, DataDTO data);
     }
 }

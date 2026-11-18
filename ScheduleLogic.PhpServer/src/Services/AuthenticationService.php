@@ -90,7 +90,10 @@ final class AuthenticationService
             return self::fail('Email already taken!');
         }
 
-        $token = self::generateToken();
+        // Fejlesztői módban kikapcsolható az e-mail-megerősítés (a .NET
+        // AuthenticationService-szel azonos módon): üres token = megerősített fiók.
+        $skipConfirmation = $this->skipEmailConfirmation();
+        $token = $skipConfirmation ? '' : self::generateToken();
         try {
             $this->users->add($username, $email, $this->hasher->hash($password), $token);
         } catch (\PDOException $e) {
@@ -99,6 +102,11 @@ final class AuthenticationService
                 return self::fail(str_contains($e->getMessage(), 'email') ? 'Email already taken!' : 'Username already taken!');
             }
             throw $e;
+        }
+
+        if ($skipConfirmation) {
+            $this->logger->info('DevOptions:SkipEmailConfirmation - {Username} megerősítés nélkül aktiválva.', ['Username' => $username]);
+            return ['success' => true, 'error' => null, 'emailSent' => true];
         }
 
         // A fiók innentől létezik akkor is, ha a levélküldés elhasal -
@@ -140,6 +148,16 @@ final class AuthenticationService
         }
         $this->users->setPassword((int)$user['user_id'], $this->hasher->hash($newPassword));
         return true;
+    }
+
+    /**
+     * Csak Development környezetben lehet igaz, élesben a beállítás értékétől
+     * függetlenül mindig kell az e-mail-megerősítés.
+     */
+    private function skipEmailConfirmation(): bool
+    {
+        return $this->config->isDevelopment()
+            && $this->config->bool('DevOptions:SkipEmailConfirmation');
     }
 
     /** Kriptográfiailag erős, 64 karakteres hexa token (mint a Convert.ToHexString). */

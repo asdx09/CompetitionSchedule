@@ -36,15 +36,15 @@ namespace ScheduleLogic.Server.Services
 
         public async Task<bool> SaveEvent(DataDTO data, long userId)
         {
-            long eventId = long.Parse(data.EventData.EventId);
+            // Nem szám azonosító: 400 (korábban a long.Parse kivétele miatt 500 lett).
+            if (!long.TryParse(data.EventData.EventId, out long eventId)) return false;
             if (!await _events.IsOwnedByUserAsync(eventId, userId)) return false;
             return await _events.SaveEventAsync(data);
         }
 
-        public async Task<bool> NewWizardEvent(DataDTO data, long userId)
-        {
-            long eventId = await _events.CreateEventAsync(userId);
-            return await _events.FillWizardEventAsync(eventId, data);
-        }
+        // A verseny létrehozása és feltöltése egy tranzakció: ha az import
+        // hibás, nem marad utána üres "New Event" a felhasználó listájában.
+        public Task<bool> NewWizardEvent(DataDTO data, long userId) =>
+            _events.CreateWizardEventAsync(userId, data);
     }
 }

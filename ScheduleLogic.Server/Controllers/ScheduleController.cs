@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ScheduleLogic.Server.Services.Interfaces;
-using System.Net;
+using ScheduleLogic.Server.Services.Security;
 using System.Security.Claims;
 using static ScheduleLogic.Server.Class.ScheduleModels;
 
@@ -13,11 +13,13 @@ namespace ScheduleLogic.Server.Controllers
     {
         private readonly IScheduleService _scheduleService;
         private readonly ILogger<ScheduleController> _logger;
+        private readonly SolverCallbackSigner _signer;
 
-        public ScheduleController(IScheduleService scheduleService, ILogger<ScheduleController> logger)
+        public ScheduleController(IScheduleService scheduleService, ILogger<ScheduleController> logger, SolverCallbackSigner signer)
         {
             _scheduleService = scheduleService;
             _logger = logger;
+            _signer = signer;
         }
 
         private long UserId =>
@@ -57,25 +59,24 @@ namespace ScheduleLogic.Server.Controllers
             return Ok(result);
         }
 
-        // A solver hívja vissza, nincs bejelentkezett felhasználó, ezért
-        // [Authorize] helyett a hívó IP-jét ellenőrizzük: csak ugyanarról
-        // a gépről (localhost) fogadjuk el. Ha a solver külön szerveren/
-        // konténerben fut, ez a kliens gép IP-je lesz, és ezt a listát
-        // (vagy egy reverse-proxy szabályt) kell majd bővíteni.
+        // A solver hívja vissza, nincs bejelentkezett felhasználó. A
+        // jogosultságot a visszahívási URL-ben kapott, versenyhez kötött HMAC
+        // kulcs adja (lásd SolverCallbackSigner). Korábban csak a localhost IP-t
+        // néztük, ami reverse proxy mögött bárkit átengedett.
         [HttpPost("answer")]
-        public async Task<IActionResult> SolverAnswer([FromBody] SolverResponse data)
+        public async Task<IActionResult> SolverAnswer([FromBody] SolverResponse data, [FromQuery] string? key)
         {
-            var remoteIp = HttpContext.Connection.RemoteIpAddress;
-            bool isLocal = remoteIp != null && IPAddress.IsLoopback(remoteIp);
-
-            if (!isLocal)
+            if (!_signer.Verify(data.EventId, key))
             {
-                _logger.LogWarning("Rejected /answer call from non-local address {Ip}", remoteIp);
-                return Forbid();
+                _logger.LogWarning("Rejected /answer call with invalid key for event {EventId} from {Ip}",
+                    data.EventId, HttpContext.Connection.RemoteIpAddress);
+                return StatusCode(StatusCodes.Status403Forbidden);
             }
 
-            await _scheduleService.ReceiveSolverAnswer(data);
-            return Ok();
+            // Az eredmény csak az adott verseny versenyzőire, versenyszámaira és
+            // helyszíneire hivatkozhat; ha nem így van, elutasítjuk.
+            var accepted = await _scheduleService.ReceiveSolverAnswer(data);
+            return accepted ? Ok() : Problem(statusCode: StatusCodes.Status400BadRequest);
         }
 
         [Authorize]

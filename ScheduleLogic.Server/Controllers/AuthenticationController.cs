@@ -2,6 +2,8 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using ScheduleLogic.Server.Services.Security;
 using ScheduleLogic.Server.Services.Interfaces;
 using System.Security.Claims;
 using static ScheduleLogic.Server.Class.AuthenticationModels;
@@ -23,6 +25,7 @@ namespace ScheduleLogic.Server.Controllers
         }
 
         [HttpPost("login")]
+        [EnableRateLimiting(RateLimitingSetup.Login)]
         public async Task<IActionResult> Login([FromBody] LoginModel data)
         {
             var user = await _authService.LoginUser(data.Username, data.Password);
@@ -49,6 +52,7 @@ namespace ScheduleLogic.Server.Controllers
         }
 
         [HttpPost("register")]
+        [EnableRateLimiting(RateLimitingSetup.Register)]
         public async Task<IActionResult> Register([FromBody] RegisterModel data)
         {
             var result = await _authService.RegisterUser(data.Username, data.Password, data.Email);
@@ -62,6 +66,7 @@ namespace ScheduleLogic.Server.Controllers
         }
 
         [HttpPost("resend-confirmation")]
+        [EnableRateLimiting(RateLimitingSetup.EmailSending)]
         public async Task<IActionResult> ResendConfirmation([FromBody] ResendConfirmationModel data)
         {
             // Szándékosan mindig Ok()-ot adunk vissza, hogy a válaszból ne
@@ -71,6 +76,7 @@ namespace ScheduleLogic.Server.Controllers
         }
 
         [HttpPost("forgot-password")]
+        [EnableRateLimiting(RateLimitingSetup.EmailSending)]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordModel data)
         {
             // Ugyanaz az elv, mint a resend-confirmation-nél: mindig Ok(),
@@ -80,10 +86,13 @@ namespace ScheduleLogic.Server.Controllers
         }
 
         [HttpPost("reset-password")]
+        [EnableRateLimiting(RateLimitingSetup.ResetPassword)]
         public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordModel data)
         {
-            if (string.IsNullOrWhiteSpace(data.NewPassword) || data.NewPassword.Length < 8)
-                return BadRequest("Password must be at least 8 characters.");
+            if (string.IsNullOrWhiteSpace(data.NewPassword) || data.NewPassword.Length < PasswordPolicy.MinLength)
+                return BadRequest($"Password must be at least {PasswordPolicy.MinLength} characters.");
+            if (data.NewPassword.Length > PasswordPolicy.MaxLength)
+                return BadRequest("Password is too long.");
 
             bool success = await _authService.ResetPasswordAsync(data.Token, data.NewPassword);
 

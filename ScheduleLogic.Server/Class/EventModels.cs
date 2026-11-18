@@ -1,5 +1,9 @@
-﻿namespace ScheduleLogic.Server.Class
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace ScheduleLogic.Server.Class
 {
+    // A [Required] üres és csak szóközből álló szöveget sem enged át (pl. üres
+    // helyszínnév), így az ilyen kérés 400-as validációs hibát kap, mint a PHP-ban.
     public class EventModels
     {
         public class EventsData
@@ -23,14 +27,19 @@
         }
         public class EventTypeDTO
         {
+            [Required]
             public string EventTypeId { get; set; } = null!;
+            [Required]
             public string EventId { get; set; } = null!;
+            [Required]
             public string TypeName { get; set; } = null!;
             public TimeOnly TimeRange { get; set; }
         }
         public class EventDTO
         {
+            [Required]
             public string EventId { get; set; } = null!;
+            [Required]
             public string EventName { get; set; } = null!;
             public DateTime StartDate { get; set; }
             public DateTime EndDate { get; set; }
@@ -44,55 +53,80 @@
         }
         public class GroupDTO
         {
+            [Required]
             public string GroupId { get; set; } = null!;
+            [Required]
             public string EventId { get; set; } = null!;
+            [Required]
             public string GroupName { get; set; } = null!;
         }
         public class LocationDTO
         {
+            [Required]
             public string LocationId { get; set; } = null!;
+            [Required]
             public string EventId { get; set; } = null!;
+            [Required]
             public string LocationName { get; set; } = null!;
             public int Slots { get; set; }
 
         }
         public class LocationTableDTO
         {
+            [Required]
             public string LocationTableId { get; set; } = null!;
+            [Required]
             public string EventId { get; set; } = null!;
+            [Required]
             public string EventTypeId { get; set; } = null!;
+            [Required]
             public string LocationId { get; set; } = null!;
         }
         public class ParticipantDTO
         {
+            [Required]
             public string ParticipantId { get; set; } = null!;
             public int CompetitorNumber { get; set; }
+            [Required]
             public string ParticipantName { get; set; } = null!;
+            [Required]
             public string EventId { get; set; } = null!;
             public string? GroupId { get; set; }
 
         }
         public class PauseTableDTO
         {
+            [Required]
             public string PauseId { get; set; } = null!;
+            [Required]
             public string EventId { get; set; } = null!;
+            [Required]
             public string LocationId1 { get; set; } = null!;
+            [Required]
             public string LocationId2 { get; set; } = null!;
             public TimeOnly Pause { get; set; }
         }
         public class RegistrationDTO
         {
+            [Required]
             public string RegistrationId { get; set; } = null!;
+            [Required]
             public string EventId { get; set; } = null!;
+            [Required]
             public string ParticipantId { get; set; } = null!;
+            [Required]
             public string EventTypeId { get; set; } = null!;
 
         }
         public class ConstraintDTO
         {
+            [Required]
             public string ConstraintId { get; set; } = null!;
+            [Required]
             public string EventId { get; set; } = null!;
+            [Required]
             public string ObjectId { get; set; } = null!;
+            [Required]
             public string ConstraintType { get; set; } = null!;
             public DateTime StartTime { get; set; }
             public DateTime EndTime { get; set; }
