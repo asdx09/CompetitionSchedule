@@ -17,6 +17,10 @@
     </button>
     <button (click)="GoToSolution()">VIEW SOLUTION</button>
   </div>
+  <div class="solverStatus" [ngClass]="'status-' + (solverStatus ?? 'NONE')">
+    {{ solverStatusText }}
+    @if (solverStatusAt) { <span class="statusTime">({{ solverStatusAt | date:'yyyy-MM-dd HH:mm' }})</span> }
+  </div>
   <div [ngClass]="{'FirstListBoxMobile': isMobile,'FirstListBox': !isMobile}">
     <div  [ngClass]="{'right': !isMobile}">
       <div [ngClass]="{'FirstListItemMobile': isMobile,'FirstListItem': !isMobile}">

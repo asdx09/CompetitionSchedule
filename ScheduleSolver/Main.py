@@ -18,6 +18,7 @@ active_processes = {}
 processes_lock = threading.Lock()
 
 MAX_PARALLEL = 1 
+kill_reasons = {}
 pending_queue = asyncio.Queue()  
 running_count = 0
 queue_lock = threading.Lock()
@@ -35,8 +36,9 @@ async def send_callback(url, data):
         print(f"Callback error: {e}")
 
 class DebounceSolutionPrinter(cp_model.CpSolverSolutionCallback):
-    def __init__(self, entries, start_vars, end_vars, event_location_vars, return_url, eventId, debounce_sec=5):
+    def __init__(self, entries, start_vars, end_vars, event_location_vars, return_url, eventId, final_sent=None, debounce_sec=5):
         super().__init__()
+        self.final_sent = final_sent
         self.entries = entries
         self.start_vars = start_vars
         self.end_vars = end_vars
@@ -99,13 +101,16 @@ class DebounceSolutionPrinter(cp_model.CpSolverSolutionCallback):
 
     def send_final_solution(self, solver_status):
         self._stop = True
-        if self.last_solution:
-            asyncio.run(send_callback(self.return_url, {
-                "Status": self.status_name(solver_status),
-                "EventId": self.eventId,
-                "solutionNumber": str(self.solution_count),
-                "Schedule": self.last_solution
-            }))
+        with self._lock:
+            solution = self.last_solution or []
+        asyncio.run(send_callback(self.return_url, {
+            "Status": self.status_name(solver_status),
+            "EventId": self.eventId,
+            "SolutionNumber": str(self.solution_count),
+            "Schedule": solution
+        }))
+        if self.final_sent is not None:
+            self.final_sent.value = 1
 
 def memory_watchdog(process, event_id, limit_mb=500):
     try:
@@ -119,6 +124,7 @@ def memory_watchdog(process, event_id, limit_mb=500):
             mem_mb = p_info.memory_info().rss / (1024 * 1024)
             if mem_mb > limit_mb:
                 print(f"--- MEMORY LIMIT ({mem_mb:.1f} MB). Killing Event {event_id} ---")
+                kill_reasons[event_id] = "MEMORY_LIMIT"
                 process.kill() 
                 return
             time.sleep(2)
@@ -128,10 +134,10 @@ def memory_watchdog(process, event_id, limit_mb=500):
         with processes_lock:
             active_processes.pop(event_id, None)
 
-def run_solver_isolated(req: ScheduleRequestForSolver):
+def run_solver_isolated(req: ScheduleRequestForSolver, final_sent):
     container = {"solver": None}
     printer = DebounceSolutionPrinter(
-        req.entries, {}, {}, {}, req.returnURL, req.eventId
+        req.entries, {}, {}, {}, req.returnURL, req.eventId, final_sent
     )
     
     try:
@@ -149,7 +155,8 @@ def try_start_next():
         req = pending_queue.get_nowait()
         running_count += 1
 
-    p = multiprocessing.Process(target=run_solver_isolated, args=(req,))
+    final_sent = multiprocessing.Value('b', 0)
+    p = multiprocessing.Process(target=run_solver_isolated, args=(req, final_sent))
     p.start()
     
     with processes_lock:
@@ -160,6 +167,15 @@ def try_start_next():
     def monitor():
         nonlocal p
         p.join()
+        if not final_sent.value:
+            asyncio.run(send_callback(req.returnURL, {
+                "Status": kill_reasons.pop(req.eventId, "ERROR"),
+                "EventId": req.eventId,
+                "SolutionNumber": "0",
+                "Schedule": []
+            }))
+        else:
+            kill_reasons.pop(req.eventId, None)
         global running_count
         with queue_lock:
             running_count -= 1
@@ -185,6 +201,7 @@ async def stop_solver_endpoint(EventId: int):
     with processes_lock:
         p = active_processes.get(EventId)
         if p and p.is_alive():
+            kill_reasons[EventId] = "STOPPED"
             p.kill()
             active_processes.pop(EventId, None)
             stopped = True

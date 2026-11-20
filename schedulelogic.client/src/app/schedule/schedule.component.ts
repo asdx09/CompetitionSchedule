@@ -2,7 +2,7 @@ import { ChangeDetectorRef, Component, ElementRef, HostListener, QueryList, View
 import { MatDialog } from '@angular/material/dialog';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Constraint, data, EventsData, EventsService, TimeZone } from '../events.service';
-import { ScheduleService } from '../schedule.service';
+import { ScheduleService, solverStatusText } from '../schedule.service';
 import { TimezoneInfoComponent } from '../timezone-info/timezone-info.component';
 import html2canvas from 'html2canvas';
 import { box } from '@igniteui/material-icons-extended';
@@ -45,6 +45,9 @@ export class ScheduleComponent {
   startMin = 0;
   startOfDay = 0;
   endOfDay = 1440;  
+
+  solverStatus: string | null = null;
+  solverStatusAt: string | null = null;
 
   participantFilter = "";
   locationFilter = "";
@@ -120,7 +123,17 @@ export class ScheduleComponent {
     document.addEventListener('touchend', onEnd);
   }
 
+  get solverStatusText(): string {
+    return solverStatusText(this.solverStatus);
+  }
+
   RefreshData(){
+    this.scheduleService.getStatus(this.id).subscribe({
+      next: (res) => {
+        this.solverStatus = res?.status ?? null;
+        this.solverStatusAt = res?.updatedAt ?? null;
+      }
+    });
     this.scheduleService.scheduleGet(this.id).subscribe({
       next: (res) => {
         if(res == null) this.router.navigate(['home']);

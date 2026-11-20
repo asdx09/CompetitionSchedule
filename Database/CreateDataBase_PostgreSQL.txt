@@ -44,6 +44,8 @@ CREATE TABLE event (
     typeweight        INT          NOT NULL DEFAULT 1,
     compweight        INT          NOT NULL DEFAULT 1,
     groupweight       INT          NOT NULL DEFAULT 1,
+    solverstatus      VARCHAR(32),
+    solverstatusat    TIMESTAMPTZ,
     CONSTRAINT event_createdby_foreign
         FOREIGN KEY (createdby) REFERENCES users (user_id) ON DELETE CASCADE,
     -- The size of the solver problem depends on the number of days, so an upper bound is needed.

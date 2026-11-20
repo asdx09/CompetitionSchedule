@@ -9,5 +9,7 @@ namespace ScheduleLogic.Server.Services.Interfaces
         Task<bool> SaveSolverResultAsync(List<ScheduleModel> schedule, long eventId);
         Task<DataDTO> GetScheduleDataAsync(long eventId);
         Task<ScheduleDataForEXPORT?> GetExportDataAsync(long eventId);
+        Task<SolverRunStatus?> GetSolverStatusAsync(long eventId);
+        Task SetSolverStatusAsync(long eventId, string? status);
     }
 }

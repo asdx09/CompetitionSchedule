@@ -61,6 +61,7 @@ var connectionString = new NpgsqlConnectionStringBuilder
     Database = database["Name"] ?? "scheduleLogic",
     Username = database["User"],
     Password = database["Password"],
+    Timeout = int.TryParse(database["ConnectTimeout"], out var dbTimeout) ? dbTimeout : 5,
 }.ConnectionString;
 
 builder.Services.AddDbContext<ScheduleLogicContext>(options => options.UseNpgsql(connectionString));

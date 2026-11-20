@@ -97,6 +97,7 @@ final class ScheduleRepository
             'constraints' => $constraints,
             'dayLength' => intdiv(24 * 60 - 1, self::MINUTE_CONVERSION),
             'maxDays' => $maxDays,
+            'horizon' => intdiv((int)($totalSeconds / 60), self::MINUTE_CONVERSION),
             'breakTimeLoc' => intdiv((int)$evt['locationpausetime'], self::MINUTE_CONVERSION),
             'basePauseTime' => intdiv((int)$evt['basepausetime'], self::MINUTE_CONVERSION),
             'locWeight' => min(500, (int)$evt['locweight']),
@@ -187,6 +188,25 @@ final class ScheduleRepository
             }
             return true;
         });
+    }
+
+    public function getSolverStatus(int $eventId): ?array
+    {
+        $row = $this->fetchOne($this->db->pdo(), 'SELECT solverstatus, solverstatusat FROM event WHERE event_id = :e', $eventId);
+        if ($row === null) {
+            return null;
+        }
+        return [
+            'status' => $row['solverstatus'],
+            'updatedAt' => $row['solverstatusat'] === null ? null : DotNetTime::toJson(DotNetTime::fromDb($row['solverstatusat'])),
+        ];
+    }
+
+    public function setSolverStatus(int $eventId, ?string $status): void
+    {
+        $this->db->pdo()
+            ->prepare('UPDATE event SET solverstatus = :s, solverstatusat = CASE WHEN :s2::text IS NULL THEN NULL ELSE now() END WHERE event_id = :e')
+            ->execute(['s' => $status, 's2' => $status, 'e' => $eventId]);
     }
 
     public function getScheduleData(int $eventId): array

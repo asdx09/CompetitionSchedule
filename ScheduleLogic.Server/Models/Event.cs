@@ -29,6 +29,10 @@ public partial class Event
 
     public int Groupweight { get; set; }
 
+    public string? Solverstatus { get; set; }
+
+    public DateTime? Solverstatusat { get; set; }
+
     public virtual User CreatedbyNavigation { get; set; } = null!;
 
     public virtual ICollection<Eventconstraint> Eventconstraints { get; set; } = new List<Eventconstraint>();

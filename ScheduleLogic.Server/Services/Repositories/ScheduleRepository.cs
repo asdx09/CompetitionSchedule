@@ -78,6 +78,7 @@ namespace ScheduleLogic.Server.Services
 
             request.DayLength = (24 * 60 - 1) / MinuteConversion;
             request.MaxDays = (evt.Enddate - evt.Startdate).Days + 1;
+            request.Horizon = (int)(evt.Enddate - evt.Startdate).TotalMinutes / MinuteConversion;
             request.BreakTimeLoc = evt.Locationpausetime / MinuteConversion;
             request.BasePauseTime = evt.Basepausetime / MinuteConversion;
             request.LocWeight = Math.Min(500, evt.Locweight);
@@ -148,6 +149,24 @@ namespace ScheduleLogic.Server.Services
             await _db.SaveChangesAsync();
             await tx.CommitAsync();
             return true;
+        }
+
+        public async Task<SolverRunStatus?> GetSolverStatusAsync(long eventId)
+        {
+            return await _db.Events
+                .AsNoTracking()
+                .Where(e => e.EventId == eventId)
+                .Select(e => new SolverRunStatus { Status = e.Solverstatus, UpdatedAt = e.Solverstatusat })
+                .FirstOrDefaultAsync();
+        }
+
+        public async Task SetSolverStatusAsync(long eventId, string? status)
+        {
+            await _db.Events
+                .Where(e => e.EventId == eventId)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(e => e.Solverstatus, status)
+                    .SetProperty(e => e.Solverstatusat, status == null ? null : DateTime.UtcNow));
         }
 
         public async Task<DataDTO> GetScheduleDataAsync(long eventId)

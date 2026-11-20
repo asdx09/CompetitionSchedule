@@ -75,6 +75,10 @@ public partial class ScheduleLogicContext : DbContext
             entity.Property(e => e.Locweight)
                 .HasDefaultValue(1)
                 .HasColumnName("locweight");
+            entity.Property(e => e.Solverstatus)
+                .HasMaxLength(32)
+                .HasColumnName("solverstatus");
+            entity.Property(e => e.Solverstatusat).HasColumnName("solverstatusat");
             entity.Property(e => e.Startdate).HasColumnName("startdate");
             entity.Property(e => e.Typeweight)
                 .HasDefaultValue(1)

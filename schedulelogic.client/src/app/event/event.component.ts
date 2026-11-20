@@ -1,10 +1,10 @@
-import { Component } from '@angular/core';
+import { Component, OnDestroy } from '@angular/core';
 import { Constraint, EventsService, EventType, Group, Location, Participant, PauseTable, Registration } from '../events.service';
 import { ActivatedRoute, Router } from '@angular/router';
 import { data } from '../events.service';
 import { MatDialog } from '@angular/material/dialog';
 import { LocationSelectorComponent } from '../location-selector/location-selector.component';
-import { ScheduleService } from '../schedule.service';
+import { isSolverActive, isSolverSuccess, ScheduleService, solverStatusText } from '../schedule.service';
 import { HostListener } from '@angular/core';
 import { DateRange } from 'igniteui-angular';
 import { environment } from '../../environments/environment';
@@ -17,7 +17,7 @@ import { AuthGuardService } from '../auth-guard.service';
   templateUrl: './event.component.html',
   styleUrl: './event.component.css'
 })
-export class EventComponent {
+export class EventComponent implements OnDestroy {
   constructor(private auth: AuthGuardService, private eventsService: EventsService, private route: ActivatedRoute, private router: Router, public dialog: MatDialog, public scheduleService: ScheduleService, private alertService: AlertService) { }
 
   isMobile = false;
@@ -27,6 +27,9 @@ export class EventComponent {
   loading: boolean = false;
   isRunning: boolean = false;
   isSolving: boolean = false;
+  solverStatus: string | null = null;
+  solverStatusAt: string | null = null;
+  private statusTimer: ReturnType<typeof setInterval> | null = null;
   types = [
     { code: 'L', label: 'Location' },
     { code: 'G', label: 'Group' },
@@ -101,6 +104,50 @@ export class EventComponent {
       }
     });
     this.CheckSolver();
+    this.RefreshStatus(false);
+  }
+
+  ngOnDestroy() {
+    this.StopPolling();
+  }
+
+  get solverStatusText(): string {
+    return solverStatusText(this.solverStatus);
+  }
+
+  RefreshStatus(notify: boolean) {
+    this.scheduleService.getStatus(this.id).subscribe({
+      next: (res) => {
+        const previous = this.solverStatus;
+        this.solverStatus = res?.status ?? null;
+        this.solverStatusAt = res?.updatedAt ?? null;
+        if (isSolverActive(this.solverStatus)) {
+          this.isSolving = true;
+          this.StartPolling();
+          return;
+        }
+        this.StopPolling();
+        this.isSolving = false;
+        if (notify && previous !== this.solverStatus && this.solverStatus) {
+          if (isSolverSuccess(this.solverStatus)) this.alertService.success(this.solverStatusText, 6000);
+          else this.alertService.warning(this.solverStatusText, 8000);
+        }
+      },
+      error: (err) => {
+        if (environment.production == false) { console.error('Solver status error!', err); }
+      }
+    });
+  }
+
+  private StartPolling() {
+    if (this.statusTimer !== null) return;
+    this.statusTimer = setInterval(() => this.RefreshStatus(true), 5000);
+  }
+
+  private StopPolling() {
+    if (this.statusTimer === null) return;
+    clearInterval(this.statusTimer);
+    this.statusTimer = null;
   }
 
   NewEventType()
@@ -378,6 +425,8 @@ export class EventComponent {
       this.scheduleService.schedule(this.data.eventData?.eventId).subscribe({
         next: (res) => {
           this.isSolving = true;
+          this.solverStatus = 'QUEUED';
+          this.StartPolling();
         },
         error: (err) => {
           this.alertService.error("Something went wrong!");
@@ -391,6 +440,7 @@ export class EventComponent {
       this.scheduleService.StopSchedule(this.id).subscribe({
         next: (res) => {
           this.isSolving = false;
+          this.RefreshStatus(false);
         },
         error: (err) => {
           this.alertService.error("Something went wrong!");

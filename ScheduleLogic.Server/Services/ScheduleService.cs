@@ -60,6 +60,11 @@ namespace ScheduleLogic.Server.Services
                     "Solver rejected the schedule request for event {EventId}: {Error}",
                     eventId,
                     error);
+                await _schedules.SetSolverStatusAsync(eventId, SolverStatus.Error);
+            }
+            else
+            {
+                await _schedules.SetSolverStatusAsync(eventId, SolverStatus.Queued);
             }
 
             request.ReturnURL = "";
@@ -105,22 +110,42 @@ namespace ScheduleLogic.Server.Services
 
             var json = await response.Content.ReadAsStringAsync();
             var result = JsonSerializer.Deserialize<StopSolverResponse>(json, SolverJson);
-            return result?.Status == "STOPPED";
+            bool stopped = result?.Status == "STOPPED";
+            if (stopped) await _schedules.SetSolverStatusAsync(eventId, SolverStatus.Stopped);
+            return stopped;
+        }
+
+        public async Task<SolverRunStatus?> GetSolverStatus(long eventId, long userId)
+        {
+            if (!await _events.IsOwnedByUserAsync(eventId, userId)) return null;
+            return await _schedules.GetSolverStatusAsync(eventId) ?? new SolverRunStatus();
         }
 
         public async Task<bool> ReceiveSolverAnswer(SolverResponse data)
         {
-            bool hasSolution = data.Status is "FEASIBLE" or "PARTIAL_SOLUTION" or "OPTIMAL";
-            if (!hasSolution || data.Schedule == null)
-            {
-                _logger.LogInformation("No solution for event {EventId}, solver status: {Status}", data.EventId, data.Status);
+            var status = SolverStatus.FromSolver(data.Status);
+            var current = await _schedules.GetSolverStatusAsync(data.EventId);
+            if (current == null) return true;
+            if (status == SolverStatus.Running && current.Status is not (SolverStatus.Queued or SolverStatus.Running))
                 return true;
+
+            bool hasSolution = status is SolverStatus.Running or SolverStatus.Feasible or SolverStatus.Optimal;
+            if (hasSolution && data.Schedule is { Count: > 0 })
+            {
+                bool saved = await _schedules.SaveSolverResultAsync(data.Schedule, data.EventId);
+                if (!saved)
+                {
+                    _logger.LogWarning("Solver answer for event {EventId} references foreign objects - rejected.", data.EventId);
+                    return false;
+                }
+            }
+            else if (status != SolverStatus.Running)
+            {
+                _logger.LogInformation("Solver finished event {EventId} without a new schedule: {Status}", data.EventId, status);
             }
 
-            bool saved = await _schedules.SaveSolverResultAsync(data.Schedule, data.EventId);
-            if (!saved)
-                _logger.LogWarning("Solver answer for event {EventId} references foreign objects - rejected.", data.EventId);
-            return saved;
+            await _schedules.SetSolverStatusAsync(data.EventId, status);
+            return true;
         }
 
         public async Task<byte[]?> GetScheduleFile(long eventId, long userId)

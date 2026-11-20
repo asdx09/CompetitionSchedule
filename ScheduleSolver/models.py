@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 
 class LocationModel(BaseModel):
     id: int
@@ -46,6 +46,7 @@ class ScheduleRequestForSolver(BaseModel):
     constraints: List[ConstraintModel]
     dayLength: int
     maxDays: int
+    horizon: Optional[int] = None
     breakTimeLoc: int
     basePauseTime: int
     locWeight: int

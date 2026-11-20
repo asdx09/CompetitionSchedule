@@ -178,6 +178,9 @@ public sealed class ApiClient : IDisposable
     public Task<ApiResponse> IsRunningAsync(long id, CancellationToken ct = default) =>
         GetAsync($"api/Schedule/isRunning?id={id}", ct);
 
+    public Task<ApiResponse> SolverStatusAsync(long id, CancellationToken ct = default) =>
+        GetAsync($"api/Schedule/status?id={id}", ct);
+
     public Task<ApiResponse> StopScheduleAsync(long id, CancellationToken ct = default) =>
         PostAsync($"api/Schedule/stop?id={id}", ct: ct);
 

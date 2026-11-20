@@ -9,6 +9,7 @@ namespace ScheduleLogic.Server.Services.Interfaces
         Task<DataDTO?> GetScheduleData(long eventId, long userId);
         Task<bool?> CheckSolver(long eventId, long userId);
         Task<bool?> StopSolver(long eventId, long userId);
+        Task<SolverRunStatus?> GetSolverStatus(long eventId, long userId);
                 Task<bool> ReceiveSolverAnswer(SolverResponse data);
         Task<byte[]?> GetScheduleFile(long eventId, long userId);
     }

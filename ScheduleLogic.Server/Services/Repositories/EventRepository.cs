@@ -188,6 +188,8 @@ namespace ScheduleLogic.Server.Services
                 existingEvent.Groupweight = data.EventData.GroupWeight;
                 existingEvent.Typeweight = data.EventData.TypeWeight;
                 existingEvent.Compweight = data.EventData.CompWeight;
+                existingEvent.Solverstatus = null;
+                existingEvent.Solverstatusat = null;
 
                 await RemoveChildRowsAsync(eventId);
                 await InsertChildRowsAsync(eventId, data);

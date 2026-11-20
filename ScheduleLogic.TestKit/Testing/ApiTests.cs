@@ -145,6 +145,7 @@ public static class ApiTests
                     (HttpMethod.Post, "api/Schedule/1", null),
                     (HttpMethod.Get, "api/Schedule/1", null),
                     (HttpMethod.Get, "api/Schedule/isRunning?id=1", null),
+                    (HttpMethod.Get, "api/Schedule/status?id=1", null),
                     (HttpMethod.Post, "api/Schedule/stop?id=1", null),
                     (HttpMethod.Get, "api/Schedule/export?id=1", null),
                     (HttpMethod.Post, "api/Authentication/logout", null),
@@ -386,6 +387,7 @@ public static class ApiTests
                 ctx.Status(await b.Client.GetScheduleAsync(id, ctx.Ct), 404, "B: get schedule");
                 ctx.Status(await b.Client.IsRunningAsync(id, ctx.Ct), 404, "B: isRunning");
                 ctx.Status(await b.Client.StopScheduleAsync(id, ctx.Ct), 404, "B: stop solver");
+                ctx.Status(await b.Client.SolverStatusAsync(id, ctx.Ct), 404, "B: solver status");
                 ctx.Status(await b.Client.ExportAsync(id, ctx.Ct), 404, "B: export");
                 ctx.Status(await b.Client.StartScheduleAsync(id, ctx.Ct), 404, "B: start schedule");
 
@@ -498,7 +500,7 @@ public static class ApiTests
         new TestCase
         {
             Id = "SCH-01", Group = GroupSchedule, Name = "Solver status query",
-            Description = "For an event without a started schedule, isRunning returns false.",
+            Description = "For an event without a started schedule, isRunning returns false and the stored solver status is empty.",
             Body = async ctx =>
             {
                 var u = await ctx.CreateUserAsync();
@@ -506,6 +508,7 @@ public static class ApiTests
                 var r = await u.Client.IsRunningAsync(id, ctx.Ct);
                 ctx.Status(r, 200, "isRunning");
                 ctx.Check(r.Body.Trim() == "false", $"isRunning returned '{r.Body.Trim()}' instead of the expected 'false'.");
+                ctx.Check(await GetSolverStatusAsync(ctx, u, id) == null, "A new event already has a solver status.");
             },
         },
         new TestCase
@@ -524,6 +527,8 @@ public static class ApiTests
                 var errors = ScheduleValidator.Validate(schedule);
                 foreach (var e in errors) ctx.Info("Rule violation: " + e);
                 ctx.Check(errors.Count == 0, $"The schedule violates {errors.Count} rules, e.g.: {errors.FirstOrDefault()}");
+                var status = await WaitFinalStatusAsync(ctx, u, id, TimeSpan.FromSeconds(90));
+                ctx.Check(status is "OPTIMAL" or "FEASIBLE", $"The stored solver status is '{status}' instead of OPTIMAL or FEASIBLE.");
             },
         },
         new TestCase
@@ -560,6 +565,7 @@ public static class ApiTests
                 var r = await u.Client.GetScheduleAsync(id, ctx.Ct);
                 ctx.Status(r, 200, "Getting the schedule after saving again");
                 ctx.Check(Arr(r.Json() as JsonObject, "timeZones").Count == 0, "The old schedule remained after saving again.");
+                ctx.Check(await GetSolverStatusAsync(ctx, u, id) == null, "The solver status of the old schedule remained after saving again.");
             },
         },
         new TestCase
@@ -581,11 +587,37 @@ public static class ApiTests
                     ctx.Status(stop, 200, "Stop");
                     ctx.Check(stop.Body.Trim() is "true" or "false", $"The stop response is not a boolean: '{stop.Body}'.");
                     await WaitNotRunningAsync(ctx, u, id, TimeSpan.FromSeconds(20));
+                    var status = await GetSolverStatusAsync(ctx, u, id);
+                    if (status == "MEMORY_LIMIT") ctx.Info("The solver hit its memory limit before the stop request arrived.");
+                    ctx.Check(status is "STOPPED" or "MEMORY_LIMIT", $"The stored solver status is '{status}' instead of STOPPED.");
                 }
                 finally
                 {
                     await u.Client.StopScheduleAsync(id, CancellationToken.None);
                 }
+            },
+        },
+
+        new TestCase
+        {
+            Id = "SCH-06", Group = GroupSchedule, Name = "Impossible event is reported",
+            Description = "An event whose events do not fit into the competition time cannot be scheduled. The solver must " +
+                          "report it (INFEASIBLE or MODEL_INVALID) instead of staying silent, and no schedule may be stored.",
+            RequiresSolver = true,
+            Timeout = SolverTimeout,
+            Body = async ctx =>
+            {
+                var u = await ctx.CreateUserAsync();
+                var (id, ev) = await ctx.CreateSampleEventAsync(u);
+                var tooShort = SampleData.FromLoaded(ev);
+                var start = DateTimeOffset.Parse(Str(ev["eventData"], "startDate"));
+                tooShort["eventData"]!["endDate"] = start.AddMinutes(10).UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ");
+                ctx.Status(await u.Client.SaveEventAsync(tooShort, ctx.Ct), 200, "Saving a 10-minute competition");
+                ctx.Status(await u.Client.StartScheduleAsync(id, ctx.Ct), 200, "Starting the schedule");
+                var status = await WaitFinalStatusAsync(ctx, u, id, TimeSpan.FromSeconds(90));
+                ctx.Check(status is "INFEASIBLE" or "MODEL_INVALID", $"The stored solver status is '{status}' instead of INFEASIBLE or MODEL_INVALID.");
+                var r = await u.Client.GetScheduleAsync(id, ctx.Ct);
+                ctx.Check(Arr(r.Json() as JsonObject, "timeZones").Count == 0, "A schedule was stored for an impossible event.");
             },
         },
 
@@ -754,6 +786,36 @@ public static class ApiTests
         }
         ctx.Info($"The schedule was ready in {sw.Elapsed.TotalSeconds:0.0} s ({n} starts).");
         return json;
+    }
+
+    private static async Task<string?> GetSolverStatusAsync(TestContext ctx, TestUser u, long id)
+    {
+        var r = await u.Client.SolverStatusAsync(id, ctx.Ct);
+        ctx.Status(r, 200, "Solver status");
+        var node = (r.Json() as JsonObject)?["status"];
+        return node == null ? null : Str(r.Json(), "status");
+    }
+
+    private static async Task<string?> WaitFinalStatusAsync(TestContext ctx, TestUser u, long id, TimeSpan timeout)
+    {
+        var sw = Stopwatch.StartNew();
+        string? status = null;
+        ctx.RecordExchanges = false;
+        try
+        {
+            while (sw.Elapsed < timeout)
+            {
+                status = await GetSolverStatusAsync(ctx, u, id);
+                if (status is not ("QUEUED" or "RUNNING")) break;
+                await Task.Delay(1000, ctx.Ct);
+            }
+        }
+        finally
+        {
+            ctx.RecordExchanges = true;
+        }
+        ctx.Info($"Solver status: {status ?? "(none)"} after {sw.Elapsed.TotalSeconds:0.0} s.");
+        return status;
     }
 
     private static async Task WaitNotRunningAsync(TestContext ctx, TestUser u, long id, TimeSpan timeout)

@@ -51,6 +51,15 @@ namespace ScheduleLogic.Server.Controllers
         }
 
         [Authorize]
+        [HttpGet("status")]
+        public async Task<IActionResult> GetSolverStatus([FromQuery] long id)
+        {
+            var result = await _scheduleService.GetSolverStatus(id, UserId);
+            if (result == null) return NotFound();
+            return Ok(result);
+        }
+
+        [Authorize]
         [HttpPost("stop")]
         public async Task<IActionResult> StopSolver([FromQuery] long id)
         {

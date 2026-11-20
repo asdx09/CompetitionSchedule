@@ -36,6 +36,13 @@ final class ScheduleController
         return $result === null ? Response::problem(404) : Response::json($result);
     }
 
+    public function getSolverStatus(Request $request): Response
+    {
+        $userId = $this->app->requireUserId($request);
+        $result = $this->app->scheduleService()->getSolverStatus(EventController::queryLong($request, 'id'), $userId);
+        return $result === null ? Response::problem(404) : Response::json($result);
+    }
+
     public function stopSolver(Request $request): Response
     {
         $userId = $this->app->requireUserId($request);

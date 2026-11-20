@@ -196,3 +196,78 @@ input[type="date"]:hover, input[type="time"]:hover, input[type="number"]:hover{
 select option{
   color: rgb(0, 0, 0);
 }
+.container{
+  overflow-y: auto;
+}
+
+.steps{
+  text-align: left;
+  padding-left: 20px;
+  line-height: 1.5;
+}
+
+.filebutton{
+  display: inline-block;
+  margin: 5px;
+}
+
+.filebutton input[type="file"]{
+  display: none;
+}
+
+.filebutton span{
+  display: inline-block;
+  background: linear-gradient(135deg, #7b5cff, #5d3df5);
+  border-radius: 6px;
+  color: #fff;
+  cursor: pointer;
+  font-family: -apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  padding: 6px 16px;
+  white-space: nowrap;
+}
+
+.filebutton span:hover{
+  filter: brightness(1.1);
+}
+
+.issues{
+  text-align: left;
+  font-size: 13px;
+  line-height: 1.4;
+  padding-left: 18px;
+  margin: 6px 0;
+}
+
+.issues li{
+  margin-bottom: 4px;
+}
+
+.issues.errors li{
+  color: #ffb4b4;
+}
+
+.issues.warnings li{
+  color: #ffe1a6;
+}
+
+.warningtitle{
+  color: #ffe1a6;
+  margin-bottom: 0;
+}
+
+.summary{
+  margin: 0 auto;
+  border-collapse: collapse;
+}
+
+.summary td{
+  padding: 3px 12px;
+}
+
+.summary td:last-child{
+  text-align: right;
+  font-weight: 700;
+}

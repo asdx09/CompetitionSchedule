@@ -34,8 +34,9 @@ final class Database
         }
     }
 
-    private function connect(int $timeoutSeconds = 10): PDO
+    private function connect(?int $timeoutSeconds = null): PDO
     {
+        $timeoutSeconds ??= $this->config->int('Database:ConnectTimeout', 5);
         $db = fn(string $k, string $d = '') => $this->config->string("Database:$k", $d);
 
         $dsn = sprintf(

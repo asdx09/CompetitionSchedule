@@ -279,3 +279,26 @@ button:disabled {
 .checkbox-wrapper-17 label:active:after {
   width: 55%;
 }
+
+.solverStatus{
+  margin: 4px 0 0 0;
+  font-size: 14px;
+  color: #d0d0d0;
+}
+
+.solverStatus .statusTime{
+  color: #9a9a9a;
+  margin-left: 6px;
+}
+
+.status-OPTIMAL, .status-FEASIBLE{
+  color: #9be59b;
+}
+
+.status-INFEASIBLE, .status-UNKNOWN, .status-MODEL_INVALID, .status-MEMORY_LIMIT, .status-ERROR{
+  color: #ffb4b4;
+}
+
+.status-QUEUED, .status-RUNNING, .status-STOPPED{
+  color: #ffe1a6;
+}

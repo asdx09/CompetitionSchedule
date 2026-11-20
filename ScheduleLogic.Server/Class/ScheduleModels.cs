@@ -61,6 +61,7 @@
             public List<ConstraintModel> Constraints { get; set; } = null!;
             public int DayLength { get; set; }
             public int MaxDays { get; set; }
+            public int Horizon { get; set; }
             public int BreakTimeLoc { get; set; }
             public int BasePauseTime { get; set; }
             public int LocWeight { get; set; }
@@ -86,6 +87,12 @@
             public int End { get; set; }
             public int Slot { get; set; }
         }
+        public class SolverRunStatus
+        {
+            public string? Status { get; set; }
+            public DateTime? UpdatedAt { get; set; }
+        }
+
         public class SolverStatusResponse
         {
             public bool Running { get; set; }

@@ -425,3 +425,25 @@ input[type="number"]::-webkit-inner-spin-button {
     opacity: 1;
   }
 }
+.solverStatus{
+  margin: 8px 10% 0 10%;
+  font-size: 14px;
+  color: #d0d0d0;
+}
+
+.solverStatus .statusTime{
+  color: #9a9a9a;
+  margin-left: 6px;
+}
+
+.status-OPTIMAL, .status-FEASIBLE{
+  color: #9be59b;
+}
+
+.status-INFEASIBLE, .status-UNKNOWN, .status-MODEL_INVALID, .status-MEMORY_LIMIT, .status-ERROR{
+  color: #ffb4b4;
+}
+
+.status-QUEUED, .status-RUNNING, .status-STOPPED{
+  color: #ffe1a6;
+}

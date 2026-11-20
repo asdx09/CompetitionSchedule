@@ -1,7 +1,13 @@
 <div class="background"></div>
 <div class="page">
   <div [ngClass]="{'upperboxMobile': isMobile,'upperbox': !isMobile}">
-    <h1>{{data.eventData.eventName}}</h1>
+    <div>
+      <h1>{{data.eventData.eventName}}</h1>
+      <div class="solverStatus" [ngClass]="'status-' + (solverStatus ?? 'NONE')">
+        {{ solverStatusText }}
+        @if (solverStatusAt) { <span class="statusTime">({{ solverStatusAt | date:'yyyy-MM-dd HH:mm' }})</span> }
+      </div>
+    </div>
     <div class="cbox">
       <span>Constraints</span>
       <div class="checkbox-wrapper-17">

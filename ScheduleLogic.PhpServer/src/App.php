@@ -118,6 +118,7 @@ final class App
 
         $schedule = fn() => new ScheduleController($this);
         $r->get('/api/Schedule/isRunning', fn(Request $q) => $schedule()->checkSolver($q));
+        $r->get('/api/Schedule/status', fn(Request $q) => $schedule()->getSolverStatus($q));
         $r->post('/api/Schedule/stop', fn(Request $q) => $schedule()->stopSolver($q));
         $r->post('/api/Schedule/answer', fn(Request $q) => $schedule()->solverAnswer($q));
         $r->get('/api/Schedule/export', fn(Request $q) => $schedule()->getExport($q));
@@ -202,6 +203,12 @@ final class App
 
     private function handleException(\Throwable $e): Response
     {
+        if (self::isDatabaseUnavailable($e)) {
+            $this->logger->error('Database unavailable: {Message}', ['Message' => $e->getMessage()]);
+            return Response::json(['title' => 'Service temporarily unavailable', 'status' => 503], 503)
+                ->withHeader('Retry-After', '10');
+        }
+
         $this->logger->error('Unhandled exception', [], $e);
 
         $status = match (true) {
@@ -215,6 +222,17 @@ final class App
             default => 'Internal server error',
         };
         return Response::json(['title' => $title, 'status' => $status], $status);
+    }
+
+    private static function isDatabaseUnavailable(\Throwable $e): bool
+    {
+        for (; $e !== null; $e = $e->getPrevious()) {
+            if ($e instanceof \PDOException) {
+                $state = (string)($e->errorInfo[0] ?? $e->getCode());
+                return preg_match('/^(08|53|57P|28)/', $state) === 1;
+            }
+        }
+        return false;
     }
 
     public function requireUserId(Request $request): int

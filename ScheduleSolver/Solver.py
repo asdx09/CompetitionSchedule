@@ -97,7 +97,7 @@ class TravelLookup:
 
 def schedule(req: ScheduleRequestForSolver, printer, container):
     print("Solver started!")
-    horizon = req.dayLength * req.maxDays
+    horizon = req.horizon if req.horizon else req.dayLength * req.maxDays
     model = cp_model.CpModel()
 
     loc_by_id = {l.id: l for l in req.locations}
@@ -121,7 +121,7 @@ def schedule(req: ScheduleRequestForSolver, printer, container):
 
     for e in req.entries:
         ev = event_by_id[e.eventId]
-        possible_starts = list(range(0, horizon - ev.duration, 5))
+        possible_starts = list(range(0, horizon - ev.duration + 1, 5))
         start[e.id] = model.NewIntVarFromDomain(cp_model.Domain.FromValues(possible_starts), f"start_{e.id}")
         end[e.id] = model.NewIntVar(ev.duration, horizon, f"end_{e.id}")
         interval[e.id] = model.NewIntervalVar(start[e.id], ev.duration, end[e.id], f"interval_{e.id}")

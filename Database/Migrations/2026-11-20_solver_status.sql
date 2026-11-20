@@ -1,0 +1,3 @@
+ALTER TABLE event
+    ADD COLUMN IF NOT EXISTS solverstatus   VARCHAR(32),
+    ADD COLUMN IF NOT EXISTS solverstatusat TIMESTAMPTZ;

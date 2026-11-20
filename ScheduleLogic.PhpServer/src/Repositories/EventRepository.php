@@ -156,7 +156,8 @@ final class EventRepository
                 $stmt = $pdo->prepare(
                     'UPDATE event SET eventname = :n, startdate = :s, enddate = :en, isprivate = :p,
                             basepausetime = :bp, locationpausetime = :lp,
-                            locweight = :lw, groupweight = :gw, typeweight = :tw, compweight = :cw
+                            locweight = :lw, groupweight = :gw, typeweight = :tw, compweight = :cw,
+                            solverstatus = NULL, solverstatusat = NULL
                       WHERE event_id = :e'
                 );
                 $stmt->execute([

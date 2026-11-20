@@ -39,6 +39,9 @@ final class ScheduleService
                 'Solver rejected the schedule request for event {EventId}: {Error}',
                 ['EventId' => $eventId, 'Error' => $response['body']]
             );
+            $this->schedules->setSolverStatus($eventId, SolverStatus::ERROR);
+        } else {
+            $this->schedules->setSolverStatus($eventId, SolverStatus::QUEUED);
         }
 
         $request['returnURL'] = '';
@@ -80,26 +83,47 @@ final class ScheduleService
             return false;
         }
         $json = json_decode($response['body'], true);
-        return is_array($json) && self::ci($json, 'Status') === 'STOPPED';
+        $stopped = is_array($json) && self::ci($json, 'Status') === 'STOPPED';
+        if ($stopped) {
+            $this->schedules->setSolverStatus($eventId, SolverStatus::STOPPED);
+        }
+        return $stopped;
+    }
+
+    public function getSolverStatus(int $eventId, int $userId): ?array
+    {
+        if (!$this->events->isOwnedByUser($eventId, $userId)) {
+            return null;
+        }
+        return $this->schedules->getSolverStatus($eventId) ?? ['status' => null, 'updatedAt' => null];
     }
 
     public function receiveSolverAnswer(int $eventId, string $status, array $schedule): bool
     {
-        $hasSolution = in_array($status, ['FEASIBLE', 'PARTIAL_SOLUTION', 'OPTIMAL'], true);
-        if (!$hasSolution) {
-            $this->logger->info('No solution for event {EventId}, solver status: {Status}', ['EventId' => $eventId, 'Status' => $status]);
+        $status = SolverStatus::fromSolver($status);
+        $current = $this->schedules->getSolverStatus($eventId);
+        if ($current === null) {
+            return true;
+        }
+        if ($status === SolverStatus::RUNNING && !in_array($current['status'], [SolverStatus::QUEUED, SolverStatus::RUNNING], true)) {
             return true;
         }
 
-        $known = $this->schedules->getEventObjectIds($eventId);
-        foreach ($schedule as $item) {
-            if (!isset($known['participants'][$item['participantId']], $known['eventTypes'][$item['eventTypeId']], $known['locations'][$item['locationId']])) {
-                $this->logger->warning('Solver answer for event {EventId} references foreign objects - rejected.', ['EventId' => $eventId]);
-                return false;
+        $hasSolution = in_array($status, [SolverStatus::RUNNING, SolverStatus::FEASIBLE, SolverStatus::OPTIMAL], true);
+        if ($hasSolution && count($schedule) > 0) {
+            $known = $this->schedules->getEventObjectIds($eventId);
+            foreach ($schedule as $item) {
+                if (!isset($known['participants'][$item['participantId']], $known['eventTypes'][$item['eventTypeId']], $known['locations'][$item['locationId']])) {
+                    $this->logger->warning('Solver answer for event {EventId} references foreign objects - rejected.', ['EventId' => $eventId]);
+                    return false;
+                }
             }
+            $this->schedules->saveSolverResult($schedule, $eventId);
+        } elseif ($status !== SolverStatus::RUNNING) {
+            $this->logger->info('Solver finished event {EventId} without a new schedule: {Status}', ['EventId' => $eventId, 'Status' => $status]);
         }
 
-        $this->schedules->saveSolverResult($schedule, $eventId);
+        $this->schedules->setSolverStatus($eventId, $status);
         return true;
     }
 
