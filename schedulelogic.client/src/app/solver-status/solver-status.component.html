@@ -1,0 +1,14 @@
+<div class="status" [ngClass]="'tone-' + tone" [attr.title]="showDetail ? null : detail">
+  <span class="dot" [class.pulse]="active"></span>
+  <div class="text">
+    <div class="labelRow">
+      <span class="label">{{ label }}</span>
+      @if (updatedAt) {
+      <span class="time">{{ updatedAt | date:'MMM d, HH:mm' }}</span>
+      }
+    </div>
+    @if (showDetail) {
+    <div class="detail">{{ detail }}</div>
+    }
+  </div>
+</div>

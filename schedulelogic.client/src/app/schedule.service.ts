@@ -26,6 +26,41 @@ export function solverStatusText(status: string | null | undefined): string {
   return status ? (SOLVER_STATUS_TEXT[status] ?? status) : 'The schedule has not been generated yet.';
 }
 
+const SOLVER_STATUS_LABEL: { [status: string]: string } = {
+  QUEUED: 'Queued',
+  RUNNING: 'Solving',
+  OPTIMAL: 'Optimal schedule',
+  FEASIBLE: 'Schedule found',
+  INFEASIBLE: 'No schedule possible',
+  UNKNOWN: 'No schedule found',
+  MODEL_INVALID: 'Invalid data',
+  STOPPED: 'Stopped',
+  MEMORY_LIMIT: 'Too large to solve',
+  ERROR: 'Solver error',
+};
+
+export type SolverStatusTone = 'neutral' | 'running' | 'success' | 'warning' | 'danger';
+
+export function solverStatusLabel(status: string | null | undefined): string {
+  return status ? (SOLVER_STATUS_LABEL[status] ?? status) : 'Not generated yet';
+}
+
+export function solverStatusTone(status: string | null | undefined): SolverStatusTone {
+  switch (status) {
+    case 'QUEUED':
+    case 'RUNNING': return 'running';
+    case 'OPTIMAL':
+    case 'FEASIBLE': return 'success';
+    case 'STOPPED':
+    case 'MEMORY_LIMIT': return 'warning';
+    case 'INFEASIBLE':
+    case 'UNKNOWN':
+    case 'MODEL_INVALID':
+    case 'ERROR': return 'danger';
+    default: return 'neutral';
+  }
+}
+
 export function isSolverActive(status: string | null | undefined): boolean {
   return status === 'QUEUED' || status === 'RUNNING';
 }

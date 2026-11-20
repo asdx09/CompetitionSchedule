@@ -1,62 +1,98 @@
 <div class="background">
-  <div [ngClass]="{'upperboxMobile': isMobile,'upperbox': !isMobile}">
-    <h2>{{data.eventData.eventName}}</h2>
-    <button (click)="SaveEvent()" [disabled]="isSolving"
-      [ngStyle]="{'border-width': '4px'}"
-      [ngClass]="{'wrong': condition === 1, 'dirty': condition === 2, 'good': condition === 0}">SAVE @if (loading) {<div
-        class="loader"></div>}</button>
-    <button (click)="GenerateSchedule()" [disabled]="!isRunning">
-      @if (!isSolving) {
-      <span>SOLVE SOLUTION</span>
-      }
-      @if (isSolving) {
-      <span>
-        <div class="loader"></div>CANCEL
-      </span>
-      }
-    </button>
-    <button (click)="GoToSolution()">VIEW SOLUTION</button>
-  </div>
-  <div class="solverStatus" [ngClass]="'status-' + (solverStatus ?? 'NONE')">
-    {{ solverStatusText }}
-    @if (solverStatusAt) { <span class="statusTime">({{ solverStatusAt | date:'yyyy-MM-dd HH:mm' }})</span> }
-  </div>
-  <div [ngClass]="{'FirstListBoxMobile': isMobile,'FirstListBox': !isMobile}">
-    <div  [ngClass]="{'right': !isMobile}">
-      <div [ngClass]="{'FirstListItemMobile': isMobile,'FirstListItem': !isMobile}">
-        Name: <input type="text" [(ngModel)]="data.eventData.eventName" (ngModelChange)="condition = 2">
-      </div>
-      <div [ngClass]="{'FirstListItemMobile': isMobile,'FirstListItem': !isMobile}">
-        Start Date:
-        <input type="date" [ngModel]="getDateString(data.eventData.startDate)"
-          (ngModelChange)="updateDate(data.eventData, $event, 'startDate'); condition = 2">
-        <input type="time" [ngModel]="getTimeString(data.eventData.startDate)"
-          (ngModelChange)="updateTime(data.eventData, $event, 'startDate'); condition = 2">
-      </div>
-      <div [ngClass]="{'FirstListItemMobile': isMobile,'FirstListItem': !isMobile}">
-        End Date:
-        <input type="date" [ngModel]="getDateString(data.eventData.endDate)"
-          (ngModelChange)="updateDate(data.eventData, $event, 'endDate'); condition = 2">
-        <input type="time" [ngModel]="getTimeString(data.eventData.endDate)"
-          (ngModelChange)="updateTime(data.eventData, $event, 'endDate'); condition = 2">
-      </div>
-      <div [ngClass]="{'FirstListItemMobile': isMobile,'FirstListItem': !isMobile}">
-        Base travel time: <input type="number" [(ngModel)]="data.eventData.basePauseTime" (ngModelChange)="condition = 2">
-      </div>
-      <div [ngClass]="{'FirstListItemMobile': isMobile,'FirstListItem': !isMobile}">
-        Location pause: <input type="number" [(ngModel)]="data.eventData.locationPauseTime"
-          (ngModelChange)="condition = 2">
-      </div>
-    </div>
-    <div [ngClass]="{'left': !isMobile}">
-      <div class="graphinputs">
-        @for (p of points; track p; let i = $index) {
-        <div [ngClass]="{'pointBoxMobile': isMobile,'pointBox': !isMobile}">
-          {{p.name}} weight: 
-          <input type="number" [(ngModel)]="p.weight" (input)="updatePath(); condition = 2" max="500">
+  <div class="topArea" [class.mobile]="isMobile">
+    <header class="eventHeader">
+      <div class="headRow">
+        <div class="headMain">
+          <div class="eyebrow">Competition</div>
+          <h2>{{ data.eventData.eventName || 'Untitled competition' }}</h2>
+          <div class="saveState" [ngClass]="{'dirty': condition === 2, 'failed': condition === 1}">
+            <span class="saveDot"></span>
+            @if (loading) { Saving… }
+            @else if (condition === 2) { Unsaved changes }
+            @else if (condition === 1) { Saving failed, check the highlighted fields }
+            @else { All changes saved }
+          </div>
         </div>
-        }
+        <div class="headActions">
+          <button class="btn secondary" (click)="SaveEvent()" [disabled]="isSolving || loading || condition === 0">
+            @if (loading) {<span class="loader"></span>}
+            Save changes
+          </button>
+          @if (isSolving) {
+          <button class="btn danger" (click)="GenerateSchedule()" [disabled]="!isRunning">
+            <span class="loader"></span>Stop solver
+          </button>
+          } @else {
+          <button class="btn primary" (click)="GenerateSchedule()" [disabled]="!isRunning || loading"
+            [title]="!isRunning ? 'The solver is not reachable right now.' : ''">
+            {{ condition === 0 ? 'Generate schedule' : 'Save & generate' }}
+          </button>
+          }
+          <button class="btn ghost" (click)="GoToSolution()" [disabled]="!canViewSchedule">View schedule →</button>
+        </div>
       </div>
+      <div class="statusRow">
+        <app-solver-status [status]="solverStatus" [updatedAt]="solverStatusAt"></app-solver-status>
+        <p class="solveHint">
+          @if (!isRunning) {
+          The solver is not reachable right now, so no schedule can be generated.
+          } @else if (isSolving) {
+          The solver works in the background, you can leave this page. Saving is disabled until it finishes or you stop it.
+          } @else if (condition !== 0) {
+          The solver always works from the <b>saved</b> data. “Save &amp; generate” saves your changes first, then starts a new schedule.
+          } @else {
+          “Generate schedule” replaces the current schedule with a new one. Saving any change also clears the current schedule.
+          }
+        </p>
+      </div>
+    </header>
+
+    <div class="settingsGrid">
+      <section class="card">
+        <h3>Details</h3>
+        <label class="field">
+          <span>Name</span>
+          <input type="text" [(ngModel)]="data.eventData.eventName" (ngModelChange)="condition = 2">
+        </label>
+        <div class="field">
+          <span>Starts</span>
+          <div class="pair">
+            <input type="date" [ngModel]="getDateString(data.eventData.startDate)"
+              (ngModelChange)="updateDate(data.eventData, $event, 'startDate'); condition = 2">
+            <input type="time" [ngModel]="getTimeString(data.eventData.startDate)"
+              (ngModelChange)="updateTime(data.eventData, $event, 'startDate'); condition = 2">
+          </div>
+        </div>
+        <div class="field">
+          <span>Ends</span>
+          <div class="pair">
+            <input type="date" [ngModel]="getDateString(data.eventData.endDate)"
+              (ngModelChange)="updateDate(data.eventData, $event, 'endDate'); condition = 2">
+            <input type="time" [ngModel]="getTimeString(data.eventData.endDate)"
+              (ngModelChange)="updateTime(data.eventData, $event, 'endDate'); condition = 2">
+          </div>
+        </div>
+        <label class="field">
+          <span>Base travel time <small>(min)</small></span>
+          <input type="number" min="0" [(ngModel)]="data.eventData.basePauseTime" (ngModelChange)="condition = 2">
+        </label>
+        <label class="field">
+          <span>Location pause <small>(min)</small></span>
+          <input type="number" min="0" [(ngModel)]="data.eventData.locationPauseTime" (ngModelChange)="condition = 2">
+        </label>
+      </section>
+
+      <section class="card">
+        <h3>Optimization weights</h3>
+        <p class="cardHint">How much each goal counts for the solver, relative to the others (0–500).</p>
+        @for (p of points; track p.name) {
+        <label class="field weight">
+          <span>{{ p.name }}</span>
+          <div class="weightBar"><div [style.width.%]="weightShare(p)"></div></div>
+          <input type="number" min="0" max="500" [(ngModel)]="p.weight" (input)="updatePath(); condition = 2">
+        </label>
+        }
+      </section>
     </div>
   </div>
  <div [ngClass]="{'boxHeaderMobile': isMobile,'boxHeader': !isMobile}">
@@ -439,4 +475,4 @@
     </div>
   </div>
   } @else
-  {<div class="more" (click)="switchDropdown(6)">SHOW ITEMS ({{GetConstraints().length}})</div>}
+  {<div class="more" (click)="switchDropdown(6)">SHOW ITEMS ({{GetConstraints().length}})</div>}

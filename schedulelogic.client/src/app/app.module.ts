@@ -20,6 +20,8 @@ import { AlertComponent } from './alert/alert.component';
 import { ProfileComponent } from './profile/profile.component';
 import { ForgotPasswordComponent } from './forgot-password/forgot-password.component';
 import { ResetPasswordComponent } from './reset-password/reset-password.component';
+import { SolverStatusComponent } from './solver-status/solver-status.component';
+import { ScheduleTimelineComponent } from './schedule-timeline/schedule-timeline.component';
 
 
 @NgModule({
@@ -35,7 +37,9 @@ import { ResetPasswordComponent } from './reset-password/reset-password.componen
   		AlertComponent,
     	ProfileComponent,
     	ForgotPasswordComponent,
-    	ResetPasswordComponent
+    	ResetPasswordComponent,
+		SolverStatusComponent,
+		ScheduleTimelineComponent
 	],
 	imports: [BrowserModule,
 		HttpClientModule,
@@ -61,4 +65,4 @@ import { ResetPasswordComponent } from './reset-password/reset-password.componen
 	bootstrap: [AppComponent]
 })
 export class AppModule {
-}
+}

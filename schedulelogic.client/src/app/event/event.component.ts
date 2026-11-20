@@ -339,26 +339,38 @@ export class EventComponent implements OnDestroy {
     else return this.data.constraints;
   }
 
-  SaveEvent()
+  get hasSchedule(): boolean {
+    return this.solverStatus != null;
+  }
+
+  get canViewSchedule(): boolean {
+    return this.solverStatus != null && this.solverStatus !== 'QUEUED';
+  }
+
+  weightShare(p: Point): number {
+    const total = this.points.reduce((sum, x) => sum + (Number(x.weight) || 0), 0);
+    return total > 0 ? (Number(p.weight) || 0) / total * 100 : 0;
+  }
+
+  SaveEvent(onSaved?: () => void, ask: boolean = true)
   {
-    if (confirm("Current solution will be deleted. Are you sure?")) {
-      this.loading = true;
-      console.log(this.data);
-      this.eventsService.SaveEvent(this.data).subscribe({
-        next: (res) => {
-          this.RefreshData();
-          this.condition = 0;
-          this.loading = false;
-        },
-        error: (err) => {
-          this.alertService.error("Something went wrong!");
-          if (environment.production == false) 
-          {console.error('Error at saving!', err);}
-          this.condition = 1;
-          this.loading = false;
-        }
-      });
-    }
+    if (ask && this.hasSchedule && !confirm("Saving clears the current schedule. Continue?")) return;
+    this.loading = true;
+    this.eventsService.SaveEvent(this.data).subscribe({
+      next: () => {
+        this.condition = 0;
+        this.loading = false;
+        if (onSaved) onSaved();
+        else this.RefreshData();
+      },
+      error: (err) => {
+        this.alertService.error("Something went wrong!");
+        if (environment.production == false)
+        {console.error('Error at saving!', err);}
+        this.condition = 1;
+        this.loading = false;
+      }
+    });
   }
 
   isDuplicateNumber(number: number): boolean {
@@ -385,10 +397,10 @@ export class EventComponent implements OnDestroy {
     this.scheduleService.checkSolver(this.id).subscribe({
       next: (res) => {
         this.isRunning = true;
-        this.isSolving = res;
+        this.isSolving = res || isSolverActive(this.solverStatus);
       },
       error: (err) => {
-        this.alertService.error("Solver not found!");
+        this.alertService.error("The solver is not reachable.");
         if (environment.production == false) 
         {console.error('Error at checking!', err);}
         this.isRunning = false;
@@ -420,36 +432,54 @@ export class EventComponent implements OnDestroy {
 
   GenerateSchedule()
   {
-    if (!this.isSolving)
-    {
-      this.scheduleService.schedule(this.data.eventData?.eventId).subscribe({
-        next: (res) => {
-          this.isSolving = true;
-          this.solverStatus = 'QUEUED';
-          this.StartPolling();
-        },
-        error: (err) => {
-          this.alertService.error("Something went wrong!");
-          if (environment.production == false) 
-          {console.error('Error at start solving! ', err);}
-        }
-      });
-    }
-    else
-    {
+    if (this.isSolving) {
       this.scheduleService.StopSchedule(this.id).subscribe({
-        next: (res) => {
+        next: () => {
           this.isSolving = false;
           this.RefreshStatus(false);
         },
         error: (err) => {
           this.alertService.error("Something went wrong!");
-          if (environment.production == false) 
+          if (environment.production == false)
           {console.error('Error at stop solving! ', err);}
         }
       });
+      return;
     }
-    
+
+    if (this.condition !== 0) {
+      const message = this.hasSchedule
+        ? "Your changes will be saved first, and the current schedule will be replaced by a new one. Continue?"
+        : "Your changes will be saved first, then the schedule is generated. Continue?";
+      if (confirm(message)) this.SaveEvent(() => this.StartSolver(true), false);
+      return;
+    }
+
+    if (this.hasSchedule && !confirm("Generate a new schedule? The current one will be replaced.")) return;
+    this.StartSolver();
+  }
+
+  private StartSolver(reload: boolean = false)
+  {
+    this.scheduleService.schedule(this.data.eventData?.eventId).subscribe({
+      next: () => {
+        if (reload) {
+          this.RefreshData();
+          return;
+        }
+        this.isSolving = true;
+        this.solverStatus = 'QUEUED';
+        this.solverStatusAt = new Date().toISOString();
+        this.StartPolling();
+      },
+      error: (err) => {
+        this.alertService.error("The solver could not be started.");
+        if (environment.production == false)
+        {console.error('Error at start solving! ', err);}
+        if (reload) this.RefreshData();
+        else this.RefreshStatus(false);
+      }
+    });
   }
 
   getDateString(date?: Date | string | null): string {
@@ -512,4 +542,4 @@ export class EventComponent implements OnDestroy {
 interface Point {
   weight: number;
   name: string;
-}
+}

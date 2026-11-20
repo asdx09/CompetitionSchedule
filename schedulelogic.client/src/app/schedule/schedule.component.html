@@ -1,55 +1,62 @@
 <div class="background"></div>
-<div class="page">
-  <div [ngClass]="{'upperboxMobile': isMobile,'upperbox': !isMobile}">
-    <div>
-      <h1>{{data.eventData.eventName}}</h1>
-      <div class="solverStatus" [ngClass]="'status-' + (solverStatus ?? 'NONE')">
-        {{ solverStatusText }}
-        @if (solverStatusAt) { <span class="statusTime">({{ solverStatusAt | date:'yyyy-MM-dd HH:mm' }})</span> }
+<div class="page" [class.mobile]="isMobile">
+  <header class="header">
+    <div class="headMain">
+      <button type="button" class="backLink" (click)="backToEvent()">← Back to competition</button>
+      <h1>{{ data.eventData.eventName }}</h1>
+      <div class="meta">
+        <span>{{ data.eventData.startDate | date:'MMM d, y HH:mm' }} – {{ data.eventData.endDate | date:'MMM d, y HH:mm' }}</span>
+        @if (hasSchedule) {
+        <span class="sep">·</span><span>{{ data.timeZones.length }} starts</span>
+        <span class="sep">·</span><span>{{ competitorCount }} competitors</span>
+        }
       </div>
     </div>
-    <div class="cbox">
-      <span>Constraints</span>
-      <div class="checkbox-wrapper-17">
-        <input type="checkbox" id="switch-17" [(ngModel)]="isConstraint"/><label for="switch-17"></label>
+    <app-solver-status class="headStatus" [status]="solverStatus" [updatedAt]="solverStatusAt"></app-solver-status>
+  </header>
+
+  @if (loaded && !hasSchedule) {
+  <div class="emptyState">
+    <h2>No schedule to show yet</h2>
+    <p>{{ statusText }}</p>
+    <button class="btn primary" (click)="backToEvent()">Go to the competition</button>
+  </div>
+  }
+
+  @if (hasSchedule) {
+  <div class="toolbar">
+    <div class="legend">
+      @for (l of legend; track l.id) {
+      <span class="chip"><span class="swatch" [style.background]="l.color"></span>{{ l.name }}<span class="chipCount">{{ l.count }}</span></span>
+      }
+    </div>
+    <div class="controls">
+      <label class="switch">
+        <input type="checkbox" [(ngModel)]="showUnavailable">
+        <span class="track"></span>
+        <span class="switchLabel">Unavailable times</span>
+      </label>
+      <div class="zoom">
+        <button type="button" (click)="zoomOut()" title="Zoom out">−</button>
+        <button type="button" class="fit" (click)="zoomFit()" title="Fit the competition hours">Fit</button>
+        <button type="button" (click)="zoomIn()" title="Zoom in">+</button>
       </div>
-    </div>
-    <div>
-      <button (click)="zoomLevel = zoomLevel * 1.2">Zoom In</button>
-      <button (click)="zoomLevel = zoomLevel / 1.2">Zoom Out</button>
-    </div>
-    <div>
-      <button (click)="export()" [disabled]="isExporting">DOWNLOAD DATA</button>
+      <button class="btn primary" (click)="export()" [disabled]="isExporting">
+        {{ isExporting ? 'Preparing…' : 'Download Excel' }}
+      </button>
     </div>
   </div>
-  <div class="calendar">
-    <div class="scrollContainer">
-      <div class="hourContainer">@for (h of hours; track h; let i = $index) {<div class="hour" [ngStyle]="{width: 60*zoomLevel + 'px'}">{{ (i + 1) % 24 }}:00</div>}</div>          
-                                <div class="rowContainer" [ngStyle]="{width: 60*zoomLevel*hours.length + 'px', top: 0 + 'px'}"><div class="rowName" [ngStyle]="{width: rowWidth + 'px'}"><input class="filterInput" placeholder="Filter name" [(ngModel)]="participantFilter"><div class="resizer" (mousedown)="startResize($event)" (touchstart)="startResize($event)"></div></div></div>
-                                 @for (par of getParticipants(); track par; let m = $index){<div class="rowContainer" [ngStyle]="{width: 60*zoomLevel*hours.length + 'px',
-                                                                                                                                       top: 40 + 40*m + 'px'}">
-                                      @for (tz of getTimeZonesByParticipant(par.participantId); track tz; let n = $index) {<div class="range" [ngStyle]="{width: (tz.endTime-tz.startTime)*zoomLevel + 'px',
-                                                                                                                              left: (tz.startTime*zoomLevel) + 'px',
-                                                                                                                              'background-color': getColorForId(tz.eventTypeId)}"
-                                                                                                                              (click)="openInfo(tz.scheduleId)">{{getEventTypeNameByID(tz.eventTypeId)}}</div>}
-                                      @for (tz of getConstraintsByParticipant(par.participantId); track tz; let n = $index) {<div *ngIf="isConstraint" class="constraintRange" [ngStyle]="{width: (getNumberFromDate(tz.endTime) - getNumberFromDate(tz.startTime)) * zoomLevel + 'px',
-                                                                                                                              left: (getNumberFromDate(tz.startTime) * zoomLevel) + 'px'}"></div>}
-                                    <div #box class="rowName" [ngStyle]="{width: rowWidth + 'px'}"><span>{{getParticipantNameByID(par.participantId) + getGroupName(par.participantId)}}</span><div class="resizer" (mousedown)="startResize($event)" (touchstart)="startResize($event)"></div></div></div>}                                                                                                            
-    </div>
+
+  <div class="timelines">
+    <app-schedule-timeline title="By competitor" nameHeader="Competitor" [rows]="participantRows"
+      [startDate]="startDate" [totalMinutes]="totalMinutes" [activeStart]="activeStart" [activeEnd]="activeEnd"
+      [zoom]="zoom" [showUnavailable]="showUnavailable" [compact]="isMobile" (blockClick)="openInfo($event)">
+    </app-schedule-timeline>
+
+    <app-schedule-timeline title="By location" nameHeader="Location" [rows]="locationRows"
+      [startDate]="startDate" [totalMinutes]="totalMinutes" [activeStart]="activeStart" [activeEnd]="activeEnd"
+      [zoom]="zoom" [showUnavailable]="showUnavailable" [compact]="isMobile" (blockClick)="openInfo($event)">
+    </app-schedule-timeline>
   </div>
-  <div class="calendar">
-    <div class="scrollContainer">
-      <div class="hourContainer">@for (h of hours; track h; let i = $index) {<div class="hour" [ngStyle]="{width: 60*zoomLevel + 'px'}">{{ (i + 1) % 24 }}:00</div>}</div>          
-                                <div class="rowContainer" [ngStyle]="{width: 60*zoomLevel*hours.length + 'px', top: 0 + 'px'}"><div class="rowName" [ngStyle]="{width: rowWidth2 + 'px'}"><input class="filterInput" placeholder="Filter name" [(ngModel)]="locationFilter" (ngModelChange)="refreshData()"><div class="resizer" (mousedown)="startResize2($event)" (touchstart)="startResize2($event)"></div></div></div>
-                                 @for (loc of locRows; track loc; let m = $index){<div class="rowContainer" [ngStyle]="{width: 60*zoomLevel*hours.length + 'px',
-                                                                                                                                  top: 40 + 40*m + 'px'}">
-                                      @for (tz of getTimeZonesByLocation(loc.locationId,loc.slot); track tz; let n = $index) {<div class="range" [ngStyle]="{width: (tz.endTime-tz.startTime)*zoomLevel + 'px',
-                                                                                                                              left: (tz.startTime*zoomLevel) + 'px',
-                                                                                                                              'background-color': getColorForId(tz.eventTypeId)}"
-                                                                                                                              (click)="openInfo(tz.scheduleId)">{{getEventTypeNameByID(tz.eventTypeId)}}</div>}
-                                      @for (tz of getConstraintsByParticipant(loc.locationId); track tz; let n = $index) {<div *ngIf="isConstraint" class="constraintRange" [ngStyle]="{width: (getNumberFromDate(tz.endTime) - getNumberFromDate(tz.startTime)) * zoomLevel + 'px',
-                                                                                                                              left: (getNumberFromDate(tz.startTime) * zoomLevel) + 'px'}"></div>}
-                                    <div #box class="rowName" [ngStyle]="{width: rowWidth2 + 'px'}"><span>{{loc.title}}</span><div class="resizer" (mousedown)="startResize2($event)" (touchstart)="startResize2($event)"></div></div></div>}                                                                                                            
-    </div>
-  </div>
+  }
 </div>

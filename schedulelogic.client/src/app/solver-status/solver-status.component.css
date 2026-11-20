@@ -1,0 +1,70 @@
+:host {
+  display: block;
+}
+
+.status {
+  --tone: #94a3b8;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--tone) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tone) 35%, transparent);
+  color: #e2e8f0;
+  font-family: "Inter", "Segoe UI", sans-serif;
+  text-align: left;
+}
+
+.tone-running { --tone: #fbbf24; }
+.tone-success { --tone: #34d399; }
+.tone-warning { --tone: #fb923c; }
+.tone-danger  { --tone: #f87171; }
+
+.dot {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: var(--tone);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--tone) 22%, transparent);
+}
+
+.dot.pulse {
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+.text {
+  min-width: 0;
+}
+
+.labelRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+
+.label {
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--tone);
+}
+
+.time {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.detail {
+  margin-top: 2px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #cbd5e1;
+}
+
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--tone) 30%, transparent); }
+  50%      { box-shadow: 0 0 0 8px color-mix(in srgb, var(--tone) 0%, transparent); }
+}

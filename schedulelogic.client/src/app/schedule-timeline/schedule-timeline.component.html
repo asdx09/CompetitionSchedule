@@ -1,0 +1,59 @@
+<section class="timeline">
+  <div class="head">
+    <div class="titleBox">
+      <h2>{{ title }}</h2>
+      <span class="count">{{ visibleRows.length }} / {{ rows.length }}</span>
+    </div>
+    <input class="filter" type="search" [(ngModel)]="filter" [placeholder]="'Filter ' + nameHeader.toLowerCase() + '…'">
+  </div>
+
+  <div class="scroller" #scroller>
+    <div class="canvas" [style.width.px]="nameWidth + width">
+      <div class="axis">
+        <div class="corner" [style.width.px]="nameWidth">
+          {{ nameHeader }}
+          <div class="resizer" (mousedown)="startResize($event)" (touchstart)="startResize($event)"></div>
+        </div>
+        <div class="axisTrack" [style.width.px]="width">
+          @for (d of dayMarks; track d.left) {
+          <div class="day" [style.left.px]="d.left" [style.width.px]="1440 * zoom">
+            <span class="dayLabel" [style.left.px]="nameWidth + 8">{{ d.label }}</span>
+          </div>
+          }
+          @for (h of hourMarks; track h.left) {
+          <div class="hour" [style.left.px]="h.left">{{ h.label }}</div>
+          }
+        </div>
+      </div>
+
+      @for (row of visibleRows; track row.key) {
+      <div class="row">
+        <div class="name" [style.width.px]="nameWidth" [title]="row.name + (row.sub ? ' · ' + row.sub : '')">
+          <span class="nameMain">{{ row.name }}</span>
+          @if (row.sub) {<span class="nameSub">{{ row.sub }}</span>}
+        </div>
+        <div class="track" [style.width.px]="width" [style.background-size]="gridBackground">
+          <div class="off" [style.left.px]="0" [style.width.px]="activeStart * zoom"></div>
+          <div class="off" [style.left.px]="activeEnd * zoom" [style.width.px]="(totalMinutes - activeEnd) * zoom"></div>
+          @if (showUnavailable) {
+          @for (u of row.unavailable; track $index) {
+          <div class="unavailable" [style.left.px]="u.start * zoom" [style.width.px]="(u.end - u.start) * zoom"
+            title="Unavailable"></div>
+          }
+          }
+          @for (b of row.blocks; track b.id) {
+          <button type="button" class="block" [style.left.px]="b.start * zoom" [style.width.px]="(b.end - b.start) * zoom"
+            [style.background]="b.color" [style.color]="b.textColor" [title]="b.tooltip" (click)="blockClick.emit(b.id)">
+            @if ((b.end - b.start) * zoom >= 34) {<span>{{ b.label }}</span>}
+          </button>
+          }
+        </div>
+      </div>
+      } @empty {
+      <div class="empty" [style.width.px]="nameWidth + width">
+        <span [style.left.px]="16">Nothing matches the filter.</span>
+      </div>
+      }
+    </div>
+  </div>
+</section>

@@ -1,7 +1,11 @@
 <div class="box">
-    Competitor: {{getParticipantName()}}<br>
-    Event Type: {{getEventtypeName()}}<br>
-    Location: {{getLocationName()}}<br>
-    Slot: {{getSlot()}}<br>
-    {{getTimeZone()}}<br>
+  <div class="eyebrow">Start</div>
+  <h2>{{ eventTypeName }}</h2>
+  <dl>
+    <dt>Time</dt><dd>{{ time }}</dd>
+    <dt>Competitor</dt><dd>{{ participantName }}</dd>
+    @if (groupName) {<dt>Group</dt><dd>{{ groupName }}</dd>}
+    <dt>Location</dt><dd>{{ locationName }}</dd>
+  </dl>
+  <button type="button" (click)="dialogRef.close()">Close</button>
 </div>

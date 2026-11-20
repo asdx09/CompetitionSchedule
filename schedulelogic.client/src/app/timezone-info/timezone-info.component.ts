@@ -1,7 +1,6 @@
 import { Component, Inject } from '@angular/core';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { LocationSelectorComponent } from '../location-selector/location-selector.component';
-import { data } from '../events.service';
+import { data, TimeZone } from '../events.service';
 
 @Component({
   selector: 'app-timezone-info',
@@ -11,37 +10,40 @@ import { data } from '../events.service';
 })
 export class TimezoneInfoComponent {
   constructor(
-      public dialogRef: MatDialogRef<LocationSelectorComponent>,
-      @Inject(MAT_DIALOG_DATA)  public data: { data: data; index: string }
-    ) {}
-
-  getLocationName(): string {
-    const p = this.data.data.timeZones.find(p => p.scheduleId === this.data.index);
-    const q = this.data.data.locations.find(q => q.locationId === p?.locationId.toString());
-    return q ? q.locationName ?? '' : '';
+    public dialogRef: MatDialogRef<TimezoneInfoComponent>,
+    @Inject(MAT_DIALOG_DATA) public data: { data: data; index: string }
+  ) {
+    this.entry = data.data.timeZones.find(t => String(t.scheduleId) === String(data.index));
   }
 
-  getParticipantName(): string {
-    const p = this.data.data.timeZones.find(p => p.scheduleId === this.data.index);
-    const q = this.data.data.participants.find(q => q.participantId === p?.participantId.toString());
-    return q ? q.participantName ?? '' : '';
+  entry?: TimeZone;
+
+  get eventTypeName(): string {
+    return this.data.data.eventTypes.find(t => String(t.eventTypeId) === String(this.entry?.eventTypeId))?.typeName ?? '';
   }
 
-  getEventtypeName(): string {
-    const p = this.data.data.timeZones.find(p => p.scheduleId === this.data.index);
-    const q = this.data.data.eventTypes.find(q => q.eventTypeId === p?.eventTypeId.toString());
-    return q ? q.typeName ?? '' : '';
+  get participantName(): string {
+    const p = this.data.data.participants.find(p => String(p.participantId) === String(this.entry?.participantId));
+    return p ? `${p.participantName} (#${p.competitorNumber})` : '';
   }
 
-  getSlot(): number {
-    const p = this.data.data.timeZones.find(p => p.scheduleId === this.data.index);
-    return p ? p?.slot ?? 0 : 0;
+  get groupName(): string {
+    const p = this.data.data.participants.find(p => String(p.participantId) === String(this.entry?.participantId));
+    return this.data.data.groups.find(g => String(g.groupId) === String(p?.groupId))?.groupName ?? '';
   }
 
-  getTimeZone(): string {
-    const p = this.data.data.timeZones.find(p => p.scheduleId === this.data.index);
-    const t = p?.startTime ?? 0;
-    const t2 = p?.endTime ?? 0;
-    return (Math.floor(t / 60)%24).toString() + ':' + (t % 60).toString().padStart(2, '0') + '-' + (Math.floor(t2 / 60)%24).toString() + ':' + (t2 % 60).toString().padStart(2, '0') ;
+  get locationName(): string {
+    const l = this.data.data.locations.find(l => String(l.locationId) === String(this.entry?.locationId));
+    return l ? `${l.locationName}, lane ${this.entry?.slot}` : '';
+  }
+
+  get time(): string {
+    if (!this.entry) return '';
+    const day = new Date(this.data.data.eventData.startDate);
+    day.setHours(0, 0, 0, 0);
+    const start = new Date(day.getTime() + this.entry.startTime * 60000);
+    const end = new Date(day.getTime() + this.entry.endTime * 60000);
+    const t = (d: Date) => d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    return `${start.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}, ${t(start)} – ${t(end)}`;
   }
 }
