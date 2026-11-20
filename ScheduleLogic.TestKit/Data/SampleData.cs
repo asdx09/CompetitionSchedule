@@ -2,11 +2,6 @@ using System.Text.Json.Nodes;
 
 namespace ScheduleLogic.TestKit.Data;
 
-/// <summary>
-/// Teszt- és mérőadatok a save-event / new-wizard végpontokhoz, pontosan
-/// abban a formában, ahogy az Angular kliens küldi: az új elemek ideiglenes
-/// (GUID) azonosítót kapnak, a végleges azonosítót az adatbázis osztja ki.
-/// </summary>
 public static class SampleData
 {
     public static readonly DateTime DefaultStart = new(2026, 3, 1, 7, 0, 0, DateTimeKind.Utc);
@@ -15,27 +10,23 @@ public static class SampleData
     private static string Iso(DateTime utc) => utc.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'");
     private static string Hms(int minutes) => TimeSpan.FromMinutes(minutes).ToString(@"hh\:mm\:ss");
 
-    /// <summary>
-    /// Kis, biztosan megoldható verseny: 2 helyszín, 2 versenyszám,
-    /// 3 versenyző (egy csoportban egy), 4 nevezés, 1 tiltott időszak.
-    /// </summary>
-    public static JsonObject SmallEvent(long eventId, string name = "Teszt lőverseny")
+        public static JsonObject SmallEvent(long eventId, string name = "Test shooting competition")
     {
         string l1 = Tmp(), l2 = Tmp(), t1 = Tmp(), t2 = Tmp(), g1 = Tmp(), p1 = Tmp(), p2 = Tmp(), p3 = Tmp();
         return new JsonObject
         {
             ["eventData"] = EventData(eventId.ToString(), name, DefaultStart, DefaultStart.AddHours(9)),
             ["eventTypes"] = new JsonArray(
-                EventType(t1, "Légpuska 40 lövés", 30),
-                EventType(t2, "Légpisztoly 40 lövés", 20)),
+                EventType(t1, "Air rifle 40 shots", 30),
+                EventType(t2, "Air pistol 40 shots", 20)),
             ["groups"] = new JsonArray(Group(g1, "Junior")),
             ["locations"] = new JsonArray(
-                Location(l1, "Lőtér A", 2),
-                Location(l2, "Lőtér B", 1)),
+                Location(l1, "Range A", 2),
+                Location(l2, "Range B", 1)),
             ["participants"] = new JsonArray(
-                Participant(p1, 1, "Kiss Anna", g1),
-                Participant(p2, 2, "Nagy Béla", null),
-                Participant(p3, 3, "Tóth Cili", null)),
+                Participant(p1, 1, "Anna Smith", g1),
+                Participant(p2, 2, "Ben Taylor", null),
+                Participant(p3, 3, "Cecil Brown", null)),
             ["registrations"] = new JsonArray(
                 Registration(p1, t1),
                 Registration(p1, t2),
@@ -52,11 +43,7 @@ public static class SampleData
         };
     }
 
-    /// <summary>
-    /// Nagyobb, valószerű verseny a terheléses méréshez (determinisztikus:
-    /// ugyanazzal a seeddel mindig ugyanazt adja). Kb. 2 nevezés/versenyző.
-    /// </summary>
-    public static JsonObject LargeEvent(long eventId, int participants, int seed = 42, string name = "Mérési verseny")
+        public static JsonObject LargeEvent(long eventId, int participants, int seed = 42, string name = "Load test event")
     {
         var rnd = new Random(seed);
         participants = Math.Max(1, participants);
@@ -65,9 +52,9 @@ public static class SampleData
         int groupCount = Math.Max(1, participants / 10);
         int days = 1 + participants / 150;
 
-        var locations = Enumerable.Range(1, locationCount).Select(i => (Id: Tmp(), Name: $"Lőtér {i}", Slots: 6 + i % 5)).ToList();
-        var types = Enumerable.Range(1, typeCount).Select(i => (Id: Tmp(), Name: $"Versenyszám {i}", Minutes: 20 + 10 * (i % 5))).ToList();
-        var groups = Enumerable.Range(1, groupCount).Select(i => (Id: Tmp(), Name: $"Egyesület {i}")).ToList();
+        var locations = Enumerable.Range(1, locationCount).Select(i => (Id: Tmp(), Name: $"Range {i}", Slots: 6 + i % 5)).ToList();
+        var types = Enumerable.Range(1, typeCount).Select(i => (Id: Tmp(), Name: $"Event type {i}", Minutes: 20 + 10 * (i % 5))).ToList();
+        var groups = Enumerable.Range(1, groupCount).Select(i => (Id: Tmp(), Name: $"Club {i}")).ToList();
 
         var locationTable = new JsonArray();
         foreach (var (t, i) in types.Select((t, i) => (t, i)))
@@ -83,7 +70,7 @@ public static class SampleData
         {
             string pid = Tmp();
             string? gid = rnd.NextDouble() < 0.5 ? groups[rnd.Next(groupCount)].Id : null;
-            participantArr.Add(Participant(pid, i, $"Versenyző {i:000}", gid));
+            participantArr.Add(Participant(pid, i, $"Competitor {i:000}", gid));
             foreach (var t in types.OrderBy(_ => rnd.Next()).Take(1 + rnd.Next(3)))
                 registrations.Add(Registration(pid, t.Id));
         }
@@ -108,18 +95,12 @@ public static class SampleData
         };
     }
 
-    /// <summary>
-    /// A frontend egy már betöltött versenyt (a végleges azonosítókkal) küld
-    /// vissza mentéskor; ez a get-event válaszából ilyen mentési kérést készít.
-    /// </summary>
-    public static JsonObject FromLoaded(JsonObject loaded)
+        public static JsonObject FromLoaded(JsonObject loaded)
     {
         var copy = (JsonObject)loaded.DeepClone();
         copy["timeZones"] = new JsonArray();
         return copy;
     }
-
-    // ------------------------------------------------------------------
 
     public static JsonObject EventData(string eventId, string name, DateTime startUtc, DateTime endUtc) => new()
     {

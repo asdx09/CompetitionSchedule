@@ -4,10 +4,6 @@ declare(strict_types=1);
 
 namespace ScheduleLogic\Core;
 
-/**
- * Egyszerű fájl-alapú napló (az ILogger<T> megfelelője).
- * Naponta új fájl: storage/logs/app-YYYY-MM-DD.log
- */
 final class Logger
 {
     private const LEVELS = ['debug' => 0, 'info' => 1, 'warning' => 2, 'error' => 3];
@@ -45,7 +41,6 @@ final class Logger
             return;
         }
 
-        // {Placeholder} stílusú üzenetsablon, mint a .NET structured logging.
         $message = preg_replace_callback('/\{(\w+)\}/', static function ($m) use ($context) {
             if (!array_key_exists($m[1], $context)) {
                 return $m[0];
@@ -76,7 +71,6 @@ final class Logger
         if ($ok === false) {
             error_log(rtrim($line));
         }
-        // Fejlesztői szervernél (php -S) a konzolra is kiírjuk.
         if (PHP_SAPI === 'cli-server') {
             file_put_contents('php://stderr', $line);
         }

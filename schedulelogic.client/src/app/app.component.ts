@@ -21,7 +21,6 @@ export class AppComponent implements OnInit {
 
      this.isMobile = window.innerWidth <= 768;
 
-    //Get username
     this.AuthGuard.username$.subscribe(name => {
       this.username = name ?? "";
     });

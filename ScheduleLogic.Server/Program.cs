@@ -13,15 +13,10 @@ using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Konfiguráció: appsettings.json -> appsettings.{Környezet}.json -> User Secrets
-// (csak Development) -> környezeti változók (pl. Database__Password).
-// Jelszó, kulcs, token NEM kerülhet az appsettings fájlokba, lásd KONFIGURACIO.md.
-
 builder.Services.AddExceptionHandler<ExceptionHandler>();
 builder.Services.AddProblemDetails();
 builder.Services.AddControllersWithViews();
 
-// CORS policy
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAngularApp", policy =>
@@ -51,17 +46,13 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping;
     });
 
-// --- Adatbázis ---------------------------------------------------------------
-// A kapcsolati adatok a "Database" szekcióból jönnek; a jelszó User Secretsből
-// (fejlesztés) vagy a Database__Password környezeti változóból (éles).
-// A builder escape-eli az értékeket (pl. ';' a jelszóban nem töri el a stringet).
 var database = builder.Configuration.GetSection("Database");
 if (string.IsNullOrEmpty(database["Password"]))
 {
     throw new InvalidOperationException(
-        "Hiányzik az adatbázis jelszava (Database:Password). Fejlesztéskor: " +
+        "The database password (Database:Password) is missing. In development: " +
         "dotnet user-secrets set \"Database:Password\" \"...\" --project ScheduleLogic.Server; " +
-        "élesben a Database__Password környezeti változó. Részletek: KONFIGURACIO.md");
+        "in production the Database__Password environment variable. Details: CONFIGURATION.md");
 }
 var connectionString = new NpgsqlConnectionStringBuilder
 {
@@ -93,20 +84,17 @@ builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 
-// --- Biztonság ---------------------------------------------------------------
 builder.Services.AddSingleton<SolverCallbackSigner>();
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<ServerSideTicketStore>();
 builder.Services.AddScheduleLogicRateLimiting(builder.Configuration);
 
-// Reverse proxy (nginx) mögött a valódi kliens IP-je és sémája az
-// X-Forwarded-For / X-Forwarded-Proto fejlécből jön, de csak a megbízható
-// proxytól (ForwardedHeaders:KnownProxies, alapból a localhost).
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
     options.KnownProxies.Clear();
-    options.KnownNetworks.Clear();
+    // Only the configured reverse proxies are trusted for X-Forwarded-For (used by the per-IP rate limiter).
+    options.KnownIPNetworks.Clear();
     var proxies = builder.Configuration.GetSection("ForwardedHeaders:KnownProxies").Get<string[]>()
                   ?? new[] { "127.0.0.1", "::1" };
     foreach (var proxy in proxies)
@@ -141,10 +129,6 @@ builder.Services.AddAuthentication(options =>
         return Task.CompletedTask;
     };
 
-    // SameSite=Lax mindenhol: a frontend ugyanarról a domainről fut, így a
-    // korábbi SameSite=None csak azt tette lehetővé, hogy egy idegen oldal a
-    // felhasználó nevében küldjön kéréseket (CSRF). Domain sincs megadva, így
-    // a süti csak a pontos hosztra megy (aldomainekre nem).
     options.Cookie.SameSite = SameSiteMode.Lax;
     options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
         ? CookieSecurePolicy.SameAsRequest
@@ -172,11 +156,10 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// Mindkét séma szerveroldali munkamenetet használ: kijelentkezéskor a régi
-// süti azonnal érvénytelen lesz (lásd ServerSideTicketStore).
 foreach (var scheme in new[] { CookieAuthenticationDefaults.AuthenticationScheme, "AdminCookie" })
 {
     builder.Services.AddOptions<CookieAuthenticationOptions>(scheme)
+        // Sessions live on the server, so logout really invalidates a stolen cookie.
         .Configure<ServerSideTicketStore>((options, store) => options.SessionStore = store);
 }
 
@@ -188,8 +171,6 @@ app.UseHttpsRedirection();
 
 app.Use(async (context, next) =>
 {
-    // A böngésző ne találgassa a tartalomtípust, és az oldal ne legyen
-    // beágyazható más oldalba (clickjacking).
     context.Response.Headers.XContentTypeOptions = "nosniff";
     context.Response.Headers.XFrameOptions = "DENY";
     await next();

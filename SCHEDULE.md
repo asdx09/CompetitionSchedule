@@ -1,43 +1,43 @@
 # Project Schedule
-- 2026-03-01: Adat exportálás
-- 2026-03-08: C# oldali refaktorálás V1
-- 2026-03-15: C# oldali refaktorálás V2
-- 2026-03-22: Python oldali teljesítmény javítás V1
-- 2026-03-29: Python oldali teljesítmény javítás V2
-- 2026-04-05: Python API kulcs integrálása
-- 2026-04-12: Python oldali refaktorálás
-- 2026-04-19: Ts oldali refaktorálás 
-- 2026-04-26: Adatbázis migrálása Postgre SQL-re (MS SQL-ről)
-- 2026-05-03: Rendszer felkészítése prod környezetre
-- 2026-05-10: Tesztelés V1
-- 2026-05-17: Tesztelés V2 & Dokumentáció
+- 2026-03-01: Data export
+- 2026-03-08: C# refactoring V1
+- 2026-03-15: C# refactoring V2
+- 2026-03-22: Python performance improvements V1
+- 2026-03-29: Python performance improvements V2
+- 2026-04-05: Python API key integration
+- 2026-04-12: Python refactoring
+- 2026-04-19: TypeScript refactoring
+- 2026-04-26: Database migration to PostgreSQL (from MS SQL)
+- 2026-05-03: Preparing the system for production
+- 2026-05-10: Testing V1
+- 2026-05-17: Testing V2 & documentation
 
-## Adat exportálás
-Az adatokat (rendezetten/átláthatóan) egy, a webes felületen elérhető gombbal, ki-exportálni/letölteni a felhasználó számítógépére.
+## Data export
+Export/download the data (in an organized, readable form) to the user's computer with a button on the web UI.
 
-## Adatbázis migrálása Postgre SQL-re (MS SQL-ről)
-Az MS SQL tökéletes volt fejlesztés alatt, viszont production környezetben nem ideális. 
+## Database migration to PostgreSQL (from MS SQL)
+MS SQL was fine during development, but it is not ideal in production.
 
-## C# oldali refaktorálás
-A kód átnézése, biztonsági hibák javítása
+## C# refactoring
+Code review, fixing security issues.
 
-## Python oldali teljesítmény javítás
-A solver teljesítményének javítása
+## Python performance improvements
+Improving the performance of the solver.
 
-## Python API kulcs integrálása
-Az API felkészítése nyílt használatra
+## Python API key integration
+Preparing the API for public use.
 
-## Python oldali refaktorálás
-A kód átnézése, biztonsági hibák javítása
+## Python refactoring
+Code review, fixing security issues.
 
-## Ts oldali refaktorálás
-A kód átnézése, biztonsági hibák javítása
+## TypeScript refactoring
+Code review, fixing security issues.
 
-## Rendszer felkészítése prod környezetre
-Tanusítványok kezelése, domain integráció
+## Preparing the system for production
+Certificate handling, domain integration.
 
-## Tesztelés
-Tesztelés
+## Testing
+Testing.
 
-## Dokumentáció
-Dokumentáció
+## Documentation
+Documentation.

@@ -4,19 +4,6 @@ declare(strict_types=1);
 
 namespace ScheduleLogic\Services;
 
-/**
- * Az ASP.NET Core Identity PasswordHasher<T> pontos PHP megfelelője, hogy a
- * .NET backenddel regisztrált felhasználók itt is be tudjanak lépni (és
- * fordítva). A hash formátuma (base64):
- *
- *   V3 (.NET Core Identity, ezt használja a projekt):
- *     [0x01][PRF: uint32 BE][iterációk: uint32 BE][só hossza: uint32 BE][só][alkulcs]
- *     PRF: 0 = HMAC-SHA1, 1 = HMAC-SHA256, 2 = HMAC-SHA512
- *     .NET 7+ alapértelmezés: HMAC-SHA512, 100 000 iteráció, 128 bites só, 256 bites alkulcs
- *
- *   V2 (régi ASP.NET Identity):
- *     [0x00][só: 16 bájt][alkulcs: 32 bájt]  PBKDF2-HMAC-SHA1, 1000 iteráció
- */
 final class PasswordHasher
 {
     public const FAILED = 0;
@@ -39,7 +26,7 @@ final class PasswordHasher
 
         return base64_encode(
             "\x01"
-            . pack('N', 2)                // PRF = HMAC-SHA512
+            . pack('N', 2)
             . pack('N', $this->iterations)
             . pack('N', $this->saltSize)
             . $salt
@@ -47,7 +34,6 @@ final class PasswordHasher
         );
     }
 
-    /** @return int  FAILED | SUCCESS | SUCCESS_REHASH_NEEDED (mint a PasswordVerificationResult) */
     public function verify(string $hashedPassword, string $providedPassword): int
     {
         $decoded = base64_decode($hashedPassword, true);
@@ -57,7 +43,7 @@ final class PasswordHasher
 
         return match (ord($decoded[0])) {
             0x00 => $this->verifyV2($decoded, $providedPassword)
-                ? self::SUCCESS_REHASH_NEEDED   // régi formátum: érdemes újrahash-elni
+                ? self::SUCCESS_REHASH_NEEDED
                 : self::FAILED,
             0x01 => $this->verifyV3($decoded, $providedPassword),
             default => self::FAILED,
@@ -99,7 +85,6 @@ final class PasswordHasher
         if (!hash_equals($expected, $actual)) {
             return self::FAILED;
         }
-        // Gyengébb paraméterekkel készült hash: sikeres, de érdemes frissíteni.
         return ($iterations < $this->iterations || $prf !== 2)
             ? self::SUCCESS_REHASH_NEEDED
             : self::SUCCESS;

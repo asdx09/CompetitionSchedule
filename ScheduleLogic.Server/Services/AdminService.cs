@@ -40,7 +40,7 @@ namespace ScheduleLogic.Server.Services
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Admin health check: az adatbázis nem érhető el.");
+                _logger.LogWarning(ex, "Admin health check: the database is not reachable.");
                 stats.DatabaseAvailable = false;
             }
 
@@ -48,12 +48,6 @@ namespace ScheduleLogic.Server.Services
             return stats;
         }
 
-        // Nincs ismert /health végpontunk a solvernél, ezért csak azt nézzük,
-        // fogad-e egyáltalán kapcsolatot HTTP szinten. Bármilyen válasz
-        // (akár 404 is) azt jelenti, hogy a folyamat fut és figyel; csak a
-        // kapcsolódási hiba/timeout számít "nem elérhető"-nek.
-        // Ha a solvernek van tényleges health/status végpontja, cseréld le
-        // a GetAsync("") hívást arra.
         private async Task<bool> CheckSolverAvailableAsync()
         {
             try
@@ -65,7 +59,7 @@ namespace ScheduleLogic.Server.Services
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Admin health check: a solver nem érhető el.");
+                _logger.LogWarning(ex, "Admin health check: the solver is not reachable.");
                 return false;
             }
         }
@@ -79,7 +73,6 @@ namespace ScheduleLogic.Server.Services
         public async Task<bool> DeleteUserAsync(long userId)
         {
             await _users.DeleteAsync(userId);
-            // A törölt felhasználó bejelentkezett munkamenetei is azonnal megszűnnek.
             _sessions.RemoveAllForUser(userId);
             return true;
         }

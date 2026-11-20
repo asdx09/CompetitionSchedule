@@ -2,22 +2,6 @@ using System.Text.Json.Nodes;
 
 namespace ScheduleLogic.TestKit.Validation;
 
-/// <summary>
-/// Független ellenőrző: a backendtől lekért kész beosztásról (GET
-/// api/Schedule/{id}) megnézi, hogy betartja-e a verseny szabályait. Nem a
-/// solver kódját használja, hanem csak a bemenetet és az eredményt, így a
-/// solver és a backend helyességét is igazolja (tesztorákulum).
-///
-/// Ellenőrzött szabályok:
-///  1. minden nevezés pontosan egyszer szerepel a beosztásban,
-///  2. az indulás hossza egyezik a versenyszám időtartamával,
-///  3. az indulás olyan helyszínen van, ahol a versenyszám rendezhető,
-///  4. a lőállás sorszáma 1 és a helyszín lőállásszáma között van,
-///  5. egy lőálláson nincs két egymást fedő indulás,
-///  6. egy helyszínen egyszerre legfeljebb annyian lőnek, ahány lőállás van,
-///  7. egy versenyző indulásai nem fedik egymást,
-///  8. egy versenyszám összes indulása ugyanazon a helyszínen van.
-/// </summary>
 public static class ScheduleValidator
 {
     public sealed record Entry(string Participant, string EventType, string Location, int Start, int End, int Slot);
@@ -43,7 +27,6 @@ public static class ScheduleValidator
         string Who(Entry e) =>
             $"{names.GetValueOrDefault(e.Participant, "#" + e.Participant)} / {typeNames.GetValueOrDefault(e.EventType, "#" + e.EventType)}";
 
-        // 1. minden nevezés pontosan egyszer
         var expected = Arr(data, "registrations")
             .Select(r => (Participant: Str(r, "participantId"), EventType: Str(r, "eventTypeId")))
             .ToList();
@@ -52,36 +35,31 @@ public static class ScheduleValidator
         {
             int n = actual.GetValueOrDefault(key);
             if (n != 1)
-                errors.Add($"A(z) {names.GetValueOrDefault(key.Participant, key.Participant)} / {typeNames.GetValueOrDefault(key.EventType, key.EventType)} nevezés {n}× szerepel (pontosan 1 kellene).");
+                errors.Add($"Entry {names.GetValueOrDefault(key.Participant, key.Participant)} / {typeNames.GetValueOrDefault(key.EventType, key.EventType)} appears {n} times (should be exactly 1).");
         }
         foreach (var key in actual.Keys.Except(expected))
-            errors.Add($"A beosztásban olyan indulás van, amihez nincs nevezés: versenyző {key.Participant}, versenyszám {key.EventType}.");
+            errors.Add($"The schedule contains a start without an entry: competitor {key.Participant}, event type {key.EventType}.");
 
         foreach (var e in entries)
         {
-            // 2. időtartam
             if (typeMinutes.TryGetValue(e.EventType, out var minutes) && e.End - e.Start != minutes)
-                errors.Add($"{Who(e)}: az indulás {e.End - e.Start} perces, a versenyszám {minutes} perces.");
+                errors.Add($"{Who(e)}: the start is {e.End - e.Start} minutes long, the event type takes {minutes} minutes.");
             if (e.End <= e.Start)
-                errors.Add($"{Who(e)}: a befejezés nem a kezdés után van ({e.Start}–{e.End}).");
+                errors.Add($"{Who(e)}: the end is not after the start ({e.Start}–{e.End}).");
 
-            // 3. megengedett helyszín
             if (!allowed.TryGetValue(e.EventType, out var locs) || !locs.Contains(e.Location))
-                errors.Add($"{Who(e)}: olyan helyszínre került ({e.Location}), ahol a versenyszám nem rendezhető.");
+                errors.Add($"{Who(e)}: placed at a location ({e.Location}) where the event type cannot be held.");
 
-            // 4. lőállás sorszáma
             if (!slots.TryGetValue(e.Location, out var max))
-                errors.Add($"{Who(e)}: ismeretlen helyszín ({e.Location}).");
+                errors.Add($"{Who(e)}: unknown location ({e.Location}).");
             else if (e.Slot < 1 || e.Slot > max)
-                errors.Add($"{Who(e)}: a lőállás sorszáma {e.Slot}, de a helyszínen csak {max} lőállás van.");
+                errors.Add($"{Who(e)}: lane number is {e.Slot}, but the location only has {max} lanes.");
         }
 
-        // 5. egy lőálláson nincs átfedés
         foreach (var g in entries.GroupBy(e => (e.Location, e.Slot)))
             foreach (var (a, b) in Overlapping(g))
-                errors.Add($"Átfedés a(z) {g.Key.Location} helyszín {g.Key.Slot}. lőállásán: {Who(a)} ({a.Start}–{a.End}) és {Who(b)} ({b.Start}–{b.End}).");
+                errors.Add($"Overlap at location {g.Key.Location}, lane {g.Key.Slot}: {Who(a)} ({a.Start}–{a.End}) and {Who(b)} ({b.Start}–{b.End}).");
 
-        // 6. kapacitás (söpréssel: +1 kezdéskor, -1 befejezéskor)
         foreach (var g in entries.GroupBy(e => e.Location))
         {
             if (!slots.TryGetValue(g.Key, out var cap)) continue;
@@ -93,20 +71,18 @@ public static class ScheduleValidator
                 peak = Math.Max(peak, current);
             }
             if (peak > cap)
-                errors.Add($"A(z) {g.Key} helyszínen egyszerre {peak} induló van, de csak {cap} lőállás.");
+                errors.Add($"Location {g.Key} has {peak} shooters at the same time, but only {cap} lanes.");
         }
 
-        // 7. versenyző nem lehet két helyen egyszerre
         foreach (var g in entries.GroupBy(e => e.Participant))
             foreach (var (a, b) in Overlapping(g))
-                errors.Add($"{names.GetValueOrDefault(g.Key, g.Key)} két indulása fedi egymást: {a.Start}–{a.End} és {b.Start}–{b.End}.");
+                errors.Add($"Two starts of {names.GetValueOrDefault(g.Key, g.Key)} overlap: {a.Start}–{a.End} and {b.Start}–{b.End}.");
 
-        // 8. egy versenyszám egy helyszínen
         foreach (var g in entries.GroupBy(e => e.EventType))
         {
             var distinct = g.Select(e => e.Location).Distinct().ToList();
             if (distinct.Count > 1)
-                errors.Add($"A(z) {typeNames.GetValueOrDefault(g.Key, g.Key)} versenyszám indulásai több helyszínen vannak: {string.Join(", ", distinct)}.");
+                errors.Add($"The starts of event type {typeNames.GetValueOrDefault(g.Key, g.Key)} are at several locations: {string.Join(", ", distinct)}.");
         }
 
         return errors;

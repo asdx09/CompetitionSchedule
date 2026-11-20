@@ -4,21 +4,13 @@ declare(strict_types=1);
 
 namespace ScheduleLogic\Core;
 
-/**
- * A beérkező HTTP kérés. Reverse proxy (nginx / Caddy) mögött a megbízható
- * proxyktól érkező X-Forwarded-For / X-Forwarded-Proto fejléceket is
- * figyelembe veszi (ASP.NET-ben ez a ForwardedHeaders middleware dolga).
- */
 final class Request
 {
-    /** @var array<string, string> kisbetűs fejlécnév => érték */
     private array $headers;
-    /** @var array<string, string> kisbetűs query kulcs => érték */
     private array $queryLower;
     private ?array $jsonCache = null;
     private bool $jsonParsed = false;
 
-    /** @var array<string, string> útvonal-paraméterek ({id} stb.) */
     public array $routeParams = [];
 
     public readonly string $method;
@@ -26,9 +18,6 @@ final class Request
     public readonly string $clientIp;
     public readonly bool $isHttps;
 
-    /**
-     * @param list<string> $trustedProxies
-     */
     public function __construct(
         array $server,
         array $query,
@@ -60,7 +49,6 @@ final class Request
             }
         }
 
-        // ---- kliens IP és séma (proxy mögött is) ----
         $remote = (string)($server['REMOTE_ADDR'] ?? '');
         $ip = $remote;
         $https = (!empty($server['HTTPS']) && $server['HTTPS'] !== 'off');
@@ -68,7 +56,6 @@ final class Request
         if ($remote !== '' && in_array($remote, $trustedProxies, true)) {
             $forwardedFor = $headers['x-forwarded-for'] ?? '';
             if ($forwardedFor !== '') {
-                // Jobbról balra az első nem megbízható cím a valódi kliens.
                 $hops = array_reverse(array_map('trim', explode(',', $forwardedFor)));
                 foreach ($hops as $hop) {
                     if ($hop !== '' && !in_array($hop, $trustedProxies, true)) {
@@ -97,7 +84,6 @@ final class Request
         return $this->headers[strtolower($name)] ?? null;
     }
 
-    /** Query paraméter, kis/nagybetű-érzéketlenül (mint az ASP.NET model binding). */
     public function query(string $name): ?string
     {
         return $this->queryLower[strtolower($name)] ?? null;
@@ -125,10 +111,6 @@ final class Request
         return $this->rawBody;
     }
 
-    /**
-     * A JSON törzs kisbetűs kulcsokkal (lásd Json::lowerKeys), vagy null,
-     * ha nincs törzs / nem érvényes JSON objektum.
-     */
     public function json(): ?array
     {
         if (!$this->jsonParsed) {
@@ -142,10 +124,6 @@ final class Request
         return $this->jsonCache;
     }
 
-    /**
-     * [FromBody] kötés: JSON objektumot vár, különben ugyanúgy 400-at ad,
-     * mint az [ApiController].
-     */
     public function requireJsonBody(): array
     {
         $contentType = strtolower($this->header('content-type') ?? '');

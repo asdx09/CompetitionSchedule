@@ -169,7 +169,7 @@ h1{
   font-family: inherit;
   color: #3c4043;
   background-color: #ffffff;
-  border: 1px solid #dadce0; /* Finom szürke keret */
+  border: 1px solid #dadce0;
   border-radius: 4px;
   outline: none;
   transition: all 0.2s ease-in-out;
@@ -279,5 +279,3 @@ button:disabled {
 .checkbox-wrapper-17 label:active:after {
   width: 55%;
 }
-
-

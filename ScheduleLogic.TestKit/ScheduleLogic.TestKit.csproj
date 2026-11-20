@@ -1,13 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!--
-    A ScheduleLogic backendek (ASP.NET Core és PHP) fekete dobozos tesztelése és
-    terheléses mérése. Külső NuGet csomag nélkül, csak a .NET 8 alapkönyvtárával,
-    így a GUI (ScheduleLogic.TestRunner) és a parancssoros futtató
-    (ScheduleLogic.TestCli) is ezt használja.
-  -->
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>ScheduleLogic.TestKit</RootNamespace>

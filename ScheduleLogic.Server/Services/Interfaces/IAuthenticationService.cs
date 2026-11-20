@@ -5,8 +5,6 @@ namespace ScheduleLogic.Server.Services.Interfaces
 {
     public interface IAuthenticationService
     {
-        // A visszaadott User a validált felhasználó; a bejelentkeztetés
-        // (cookie kiállítása) a kontroller feladata.
         Task<User?> LoginUser(string usernameOrEmail, string password);
         Task<RegisterResult> RegisterUser(string username, string password, string email);
         Task<bool> ConfirmEmailAsync(string token);

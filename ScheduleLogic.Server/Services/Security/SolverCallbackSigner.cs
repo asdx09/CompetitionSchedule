@@ -3,27 +3,7 @@ using System.Text;
 
 namespace ScheduleLogic.Server.Services.Security
 {
-    /// <summary>
-    /// A solver visszahívásának (POST api/Schedule/answer) hitelesítése.
-    ///
-    /// Korábban az answer végpont csak azt nézte, hogy a kérés localhostról
-    /// jön-e. Reverse proxy (nginx) mögött viszont MINDEN kérés localhostról
-    /// érkezik, így bárki beküldhetett volna hamis beosztást. Helyette most
-    /// versenyenként egy HMAC-SHA256 kulcs kerül a visszahívási URL-be:
-    ///
-    ///   https://.../api/Schedule/answer?key=HMAC(titok, "solver-answer:{eventId}")
-    ///
-    /// A Python solveren nem kell változtatni, mert a kapott returnURL-re küld
-    /// vissza. A kulcs csak az adott versenyre érvényes, és nem lehet belőle a
-    /// titkot vagy más verseny kulcsát kiszámolni. (A PHP backend
-    /// SolverCallbackSigner osztályával azonos algoritmus.)
-    ///
-    /// A titok forrása: Solver:CallbackSecret beállítás (User Secrets /
-    /// környezeti változó); ha nincs megadva, az első használatkor generál
-    /// egyet az App_Data/solver-callback.key fájlba, hogy újraindítás után is
-    /// érvényesek maradjanak a futó keresések visszahívásai.
-    /// </summary>
-    public sealed class SolverCallbackSigner
+        public sealed class SolverCallbackSigner
     {
         private readonly byte[] _secret;
 
@@ -33,14 +13,14 @@ namespace ScheduleLogic.Server.Services.Security
             if (!string.IsNullOrWhiteSpace(configured))
             {
                 if (configured.Length < 32)
-                    throw new InvalidOperationException("A Solver:CallbackSecret legalább 32 karakter legyen.");
+                    throw new InvalidOperationException("Solver:CallbackSecret must be at least 32 characters long.");
                 _secret = Encoding.UTF8.GetBytes(configured);
                 return;
             }
 
             var keyFile = Path.Combine(environment.ContentRootPath, "App_Data", "solver-callback.key");
             _secret = Encoding.UTF8.GetBytes(LoadOrCreate(keyFile));
-            logger.LogInformation("Solver:CallbackSecret nincs beállítva, a titok helye: {KeyFile}", keyFile);
+            logger.LogInformation("Solver:CallbackSecret is not set, using the secret stored in: {KeyFile}", keyFile);
         }
 
         public string KeyFor(long eventId)
@@ -69,7 +49,6 @@ namespace ScheduleLogic.Server.Services.Security
             var generated = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
             try
             {
-                // CreateNew: ha közben egy másik példány már létrehozta, azt használjuk.
                 using (var fs = new FileStream(keyFile, FileMode.CreateNew, FileAccess.Write, FileShare.None))
                 using (var writer = new StreamWriter(fs))
                     writer.Write(generated);

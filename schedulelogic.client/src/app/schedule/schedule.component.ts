@@ -165,9 +165,6 @@ export class ScheduleComponent {
   }
 
 
-
-  //Get CAL-1
-
   getParticipants()
   {
     let groups = this.data.groups.filter(f => f.groupName.toUpperCase().includes(this.participantFilter.toUpperCase()));
@@ -226,8 +223,6 @@ export class ScheduleComponent {
     return ((diffMs/1000)/60); 
   }
 
-  //Get CAL-2
-  
   locRows: LocRow[] = [];  
 
   refreshData()

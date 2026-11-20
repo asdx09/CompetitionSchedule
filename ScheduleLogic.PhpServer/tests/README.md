@@ -1,21 +1,21 @@
-# Tesztek
+# Tests
 
-Három szintű teszt tartozik a PHP backendhez. Mindegyik a **futó** backend ellen megy (fekete doboz), ezért ugyanígy lefuttathatók a .NET backend ellen is (`SL_BASE`), ha az össze akarod hasonlítani a kettőt.
+The PHP backend has three levels of tests. All of them run against the **running** backend (black box), so they can be run against the .NET backend too (`SL_BASE`) if you want to compare the two.
 
-| Fájl | Mit ellenőriz | Kell hozzá |
+| File | What it checks | Requires |
 |---|---|---|
-| `test_api.py` | Mind a 29 végpont: válaszkódok, JSON formátum, hibaüzenetek, jogosultságok, e-mail küldés (STARTTLS + AUTH), Identity-kompatibilis jelszóhash, régi hash automatikus frissítése, CORS, rate limit, admin felület + CSRF, solver-visszahívás kulccsal, Excel export tartalma (142 ellenőrzés) | `mock_solver.py`, `test_smtpd.py`, PostgreSQL |
-| `test_real_solver.py` | A valódi OR-Tools solverrel (`ScheduleSolver/Main.py`) együtt: a beosztás betartja az időtartamokat, helyszíneket, tiltásokat, nincs ütközés | futó Python solver |
-| `e2e_frontend.js` | A valódi Angular klienst kattintja végig headless Chromiumban (regisztráció → megerősítő levél → belépés → esemény → mentés → megoldás → nézet → Excel letöltés → kijelentkezés) | Playwright, lebuildelt kliens, valódi solver |
+| `test_api.py` | All 29 endpoints: status codes, JSON format, error messages, access control, e-mail sending (STARTTLS + AUTH), Identity-compatible password hash, automatic upgrade of old hashes, CORS, rate limit, admin UI + CSRF, solver callback with key, Excel export content (142 checks) | `mock_solver.py`, `test_smtpd.py`, PostgreSQL |
+| `test_real_solver.py` | Together with the real OR-Tools solver (`ScheduleSolver/Main.py`): the schedule respects durations, locations and blocked periods, with no overlaps | running Python solver |
+| `e2e_frontend.js` | Clicks through the real Angular client in headless Chromium (registration → confirmation e-mail → login → event → save → solve → view → Excel download → logout) | Playwright, built client, real solver |
 
-## Előkészítés (egyszer)
+## Preparation (once)
 
 ```bash
 pip install requests openpyxl aiosmtpd
 openssl req -x509 -newkey rsa:2048 -nodes -keyout tests/_smtp.key -out tests/_smtp.crt -days 30 -subj "/CN=localhost"
 ```
 
-A backendet egy **teszt** konfigurációval indítsd (ne az éles levelezővel!). A `ScheduleLogic.PhpServer/appsettings.Development.json`-ba például:
+Start the backend with a **test** configuration (not with the production mail server!). For example in `ScheduleLogic.PhpServer/appsettings.Development.json`:
 
 ```json
 {
@@ -26,17 +26,17 @@ A backendet egy **teszt** konfigurációval indítsd (ne az éles levelezővel!)
 }
 ```
 
-## Futtatás
+## Running
 
 ```bash
-python tests/test_smtpd.py &          # teszt levelező a 2587-es porton
-python tests/mock_solver.py &         # solver utánzat a 8000-es porton
+python tests/test_smtpd.py &          # test mail server on port 2587
+python tests/mock_solver.py &         # solver mock on port 8000
 APP_ENV=Development php -S 127.0.0.1:7099 -t public public/index.php &
 
 export PGHOST=localhost PGUSER=schedulelogic_app PGPASSWORD=... PGDATABASE=scheduleLogic
 python tests/test_api.py
 ```
 
-A `test_real_solver.py`-hoz a mock helyett a valódi solvert indítsd (`python ScheduleSolver/Main.py`).
+For `test_real_solver.py`, start the real solver instead of the mock (`python ScheduleSolver/Main.py`).
 
-Környezeti változók: `SL_BASE` (backend címe), `SL_MAILDIR`, `SL_FRONTEND`, `SL_PUBLIC_URL`, `SL_ADMIN_USER`, `SL_ADMIN_PASSWORD`.
+Environment variables: `SL_BASE` (backend address), `SL_MAILDIR`, `SL_FRONTEND`, `SL_PUBLIC_URL`, `SL_ADMIN_USER`, `SL_ADMIN_PASSWORD`.

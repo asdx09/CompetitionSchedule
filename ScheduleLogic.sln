@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.13.35931.197
+# Visual Studio Version 18
+VisualStudioVersion = 18.13.12412.241 insiders
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{54A90642-561A-4BB1-A94E-469ADEE60C69}") = "schedulelogic.client", "schedulelogic.client\schedulelogic.client.esproj", "{F395CDEE-F375-C8DE-FCA8-4A29317E9529}"
 EndProject

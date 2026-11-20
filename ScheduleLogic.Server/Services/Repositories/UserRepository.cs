@@ -62,8 +62,6 @@ namespace ScheduleLogic.Server.Services
 
         public Task<int> CountAsync() => _db.Users.CountAsync();
 
-        // A username/email citext, ezért a Contains itt kis/nagybetű-
-        // érzéketlen az adatbázisban, JS oldali ToLower() nélkül is.
         public async Task<List<AdminModels.AdminUserDTO>> SearchAsync(string? query)
         {
             var users = _db.Users.AsNoTracking().AsQueryable();
@@ -81,7 +79,7 @@ namespace ScheduleLogic.Server.Services
 
             return await users
                 .OrderByDescending(u => u.Registrationdate)
-                .Take(100) // ne lehessen egy kérésben az egész táblát kihúzni
+                .Take(100)
                 .Select(u => new AdminModels.AdminUserDTO
                 {
                     UserId = u.UserId,
@@ -125,8 +123,6 @@ namespace ScheduleLogic.Server.Services
             if (user == null) return;
 
             user.Password = hashedPassword;
-            // A token egyszer használatos - felhasználás után törlődik,
-            // hogy ugyanaz a link ne legyen újra beváltható.
             user.Passwordresettoken = null;
             user.Passwordresetexpires = null;
             await _db.SaveChangesAsync();

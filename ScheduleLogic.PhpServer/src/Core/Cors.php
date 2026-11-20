@@ -4,18 +4,12 @@ declare(strict_types=1);
 
 namespace ScheduleLogic\Core;
 
-/**
- * A .NET "AllowAngularApp" CORS policy megfelelője:
- * engedélyezett origin(ek), tetszőleges fejléc és metódus, credentials.
- */
 final class Cors
 {
-    /** @param list<string> $allowedOrigins */
     public function __construct(private readonly array $allowedOrigins)
     {
     }
 
-    /** Preflight (OPTIONS) kérésre a teljes választ adja, különben null. */
     public function handlePreflight(Request $request): ?Response
     {
         if ($request->method !== 'OPTIONS' || $request->header('access-control-request-method') === null) {

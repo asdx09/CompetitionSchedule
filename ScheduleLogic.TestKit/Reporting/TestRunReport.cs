@@ -4,7 +4,6 @@ using ScheduleLogic.TestKit.Testing;
 
 namespace ScheduleLogic.TestKit.Reporting;
 
-/// <summary>Egy tesztfuttatás eredménye, JSON fájlba mentve (később összehasonlítható).</summary>
 public sealed class TestRunReport
 {
     public string Label { get; set; } = "";
@@ -22,10 +21,9 @@ public sealed class TestRunReport
     public string? FilePath { get; set; }
 
     public override string ToString() =>
-        $"{StartedAt:yyyy-MM-dd HH:mm} – {Label} ({Passed} ok, {Failed} hiba, {Skipped} kihagyva)";
+        $"{StartedAt:yyyy-MM-dd HH:mm} – {Label} ({Passed} passed, {Failed} failed, {Skipped} skipped)";
 }
 
-/// <summary>A riportok mentése és betöltése (Dokumentumok\ScheduleLogic\TestResults).</summary>
 public static class ReportStore
 {
     private static readonly JsonSerializerOptions Options = new()
@@ -53,13 +51,12 @@ public static class ReportStore
     public static TestRunReport Load(string file)
     {
         var report = JsonSerializer.Deserialize<TestRunReport>(File.ReadAllText(file), Options)
-                     ?? throw new InvalidDataException("Üres riportfájl: " + file);
+                     ?? throw new InvalidDataException("Empty report file: " + file);
         report.FilePath = file;
         return report;
     }
 
-    /// <summary>A mentett riportok, a legújabb elöl.</summary>
-    public static List<TestRunReport> List(string? folder = null)
+        public static List<TestRunReport> List(string? folder = null)
     {
         folder ??= TestResultsFolder;
         if (!Directory.Exists(folder)) return new();
@@ -67,7 +64,7 @@ public static class ReportStore
         foreach (var f in Directory.GetFiles(folder, "*.json").OrderByDescending(f => f))
         {
             try { list.Add(Load(f)); }
-            catch (Exception) { /* sérült vagy más fájl: kihagyjuk */ }
+            catch (Exception) {  }
         }
         return list;
     }

@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# ScheduleLogic PHP backend - fejlesztői indítás (Linux / macOS)
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 export APP_ENV=Development

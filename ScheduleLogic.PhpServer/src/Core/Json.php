@@ -6,11 +6,6 @@ namespace ScheduleLogic\Core;
 
 final class Json
 {
-    /**
-     * A .NET oldali beállításoknak megfelelően: camelCase kulcsok (ezt a
-     * hívó adja meg), nem escape-elt Unicode (UnsafeRelaxedJsonEscaping),
-     * behúzott kimenet (WriteIndented = true).
-     */
     public static function encode(mixed $data): string
     {
         return json_encode(
@@ -19,11 +14,6 @@ final class Json
         );
     }
 
-    /**
-     * A System.Text.Json (web alapbeállítás) kis/nagybetű-érzéketlenül
-     * köti a property-ket: {"Username":..} és {"username":..} is működik.
-     * Ezt úgy érjük el, hogy minden kulcsot kisbetűsítünk.
-     */
     public static function lowerKeys(mixed $value): mixed
     {
         if (!is_array($value)) {

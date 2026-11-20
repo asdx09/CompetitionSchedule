@@ -5,16 +5,10 @@ using ScheduleLogic.TestKit.Http;
 
 namespace ScheduleLogic.TestKit.Testing;
 
-/// <summary>
-/// Egy teszt futási környezete: ezen keresztül hoz létre klienseket és
-/// tesztfelhasználókat, naplóz és ellenőriz. A teszt végén (sikertől
-/// függetlenül) törli az összes általa létrehozott felhasználót, a fióktörlés
-/// pedig kaszkádoltan viszi a versenyeket és a beosztásokat is.
-/// </summary>
 public sealed class TestContext : IAsyncDisposable
 {
     public const string UserPrefix = "sltest_";
-    public const string DefaultPassword = "Teszt-Jelszo-2026!";
+    public const string DefaultPassword = "Test-Password-2026!";
 
     private readonly List<ApiClient> _clients = new();
     private readonly List<TestUser> _users = new();
@@ -32,24 +26,14 @@ public sealed class TestContext : IAsyncDisposable
         Ct = ct;
     }
 
-    // ------------------------------------------------------------------
-    // Kliensek, felhasználók
-    // ------------------------------------------------------------------
-
-    /// <summary>Új "böngésző" (saját sütikkel), minden kérése a naplóba kerül.</summary>
-    public ApiClient NewClient()
+        public ApiClient NewClient()
     {
         var client = new ApiClient(Target, Record, TimeSpan.FromSeconds(30));
         lock (_lock) _clients.Add(client);
         return client;
     }
 
-    /// <summary>
-    /// Ha hamis, a kérések csak egy sorral kerülnek a naplóba, és nem
-    /// számítanak bele a backendek összehasonlításába (pl. várakozás közbeni
-    /// ismételt lekérdezések, amelyek száma futásonként változik).
-    /// </summary>
-    public bool RecordExchanges { get; set; } = true;
+        public bool RecordExchanges { get; set; } = true;
 
     private void Record(ApiResponse r)
     {
@@ -57,30 +41,25 @@ public sealed class TestContext : IAsyncDisposable
         {
             if (!_recording)
             {
-                Log.Add("  [takarítás] " + r.Summary);
+                Log.Add("  [cleanup] " + r.Summary);
                 return;
             }
             Log.Add("  " + r.Summary);
             if (!RecordExchanges) return;
 
             if (r.RequestBody != null)
-                Log.Add("      kérés:  " + Truncate(r.RequestBody, 300));
+                Log.Add("      request:  " + Truncate(r.RequestBody, 300));
             if (r.Bytes.Length > 0)
-                Log.Add("      válasz: " + r.BodyPreview(300));
+                Log.Add("      response: " + r.BodyPreview(300));
             Exchanges.Add(new ExchangeRecord(r.Method, JsonShape.NormalizePath(r.Path), r.StatusCode,
                                              JsonShape.Of(r), Math.Round(r.ElapsedMs, 1)));
         }
     }
 
-    /// <summary>Véletlen, ütközésmentes tesztfelhasználó-név.</summary>
-    public static string NewUsername() =>
+        public static string NewUsername() =>
         UserPrefix + Convert.ToHexString(RandomNumberGenerator.GetBytes(5)).ToLowerInvariant();
 
-    /// <summary>
-    /// Regisztrál egy új felhasználót, és (alapból) be is lépteti. A teszt
-    /// végén automatikusan törlődik.
-    /// </summary>
-    public async Task<TestUser> CreateUserAsync(bool login = true)
+        public async Task<TestUser> CreateUserAsync(bool login = true)
     {
         var client = NewClient();
         var name = NewUsername();
@@ -88,50 +67,48 @@ public sealed class TestContext : IAsyncDisposable
 
         var reg = await client.RegisterAsync(user.Username, user.Password, user.Email, Ct);
         if (reg.StatusCode == 0)
-            throw new TestFailedException($"A backend nem érhető el ({Target.BaseUrl}): {reg.Error}");
+            throw new TestFailedException($"The backend is not reachable ({Target.BaseUrl}): {reg.Error}");
         if (reg.StatusCode == 429)
-            Skip("A regisztráció rate limitbe ütközött. Fejlesztői módban kapcsold ki: RateLimiting:Enabled = false.");
-        Status(reg, 200, "Regisztráció");
+            Skip("Registration hit the rate limit. Disable it in development: RateLimiting:Enabled = false.");
+        Status(reg, 200, "Registration");
         lock (_lock) _users.Add(user);
 
         if (login)
         {
             var r = await client.LoginAsync(user.Username, user.Password, Ct);
             if (r.StatusCode == 401)
-                Skip("A frissen regisztrált felhasználó nem tud belépni, valószínűleg e-mail-megerősítésre vár. " +
-                     "Fejlesztői módban állítsd be: \"DevOptions\": { \"SkipEmailConfirmation\": true } " +
-                     "(ScheduleLogic.Server/appsettings.Development.json, a PHP is innen olvassa).");
-            Status(r, 200, "Belépés");
+                Skip("The newly registered user cannot log in, probably waiting for e-mail confirmation. " +
+                     "In development set: \"DevOptions\": { \"SkipEmailConfirmation\": true } " +
+                     "(ScheduleLogic.Server/appsettings.Development.json, the PHP backend reads it from there too).");
+            Status(r, 200, "Login");
             user.LoggedIn = true;
         }
         return user;
     }
 
-    /// <summary>Új, üres verseny a felhasználónak; visszaadja az azonosítóját.</summary>
-    public async Task<long> CreateEventAsync(TestUser user)
+        public async Task<long> CreateEventAsync(TestUser user)
     {
         var before = await ListEventIdsAsync(user);
-        Status(await user.Client.NewEventAsync(Ct), 200, "Új verseny");
+        Status(await user.Client.NewEventAsync(Ct), 200, "New event");
         var after = await ListEventIdsAsync(user);
         var created = after.Except(before).ToList();
-        Check(created.Count == 1, $"Pontosan egy új versenynek kellett megjelennie a listában, {created.Count} jelent meg.");
+        Check(created.Count == 1, $"Exactly one new event should have appeared in the list, {created.Count} did.");
         return created[0];
     }
 
     public async Task<List<long>> ListEventIdsAsync(TestUser user)
     {
         var r = await user.Client.GetEventsAsync(Ct);
-        Status(r, 200, "Versenyek listája");
-        var arr = r.Json() as JsonArray ?? throw new TestFailedException("A get-events válasza nem JSON tömb.");
+        Status(r, 200, "Event list");
+        var arr = r.Json() as JsonArray ?? throw new TestFailedException("The get-events response is not a JSON array.");
         return arr.Select(e => e!["eventId"]!.GetValue<long>()).ToList();
     }
 
-    /// <summary>Új verseny a minta adatokkal feltöltve (2 helyszín, 2 versenyszám, 3 versenyző).</summary>
-    public async Task<(long EventId, JsonObject Saved)> CreateSampleEventAsync(TestUser user)
+        public async Task<(long EventId, JsonObject Saved)> CreateSampleEventAsync(TestUser user)
     {
         long id = await CreateEventAsync(user);
         var payload = SampleData.SmallEvent(id);
-        Status(await user.Client.SaveEventAsync(payload, Ct), 200, "Minta verseny mentése");
+        Status(await user.Client.SaveEventAsync(payload, Ct), 200, "Saving the sample event");
         var saved = await GetEventJsonAsync(user, id);
         return (id, saved);
     }
@@ -139,13 +116,9 @@ public sealed class TestContext : IAsyncDisposable
     public async Task<JsonObject> GetEventJsonAsync(TestUser user, long id)
     {
         var r = await user.Client.GetEventAsync(id, Ct);
-        Status(r, 200, "Verseny lekérése");
-        return r.Json() as JsonObject ?? throw new TestFailedException("A get-event válasza nem JSON objektum.");
+        Status(r, 200, "Loading the event");
+        return r.Json() as JsonObject ?? throw new TestFailedException("The get-event response is not a JSON object.");
     }
-
-    // ------------------------------------------------------------------
-    // Ellenőrzések
-    // ------------------------------------------------------------------
 
     public void Info(string message)
     {
@@ -162,12 +135,12 @@ public sealed class TestContext : IAsyncDisposable
     public void StatusIn(ApiResponse r, string what, params int[] expected)
     {
         if (r.StatusCode == 0)
-            throw new TestFailedException($"{what}: a backend nem válaszolt ({r.Error}).");
+            throw new TestFailedException($"{what}: the backend did not respond ({r.Error}).");
         if (!expected.Contains(r.StatusCode))
         {
-            var exp = string.Join(" vagy ", expected);
-            var body = r.Bytes.Length > 0 ? $" Válasz: {r.BodyPreview(200)}" : "";
-            throw new TestFailedException($"{what}: várt státusz {exp}, kapott {r.StatusCode}.{body}");
+            var exp = string.Join(" or ", expected);
+            var body = r.Bytes.Length > 0 ? $" Response: {r.BodyPreview(200)}" : "";
+            throw new TestFailedException($"{what}: expected status {exp}, got {r.StatusCode}.{body}");
         }
     }
 
@@ -175,17 +148,12 @@ public sealed class TestContext : IAsyncDisposable
 
     private static string Truncate(string s, int max) => s.Length <= max ? s : s[..max] + "…";
 
-    // ------------------------------------------------------------------
-    // Takarítás
-    // ------------------------------------------------------------------
-
     public async ValueTask DisposeAsync()
     {
         _recording = false;
         List<TestUser> users;
         lock (_lock) users = _users.ToList();
 
-        // A takarítás akkor is lefut, ha a tesztet megszakították.
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
         foreach (var u in users.Where(u => !u.Deleted))
         {
@@ -196,11 +164,11 @@ public sealed class TestContext : IAsyncDisposable
                     await u.Client.LoginAsync(u.Username, u.Password, cts.Token);
                 var del = await u.Client.DeleteAccountAsync(cts.Token);
                 u.Deleted = del.StatusCode == 200;
-                if (!u.Deleted) Info($"A(z) {u.Username} tesztfelhasználót nem sikerült törölni ({del.StatusCode}).");
+                if (!u.Deleted) Info($"Could not delete test user {u.Username} ({del.StatusCode}).");
             }
             catch (Exception ex)
             {
-                Info($"Takarítási hiba ({u.Username}): {ex.Message}");
+                Info($"Cleanup error ({u.Username}): {ex.Message}");
             }
         }
 
@@ -212,7 +180,6 @@ public sealed class TestContext : IAsyncDisposable
     }
 }
 
-/// <summary>Egy tesztfelhasználó és a hozzá tartozó (bejelentkezett) kliens.</summary>
 public sealed class TestUser(string username, string email, string password, ApiClient client)
 {
     public string Username { get; } = username;

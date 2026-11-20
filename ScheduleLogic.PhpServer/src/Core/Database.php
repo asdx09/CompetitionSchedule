@@ -6,12 +6,6 @@ namespace ScheduleLogic\Core;
 
 use PDO;
 
-/**
- * PostgreSQL kapcsolat (az EF Core DbContext helyett sima PDO).
- *
- * A kapcsolat lusta: csak akkor nyílik meg, amikor egy végpont tényleg
- * az adatbázishoz nyúl (pl. a check-token nem).
- */
 final class Database
 {
     private ?PDO $pdo = null;
@@ -28,7 +22,6 @@ final class Database
         return $this->pdo;
     }
 
-    /** Admin health checkhez: rövid timeouttal próbál kapcsolódni. */
     public function canConnect(int $timeoutSeconds = 3): bool
     {
         try {
@@ -59,20 +52,10 @@ final class Database
             PDO::ATTR_EMULATE_PREPARES => false,
         ]);
 
-        // Minden időbélyeg UTC-ben jön vissza - ugyanígy kezeli az Npgsql is
-        // a timestamptz oszlopokat (DateTimeKind.Utc).
         $pdo->exec("SET TIME ZONE 'UTC'");
         return $pdo;
     }
 
-    /**
-     * Tranzakcióba csomagolja a callbacket; kivétel esetén visszagörget
-     * és továbbdobja a kivételt.
-     *
-     * @template T
-     * @param callable(PDO):T $work
-     * @return T
-     */
     public function transaction(callable $work): mixed
     {
         $pdo = $this->pdo();

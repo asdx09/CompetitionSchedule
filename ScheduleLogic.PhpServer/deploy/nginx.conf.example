@@ -1,13 +1,13 @@
 # ---------------------------------------------------------------------------
-# ScheduleLogic - éles telepítés nginx + PHP-FPM mögé (Linux)
+# ScheduleLogic - production deployment behind nginx + PHP-FPM (Linux)
 #
-#  - a lebuildelt Angular kliens statikus fájljait az nginx szolgálja ki
-#  - /api és /admin -> PHP-FPM (public/index.php)
-#  - minden más (Angular útvonalak) -> index.html
+#  - nginx serves the static files of the built Angular client
+#  - /api and /admin -> PHP-FPM (public/index.php)
+#  - everything else (Angular routes) -> index.html
 #
-# A .NET Kestrel helyett ez fut, ugyanazon a domainen és porton.
-# PHP oldalon:  APP_ENV=Production (alapértelmezés), a titkok mehetnek
-# környezeti változóban is, pl. Database__Password, MailSend__Password.
+# This runs instead of .NET Kestrel, on the same domain and port.
+# PHP side: APP_ENV=Production (default); secrets can also be given as
+# environment variables, e.g. Database__Password, MailSend__Password.
 # ---------------------------------------------------------------------------
 
 server {
@@ -17,7 +17,7 @@ server {
     ssl_certificate     /etc/letsencrypt/live/schedulelogic.hu/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/schedulelogic.hu/privkey.pem;
 
-    # az Angular build (ng build) kimenete
+    # output of the Angular build (ng build)
     root /var/www/schedulelogic/wwwroot;
     index index.html;
 

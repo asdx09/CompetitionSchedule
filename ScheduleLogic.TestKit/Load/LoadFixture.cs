@@ -5,11 +5,6 @@ using ScheduleLogic.TestKit.Testing;
 
 namespace ScheduleLogic.TestKit.Load;
 
-/// <summary>
-/// A méréshez előkészített adatok: N bejelentkezett tesztfelhasználó,
-/// mindegyiknek egy nagy versennyel. Egy sorozat összes szintje ugyanezt
-/// használja; a végén a felhasználók (és velük a versenyek) törlődnek.
-/// </summary>
 public sealed class LoadFixture : IAsyncDisposable
 {
     public sealed class FixtureUser
@@ -17,23 +12,16 @@ public sealed class LoadFixture : IAsyncDisposable
         public required string Username { get; init; }
         public required ApiClient Client { get; init; }
         public required long EventId { get; init; }
-        /// <summary>
-        /// A mentési kérés törzse előre sorosítva: így a párhuzamos kérések nem
-        /// osztoznak egy (nem szálbiztos) JsonNode példányon, és a sorosítás
-        /// ideje sem kerül bele a mérésbe.
-        /// </summary>
-        public required string SaveBody { get; init; }
+                public required string SaveBody { get; init; }
 
-        /// <summary>Egy felhasználó egyszerre csak egy mentést küld (ahogy egy valódi felhasználó is).</summary>
-        public SemaphoreSlim SaveLock { get; } = new(1, 1);
+                public SemaphoreSlim SaveLock { get; } = new(1, 1);
     }
 
     public BackendTarget Target { get; }
     public int EventParticipants { get; }
     public List<FixtureUser> Users { get; } = new();
 
-    /// <summary>Az előkészítés során elküldött mentés mérete (bájt), tájékoztatásul.</summary>
-    public int SavePayloadBytes { get; private set; }
+        public int SavePayloadBytes { get; private set; }
 
     private LoadFixture(BackendTarget target, int participants)
     {
@@ -57,7 +45,7 @@ public sealed class LoadFixture : IAsyncDisposable
                 {
                     var u = await CreateUserAsync(target, i, participants, requestTimeout, ct);
                     lock (fx.Users) fx.Users.Add(u);
-                    log?.Report($"Előkészítés: {Interlocked.Increment(ref done)}/{users} felhasználó kész.");
+                    log?.Report($"Preparation: {Interlocked.Increment(ref done)}/{users} users ready.");
                 }
                 finally { gate.Release(); }
             }).ToList();
@@ -80,16 +68,16 @@ public sealed class LoadFixture : IAsyncDisposable
         try
         {
             var reg = await client.RegisterAsync(name, TestContext.DefaultPassword, name + "@example.com", ct);
-            if (reg.StatusCode == 0) throw new InvalidOperationException($"A backend nem érhető el ({target.BaseUrl}): {reg.Error}");
+            if (reg.StatusCode == 0) throw new InvalidOperationException($"The backend is not reachable ({target.BaseUrl}): {reg.Error}");
             if (reg.StatusCode == 429)
-                throw new InvalidOperationException("A regisztráció rate limitbe ütközött. Méréshez kapcsold ki: RateLimiting:Enabled = false.");
-            if (reg.StatusCode != 200) throw new InvalidOperationException($"Sikertelen regisztráció ({reg.StatusCode}): {reg.BodyPreview(200)}");
+                throw new InvalidOperationException("Registration hit the rate limit. Turn it off for measurements: RateLimiting:Enabled = false.");
+            if (reg.StatusCode != 200) throw new InvalidOperationException($"Registration failed ({reg.StatusCode}): {reg.BodyPreview(200)}");
 
             var login = await client.LoginAsync(name, TestContext.DefaultPassword, ct);
             if (login.StatusCode == 401)
-                throw new InvalidOperationException("A tesztfelhasználó nem tud belépni (e-mail-megerősítés?). " +
-                                                    "Fejlesztői módban: DevOptions:SkipEmailConfirmation = true.");
-            if (login.StatusCode != 200) throw new InvalidOperationException($"Sikertelen belépés ({login.StatusCode}).");
+                throw new InvalidOperationException("The test user cannot log in (e-mail confirmation?). " +
+                                                    "In development mode: DevOptions:SkipEmailConfirmation = true.");
+            if (login.StatusCode != 200) throw new InvalidOperationException($"Login failed ({login.StatusCode}).");
 
             Ensure(await client.NewEventAsync(ct), "new-event");
             var list = await client.GetEventsAsync(ct);
@@ -105,13 +93,12 @@ public sealed class LoadFixture : IAsyncDisposable
                 Username = name,
                 Client = client,
                 EventId = id,
-                // Mentéskor a frontend a betöltött (végleges azonosítós) adatot küldi vissza.
                 SaveBody = ApiClient.Serialize(SampleData.FromLoaded((JsonObject)loaded.Json()!)),
             };
         }
         catch
         {
-            try { await client.DeleteAccountAsync(CancellationToken.None); } catch { /* takarítás */ }
+            try { await client.DeleteAccountAsync(CancellationToken.None); } catch {  }
             client.Dispose();
             throw;
         }
@@ -120,7 +107,7 @@ public sealed class LoadFixture : IAsyncDisposable
     private static void Ensure(ApiResponse r, string what)
     {
         if (r.StatusCode != 200)
-            throw new InvalidOperationException($"Előkészítés: a(z) {what} hívás {r.StatusCode} kódot adott. {r.BodyPreview(200)}");
+            throw new InvalidOperationException($"Preparation: the {what} call returned {r.StatusCode}. {r.BodyPreview(200)}");
     }
 
     public async ValueTask DisposeAsync()
@@ -132,7 +119,7 @@ public sealed class LoadFixture : IAsyncDisposable
                 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
                 await u.Client.DeleteAccountAsync(cts.Token);
             }
-            catch { /* a takarítás hibája ne takarja el a mérés eredményét */ }
+            catch {  }
             u.Client.Dispose();
         }
         Users.Clear();

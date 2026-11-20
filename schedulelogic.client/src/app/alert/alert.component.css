@@ -19,10 +19,6 @@ z-index: 9999;
 pointer-events: none;
 }
 
-/* =========================
-ALERT
-========================= */
-
 .alert {
 display: flex;
 
@@ -72,19 +68,11 @@ transform 0.2s ease,
 box-shadow 0.2s ease;
 }
 
-/* =========================
-MESSAGE
-========================= */
-
 .alert-message {
 display: block;
 
 overflow-wrap: anywhere;
 }
-
-/* =========================
-ICON
-========================= */
 
 .alert-icon {
 flex-shrink: 0;
@@ -95,10 +83,6 @@ font-size: 21px;
 
 line-height: 1;
 }
-
-/* =========================
-ERROR
-========================= */
 
 .alert.error {
 background:
@@ -118,10 +102,6 @@ text-shadow:
 0 0 10px rgba(255, 80, 100, 0.3);
 }
 
-/* =========================
-SUCCESS
-========================= */
-
 .alert.success {
 background:
 linear-gradient(
@@ -137,10 +117,6 @@ border-color: rgba(90, 220, 180, 0.22);
 color: #6ee7c0;
 }
 
-/* =========================
-WARNING
-========================= */
-
 .alert.warning {
 background:
 linear-gradient(
@@ -155,10 +131,6 @@ border-color: rgba(255, 200, 80, 0.22);
 .alert.warning .alert-icon {
 color: #ffd166;
 }
-
-/* =========================
-ANIMATION
-========================= */
 
 @keyframes fadeInOut {
 
@@ -197,10 +169,6 @@ transform:
 
 }
 }
-
-/* =========================
-MOBILE
-========================= */
 
 @media (max-width: 600px) {
 

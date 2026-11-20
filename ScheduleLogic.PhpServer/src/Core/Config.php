@@ -4,36 +4,15 @@ declare(strict_types=1);
 
 namespace ScheduleLogic\Core;
 
-/**
- * A .NET IConfiguration megfelelője.
- *
- * Ugyanazokat az appsettings fájlokat olvassa, mint a C# backend, így a két
- * backend ugyanazzal az adatbázis-kapcsolattal és levelezési beállítással
- * fut. Betöltési sorrend (a későbbi felülírja a korábbit):
- *
- *   1. <megosztott mappa>/appsettings.json            (alapból ../ScheduleLogic.Server)
- *   2. <megosztott mappa>/appsettings.{Környezet}.json
- *   3. .NET User Secrets (csak Development-ben, a .csproj UserSecretsId-ja alapján)
- *   4. <PHP projekt>/appsettings.json                 (csak PHP-specifikus értékek)
- *   5. <PHP projekt>/appsettings.{Környezet}.json
- *   6. környezeti változók "__" elválasztóval, pl. Database__Password
- *
- * A kulcsok - akárcsak .NET-ben - kis/nagybetű-érzéketlenek, és ":"-tal
- * lehet szekciókba lépni: Config::get('Database:Host').
- */
 final class Config
 {
-    /** @var array<string, mixed> */
     private array $data = [];
     private string $environment;
     private ?string $sharedDir = null;
-    /** @var list<string> */
     private array $loadedFiles = [];
 
     public function __construct(string $projectRoot)
     {
-        // .NET-ben az ASPNETCORE_ENVIRONMENT hiányában "Production" az
-        // alapértelmezés - itt is, hogy élesben véletlenül se fusson dev módban.
         $this->environment = getenv('APP_ENV') ?: (getenv('ASPNETCORE_ENVIRONMENT') ?: 'Production');
 
         $sharedDir = getenv('SL_SHARED_CONFIG_DIR') ?: $projectRoot . '/../ScheduleLogic.Server';
@@ -49,7 +28,6 @@ final class Config
         foreach (array_unique($dirs) as $dir) {
             $this->loadFile($dir . '/appsettings.json');
             $this->loadFile($dir . '/appsettings.' . $this->environment . '.json');
-            // A .NET Development módban a User Secrets-et is betölti (pl. AdminAuth).
             if ($dir === $this->sharedDir && $this->isDevelopment()) {
                 $this->loadUserSecrets($dir);
             }
@@ -57,10 +35,6 @@ final class Config
         $this->loadEnvironmentVariables();
     }
 
-    /**
-     * %APPDATA%\Microsoft\UserSecrets\<id>\secrets.json (Windows), illetve
-     * ~/.microsoft/usersecrets/<id>/secrets.json (Linux/macOS).
-     */
     private function loadUserSecrets(string $dotnetProjectDir): void
     {
         foreach (glob($dotnetProjectDir . '/*.csproj') ?: [] as $csproj) {
@@ -92,7 +66,6 @@ final class Config
         }
     }
 
-    /** {"AdminAuth:Username": "x"} -> {"adminauth": {"username": "x"}} (a secrets.json lapos is lehet) */
     private static function expandFlat(array $input): array
     {
         $out = [];
@@ -122,7 +95,6 @@ final class Config
         return $this->environment;
     }
 
-    /** A .NET projekt mappája (ahonnan a közös appsettings jön), ha megvan. */
     public function sharedDir(): ?string
     {
         return $this->sharedDir;
@@ -133,7 +105,6 @@ final class Config
         return strcasecmp($this->environment, 'Development') === 0;
     }
 
-    /** @return list<string> */
     public function loadedFiles(): array
     {
         return $this->loadedFiles;
@@ -181,7 +152,6 @@ final class Config
         return $default;
     }
 
-    /** @return list<string> */
     public function stringList(string $key, array $default = []): array
     {
         $value = $this->get($key);
@@ -197,7 +167,6 @@ final class Config
             return;
         }
         $raw = file_get_contents($path);
-        // A Visual Studio gyakran BOM-mal menti a JSON-t.
         if (str_starts_with($raw, "\xEF\xBB\xBF")) {
             $raw = substr($raw, 3);
         }

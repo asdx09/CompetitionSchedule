@@ -3,7 +3,6 @@ using ScheduleLogic.TestKit.Http;
 
 namespace ScheduleLogic.TestKit.Testing;
 
-/// <summary>Tesztek futtatása egy backend ellen, egyenként vagy sorban.</summary>
 public static class TestRunner
 {
     public static async Task<TestResult> RunAsync(TestCase test, BackendTarget target, CancellationToken ct = default)
@@ -41,19 +40,17 @@ public static class TestRunner
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
             result.Status = TestStatus.Skipped;
-            result.Message = "Megszakítva.";
+            result.Message = "Cancelled.";
         }
         catch (OperationCanceledException)
         {
             result.Status = TestStatus.Failed;
-            result.Message = $"Időtúllépés ({test.Timeout.TotalSeconds:0} s).";
+            result.Message = $"Timeout ({test.Timeout.TotalSeconds:0} s).";
         }
         catch (Exception ex)
         {
-            // Pl. a válasz JSON-ja nem a várt szerkezetű (NullReference, InvalidOperation):
-            // ez is a teszt bukása, nem a futtatóé.
             result.Status = TestStatus.Failed;
-            result.Message = $"Váratlan hiba: {ex.GetType().Name}: {ex.Message}";
+            result.Message = $"Unexpected error: {ex.GetType().Name}: {ex.Message}";
         }
         finally
         {
@@ -66,11 +63,7 @@ public static class TestRunner
         return result;
     }
 
-    /// <summary>
-    /// Tesztek futtatása egymás után. A tesztek egymástól függetlenek (mind
-    /// saját felhasználót hoz létre), ezért bármelyik részhalmaz futtatható.
-    /// </summary>
-    public static async Task<List<TestResult>> RunManyAsync(
+        public static async Task<List<TestResult>> RunManyAsync(
         IEnumerable<TestCase> tests,
         BackendTarget target,
         Action<TestCase>? onStarted = null,

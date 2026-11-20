@@ -9,9 +9,6 @@ use ScheduleLogic\Core\Database;
 use ScheduleLogic\Core\DotNetTime;
 use ScheduleLogic\Core\Logger;
 
-/**
- * Az event és a hozzá tartozó táblák kezelése (a C# EventRepository megfelelője).
- */
 final class EventRepository
 {
     public function __construct(
@@ -20,7 +17,6 @@ final class EventRepository
     ) {
     }
 
-    /** Új, üres esemény alapértékekkel. @return int az új event_id */
     public function createEvent(int $userId): int
     {
         $now = DotNetTime::toDb(DotNetTime::nowUtc());
@@ -41,7 +37,6 @@ final class EventRepository
         return (bool)$stmt->fetchColumn();
     }
 
-    /** A gyerek táblák ON DELETE CASCADE-del törlődnek. */
     public function deleteEvent(int $eventId): void
     {
         $stmt = $this->db->pdo()->prepare('DELETE FROM event WHERE event_id = :e');
@@ -58,10 +53,6 @@ final class EventRepository
         ], $stmt->fetchAll());
     }
 
-    /**
-     * Az esemény összes adata a szerkesztő felületnek (DataDTO alakban).
-     * A C# kód a TimeZones listát itt üresen hagyja.
-     */
     public function getEvent(int $eventId): ?array
     {
         $event = $this->fetchEventRow($eventId);
@@ -78,10 +69,6 @@ final class EventRepository
         return $stmt->fetch() ?: null;
     }
 
-    /**
-     * A DataDTO felépítése (közös az event és a schedule lekérdezésnél).
-     * Az azonosítók stringként mennek ki, ahogy a C# DTO-kban is.
-     */
     public static function buildDataDto(PDO $pdo, array $e, array $timeZones): array
     {
         $eventId = (int)$e['event_id'];
@@ -161,11 +148,6 @@ final class EventRepository
         ];
     }
 
-    /**
-     * Mentés a szerkesztőből: az esemény adatai frissülnek, a gyerek sorok
-     * teljesen lecserélődnek. Bármilyen hiba esetén visszagörget és false-t ad
-     * (a kontroller ebből BadRequest-et csinál).
-     */
     public function saveEvent(int $eventId, array $data): bool
     {
         try {
@@ -204,11 +186,6 @@ final class EventRepository
         }
     }
 
-    /**
-     * Varázsló: új esemény létrehozása és feltöltése. A C# verzióban az
-     * üres esemény a tranzakción kívül jött létre, így hibás importnál
-     * megmaradt egy félkész "New Event" - itt egyetlen tranzakció az egész.
-     */
     public function createWizardEvent(int $userId, array $data): bool
     {
         try {
@@ -241,18 +218,11 @@ final class EventRepository
 
     private function removeChildRows(PDO $pdo, int $eventId): void
     {
-        // A sorrend a külső kulcsok miatt számít (a CASCADE miatt amúgy is törlődnének).
         foreach (['eventconstraint', 'registrations', 'pausetable', 'locationtable', 'participant', 'location', 'groups', 'eventtype'] as $table) {
             $pdo->prepare("DELETE FROM {$table} WHERE event_id = :e")->execute(['e' => $eventId]);
         }
     }
 
-    /**
-     * A kliens ideiglenes azonosítókat küld (UUID-k, vagy a varázslóban az
-     * Excelből jövő ID-k). Ezeket itt képezzük le az új adatbázis-ID-kra;
-     * ismeretlen hivatkozásnál kivétel -> visszagörgetés (mint a C#
-     * Dictionary KeyNotFoundException-je).
-     */
     private function insertChildRows(PDO $pdo, int $eventId, array $data): void
     {
         $lookup = static function (array $map, ?string $key, string $what): int {

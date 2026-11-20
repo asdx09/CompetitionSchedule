@@ -4,16 +4,9 @@ declare(strict_types=1);
 
 namespace ScheduleLogic\Core;
 
-/**
- * HTTP válasz. A statikus gyártófüggvények az ASP.NET Core
- * Ok()/BadRequest()/NotFound()/... eredményeinek felelnek meg, ugyanazzal
- * a formátummal (pl. a hibák RFC 7807 ProblemDetails JSON-ként mennek ki).
- */
 final class Response
 {
-    /** @var array<string, string> */
     public array $headers = [];
-    /** @var list<string> Set-Cookie fejlécek */
     public array $cookies = [];
 
     public function __construct(
@@ -26,8 +19,6 @@ final class Response
         }
     }
 
-    // ----------------------------------------------------------- gyártók
-
     public static function ok(mixed $data = null): self
     {
         return $data === null ? new self(200) : self::json($data);
@@ -38,7 +29,6 @@ final class Response
         return new self($status, Json::encode($data), 'application/json; charset=utf-8');
     }
 
-    /** Szöveges üzenet, pl. Unauthorized("...") / BadRequest("...") .NET-ben. */
     public static function text(string $message, int $status): self
     {
         return new self($status, $message, 'text/plain; charset=utf-8');
@@ -49,7 +39,6 @@ final class Response
         return new self($status);
     }
 
-    /** Body nélküli NotFound()/BadRequest() - az [ApiController] ProblemDetailst ad ilyenkor. */
     public static function problem(int $status, ?string $title = null, array $extra = []): self
     {
         static $types = [
@@ -68,7 +57,6 @@ final class Response
         return new self($status, Json::encode($body), 'application/problem+json; charset=utf-8');
     }
 
-    /** Model-validációs hiba, ugyanolyan alakban, mint az [ApiController] automatikus 400-a. */
     public static function validationProblem(array $errors): self
     {
         return self::problem(400, 'One or more validation errors occurred.', ['errors' => $errors]);
@@ -93,8 +81,6 @@ final class Response
     {
         return new self($status, $html, 'text/html; charset=utf-8');
     }
-
-    // ----------------------------------------------------------- módosítók
 
     public function withHeader(string $name, string $value): self
     {

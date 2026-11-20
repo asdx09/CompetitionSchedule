@@ -4,18 +4,9 @@ declare(strict_types=1);
 
 namespace ScheduleLogic\Services;
 
-/**
- * Minimális .xlsx (Office Open XML) író a ClosedXML helyett.
- *
- * Egy munkalapot tud: szöveg/szám cellák, sorkitöltő szín, rögzített első
- * sor, oszlopszélesség a tartalomhoz igazítva. Csak a beépített "zip"
- * kiterjesztés kell hozzá, külső csomag nem.
- */
 final class XlsxWriter
 {
-    /** @var list<array{cells: list<string|int>, fill: ?string}> */
     private array $rows = [];
-    /** @var array<string,int> szín (ARGB) => kitöltés-index a styles.xml-ben */
     private array $fills = [];
     private bool $freezeFirstRow = false;
 
@@ -23,11 +14,10 @@ final class XlsxWriter
     {
     }
 
-    /** @param list<string|int> $cells */
     public function addRow(array $cells, ?string $fillArgb = null): void
     {
         if ($fillArgb !== null && !isset($this->fills[$fillArgb])) {
-            $this->fills[$fillArgb] = count($this->fills) + 2; // 0 és 1 foglalt (none, gray125)
+            $this->fills[$fillArgb] = count($this->fills) + 2;
         }
         $this->rows[] = ['cells' => $cells, 'fill' => $fillArgb];
     }
@@ -61,11 +51,8 @@ final class XlsxWriter
         return $bytes;
     }
 
-    // ------------------------------------------------------------------
-
     private static function esc(string $s): string
     {
-        // Az XML 1.0-ban tiltott vezérlőkaraktereket eldobjuk.
         $s = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F]/', '', $s);
         return htmlspecialchars($s, ENT_QUOTES | ENT_XML1, 'UTF-8');
     }
@@ -86,7 +73,6 @@ final class XlsxWriter
 
     private function sheet(): string
     {
-        // AdjustToContents: a leghosszabb cella alapján, kis ráhagyással
         $widths = [];
         foreach ($this->rows as $row) {
             foreach ($row['cells'] as $i => $value) {
@@ -143,7 +129,6 @@ final class XlsxWriter
         foreach ($this->fills as $argb => $_) {
             $fills .= '<fill><patternFill patternType="solid"><fgColor rgb="' . $argb . '"/><bgColor indexed="64"/></patternFill></fill>';
         }
-        // cellXfs: 0 = alap, majd minden kitöltéshez egy stílus
         $xfs = '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>';
         foreach ($this->fills as $fillIndex) {
             $xfs .= '<xf numFmtId="0" fontId="0" fillId="' . $fillIndex . '" borderId="0" xfId="0" applyFill="1"/>';

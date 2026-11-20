@@ -1,209 +1,211 @@
 # ScheduleLogic.PhpServer
 
-A ScheduleLogic backend PHP-s változata. A **ScheduleLogic.Server** (ASP.NET Core 8) pontos megfelelője:
+The PHP version of the ScheduleLogic backend. An exact counterpart of **ScheduleLogic.Server** (ASP.NET Core 10):
 
-- **ugyanazokat a végpontokat** szolgálja ki ugyanazzal a JSON-nal, így az Angular kliensen **semmit nem kell módosítani**,
-- **ugyanazzal a PostgreSQL adatbázissal** dolgozik, és a beállításait a .NET projekt `appsettings*.json` fájljaiból olvassa,
-- **ugyanazon a porton** fut (fejlesztéskor `https://localhost:7098`), így a kettő közül mindig csak az egyik megy,
-- **ugyanúgy kommunikál a Python solverrel**, a solver kódján sem kell változtatni,
-- a .NET-ben regisztrált felhasználók **ugyanazzal a jelszóval** be tudnak lépni, mert a jelszó-hash formátuma bájtra azonos az ASP.NET Core Identity-ével.
+- it serves **the same endpoints** with the same JSON, so **nothing has to change** in the Angular client,
+- it works with **the same PostgreSQL database** and reads its settings from the `appsettings*.json` files of the .NET project,
+- it runs on **the same port** (`https://localhost:7098` in development), so only one of the two runs at a time,
+- it **talks to the Python solver the same way**; the solver code does not change either,
+- users registered with .NET can log in **with the same password**, because the password hash format is byte-for-byte identical to ASP.NET Core Identity's.
 
-Natív PHP 8 (≥ 8.1), **külső csomag nélkül**: nem kell Composer. Csak a PHP beépített `pdo_pgsql`, `openssl` és `zip` kiterjesztései kellenek.
+Native PHP 8 (≥ 8.1), **no external packages**: Composer is not needed. Only the built-in `pdo_pgsql`, `openssl` and `zip` extensions are required.
 
 ---
 
-## Gyors indítás (Windows, fejlesztés)
+## Quick start (Windows, development)
 
-### 1. PHP telepítése
+### 1. Install PHP
 
-1. Töltsd le a PHP-t: <https://windows.php.net/download/>, **PHP 8.3 (vagy 8.4) – VS16 x64 Non Thread Safe – Zip**.
-2. Csomagold ki például a `C:\php` mappába.
-3. Add hozzá a `C:\php`-t a **PATH**-hoz: Start → „Rendszer környezeti változóinak szerkesztése” → Környezeti változók → Path → Új.
-4. A `C:\php` mappában másold le a `php.ini-development` fájlt `php.ini` néven, és nyisd meg. Vedd ki a `;` jelet ezeknek a soroknak az elejéről:
+1. Download PHP: <https://windows.php.net/download/>, **PHP 8.3 (or 8.4) – VS16 x64 Non Thread Safe – Zip**.
+2. Extract it, for example to `C:\php`.
+3. Add `C:\php` to the **PATH**: Start → "Edit the system environment variables" → Environment Variables → Path → New.
+4. In `C:\php`, copy `php.ini-development` to `php.ini` and open it. Remove the `;` from the start of these lines:
    ```ini
    extension_dir = "ext"
    extension=openssl
    extension=pdo_pgsql
    extension=zip
    ```
-5. Nyiss **új** terminált, és ellenőrizd: `php -v`.
+5. Open a **new** terminal and check: `php -v`.
 
-> Alternatíva: `winget install PHP.PHP.8.3`. Ilyenkor a `php --ini` paranccsal derítsd ki, hol legyen a `php.ini`, és ugyanezt a 4. lépést csináld meg ott.
+> Alternative: `winget install PHP.PHP.8.3`. In that case run `php --ini` to find where `php.ini` should be, and do step 4 there.
 
-### 2. Caddy telepítése (HTTPS a 7098-as porton)
+### 2. Install Caddy (HTTPS on port 7098)
 
-A beépített PHP szerver csak HTTP-t tud, a frontend viszont `https://localhost:7098`-at hív. A [Caddy](https://caddyserver.com) egyetlen exe, ami HTTPS-t tesz elé:
+The built-in PHP server only speaks HTTP, but the frontend calls `https://localhost:7098`. [Caddy](https://caddyserver.com) is a single exe that puts HTTPS in front of it:
 
 ```powershell
 winget install CaddyServer.Caddy
 ```
 
-(Vagy töltsd le a <https://caddyserver.com/download> oldalról, és tedd a PATH-ba.)
+(Or download it from <https://caddyserver.com/download> and put it on the PATH.)
 
-Első indításkor a Windows megkérdezi, hogy megbízzon-e a Caddy helyi tanúsítványkiadójában. Erre **Igen**-t kell válaszolni, és csak egyszer kérdezi.
+On the first start Windows asks whether to trust Caddy's local certificate authority. Answer **Yes**; it only asks once.
 
-### 3. Ellenőrzés és indítás
+### 3. Check and start
 
 ```powershell
 cd "D:\VS .net web api\Szakdolgozat\ScheduleLogic.PhpServer"
 $env:APP_ENV = "Development"
-php dev\check-env.php        # megmondja, ha valami hiányzik (kiterjesztés, DB kapcsolat, ...)
+php dev\check-env.php        # reports anything missing (extension, DB connection, ...)
 ```
 
-Ha minden `[OK]`: **dupla kattintás a `dev\start-dev.cmd`-n**. Elindul a PHP (belül a 7099-es porton) és a Caddy (`https://localhost:7098`). Leállítás: `Ctrl+C`.
+If everything is `[OK]`: **double-click `dev\start-dev.cmd`**. It starts PHP (internally on port 7099) and Caddy (`https://localhost:7098`). Stop: `Ctrl+C`.
 
-A többi komponens a szokásos módon indul:
+The other components start as usual:
 
 ```powershell
 cd ..\schedulelogic.client;  npm start          # https://localhost:58921
 cd ..\ScheduleSolver;        python Main.py      # http://127.0.0.1:8000
 ```
 
-> **Fontos:** a .NET backend és a PHP backend ugyanazt a 7098-as portot használja, ezért egyszerre csak az egyik futhat. Ha a Visual Studióból indítod a .NET-et, előbb a PHP-t állítsd le, és fordítva.
+> **Important:** the .NET and the PHP backend use the same port 7098, so only one of them can run at a time. If you start .NET from Visual Studio, stop PHP first, and vice versa.
 
-### Admin felület
+### Admin UI
 
-`https://localhost:7098/admin`. A belépési adatok a configban vannak (`AdminAuth:Username`, `AdminAuth:PasswordHash`). Ha a .NET-hez a Visual Studio **User Secrets**-ébe tetted őket, a PHP Development módban onnan is beolvassa őket. Új jelszó-hash így készíthető:
+`https://localhost:7098/admin`. The credentials are in the config (`AdminAuth:Username`, `AdminAuth:PasswordHash`). If you put them into the Visual Studio **User Secrets** for .NET, PHP reads them from there too in Development mode. A new password hash:
 
 ```powershell
-php dev\hash-password.php "UjAdminJelszo"
+php dev\hash-password.php "NewAdminPassword"
 ```
 
-Az eredmény a .NET-tel is működik.
+The result also works with .NET.
 
 ---
 
-## Felépítés: C# → PHP megfeleltetés
+## Structure: C# → PHP mapping
 
 ```
 ScheduleLogic.PhpServer/
-├── public/index.php            ← belépési pont (Program.cs: app.Run)
+├── public/index.php            ← entry point (Program.cs: app.Run)
 ├── src/
-│   ├── App.php                 ← Program.cs: DI, útvonalak, CORS, cookie-k, middleware sorrend
-│   ├── Controllers/            ← Controllers/*.cs  (1:1, ugyanazok a végpontok)
+│   ├── App.php                 ← Program.cs: DI, routes, CORS, cookies, middleware order
+│   ├── Controllers/            ← Controllers/*.cs  (1:1, the same endpoints)
 │   ├── Services/               ← Services/*.cs
-│   │   ├── PasswordHasher.php  ← ASP.NET Core Identity PasswordHasher<T> (V2 + V3 formátum)
+│   │   ├── PasswordHasher.php  ← ASP.NET Core Identity PasswordHasher<T> (V2 + V3 format)
 │   │   ├── SmtpEmailSender.php ← System.Net.Mail.SmtpClient (STARTTLS)
 │   │   ├── XlsxWriter.php      ← ClosedXML (Excel export)
-│   │   └── SolverCallbackSigner.php  ← ÚJ: a solver-visszahívás hitelesítése
-│   ├── Repositories/           ← Services/Repositories/*.cs  (EF Core helyett PDO + SQL)
-│   ├── Models/                 ← Class/*Models.cs  (bemenet-ellenőrzés, mint az [ApiController])
-│   └── Core/                   ← keretrendszer-pótló kis osztályok (router, request/response,
-│                                  config, session-alapú auth, CORS, rate limit, log)
+│   │   └── SolverCallbackSigner.php  ← NEW: authentication of the solver callback
+│   ├── Repositories/           ← Services/Repositories/*.cs  (PDO + SQL instead of EF Core)
+│   ├── Models/                 ← Class/*Models.cs  (input validation, like [ApiController])
+│   └── Core/                   ← small classes replacing the framework (router, request/response,
+│                                  config, session-based auth, CORS, rate limit, log)
 ├── views/admin/                ← Views/Admin/*.cshtml
-├── dev/                        ← indító scriptek, Caddyfile, környezet-ellenőrző, hash-generáló
-├── deploy/nginx.conf.example   ← éles telepítés
-├── tests/                      ← API-, solver- és frontend end-to-end tesztek
-└── storage/                    ← session-ök, naplók, rate limit (gitignore-olt)
+├── dev/                        ← start scripts, Caddyfile, environment checker, hash generator
+├── deploy/nginx.conf.example   ← production deployment
+├── tests/                      ← API, solver and frontend end-to-end tests
+└── storage/                    ← sessions, logs, rate limit (gitignored)
 ```
 
-| Végpont | C# | PHP |
+| Endpoint | C# | PHP |
 |---|---|---|
 | `api/Authentication/*` (login, register, confirm, resend-confirmation, forgot-password, reset-password, check-token, delete, logout) | `AuthenticationController` | `Controllers/AuthenticationController.php` |
 | `api/Event/*` (new-event, delete-event, get-events, get-event, save-event, new-wizard) | `EventController` | `Controllers/EventController.php` |
 | `api/Schedule/*` (`{id}` POST/GET, isRunning, stop, answer, export) | `ScheduleController` | `Controllers/ScheduleController.php` |
-| `admin`, `admin/login`, `admin/logout`, `admin/api/*` | `AdminController` + Razor nézetek | `Controllers/AdminController.php` + `views/admin` |
+| `admin`, `admin/login`, `admin/logout`, `admin/api/*` | `AdminController` + Razor views | `Controllers/AdminController.php` + `views/admin` |
 
-Ami a .NET-ben a keretrendszer dolga volt, itt egy-egy kis, olvasható osztály:
+What the framework did in .NET is a small, readable class here:
 
 | ASP.NET Core | PHP |
 |---|---|
-| Attribútum-routing (kis/nagybetű-érzéketlen, `{id:long}`) | `Core/Router.php` |
-| `IConfiguration` (appsettings + környezet + User Secrets + env változók) | `Core/Config.php` |
-| Cookie Authentication (sliding expiration, 2 séma) | `Core/SessionAuth.php` (szerveroldali session) |
-| `[ApiController]` modell-validáció → 400 ProblemDetails | `Models/InputReader.php`, `Models/EventInput.php` |
+| Attribute routing (case-insensitive, `{id:long}`) | `Core/Router.php` |
+| `IConfiguration` (appsettings + environment + User Secrets + env variables) | `Core/Config.php` |
+| Cookie authentication (sliding expiration, 2 schemes) | `Core/SessionAuth.php` (server-side session) |
+| `[ApiController]` model validation → 400 ProblemDetails | `Models/InputReader.php`, `Models/EventInput.php` |
 | `IExceptionHandler` | `App::handleException()` |
-| System.Text.Json (camelCase, kis/nagybetű-érzéketlen beolvasás) | `Core/Json.php` |
-| DateTime / TimeOnly JSON formátum, `ToLocalTime()` | `Core/DotNetTime.php` |
+| System.Text.Json (camelCase, case-insensitive reading) | `Core/Json.php` |
+| DateTime / TimeOnly JSON format, `ToLocalTime()` | `Core/DotNetTime.php` |
 | `UseStaticFiles` + `MapFallbackToFile("index.html")` | `Core/StaticFiles.php` |
 | Antiforgery token | `Core/Csrf.php` |
 
 ---
 
-## Konfiguráció
+## Configuration
 
-A PHP **ugyanazokat a fájlokat** olvassa, mint a .NET, ebben a sorrendben (a későbbi felülírja a korábbit):
+PHP reads **the same files** as .NET, in this order (later ones override earlier ones):
 
 1. `../ScheduleLogic.Server/appsettings.json`
-2. `../ScheduleLogic.Server/appsettings.{Környezet}.json`
-3. a .NET **User Secrets** (csak Development módban; a `.csproj` `UserSecretsId`-ja alapján)
-4. `ScheduleLogic.PhpServer/appsettings.json` (opcionális, csak PHP-specifikus értékekhez, minta: `appsettings.sample.json`)
-5. `ScheduleLogic.PhpServer/appsettings.{Környezet}.json`
-6. környezeti változók `__` elválasztóval, pl. `Database__Password` (ugyanúgy, mint .NET-ben)
+2. `../ScheduleLogic.Server/appsettings.{Environment}.json`
+3. the .NET **User Secrets** (only in Development; based on the `UserSecretsId` in the `.csproj`)
+4. `ScheduleLogic.PhpServer/appsettings.json` (optional, only for PHP-specific values; sample: `appsettings.sample.json`)
+5. `ScheduleLogic.PhpServer/appsettings.{Environment}.json`
+6. environment variables with `__` as separator, e.g. `Database__Password` (same as in .NET)
 
-A környezetet az `APP_ENV` (vagy `ASPNETCORE_ENVIRONMENT`) változó adja meg. **Alapértéke `Production`**, akárcsak .NET-ben. A `start-dev` scriptek `Development`-re állítják.
+The environment comes from `APP_ENV` (or `ASPNETCORE_ENVIRONMENT`). **The default is `Production`**, as in .NET. The `start-dev` scripts set it to `Development`.
 
-Csak a PHP-ben létező beállítások (mind opcionális):
+PHP-only settings (all optional):
 
-| Kulcs | Alapérték | Mire jó |
+| Key | Default | Purpose |
 |---|---|---|
-| `AppSettings:TimeZone` | `Europe/Budapest` | a „szerver helyi ideje” (a .NET `ToLocalTime()` megfelelője) |
-| `AppSettings:WebRoot` | `../ScheduleLogic.Server/wwwroot` | a lebuildelt Angular kliens helye |
-| `AppSettings:ExportDateFormat` | `Y-m-d H:i:s` | dátumformátum az Excel exportban |
-| `Cors:AllowedOrigins` | dev: `https://localhost:58921`, éles: `https://schedulelogic.hu` | CORS |
-| `ForwardedHeaders:KnownProxies` | `127.0.0.1`, `::1` | melyik proxy `X-Forwarded-For` fejlécében bízzunk |
-| `Solver:CallbackSecret` | (generált, `storage/solver-callback.key`) | a solver-visszahívás aláírókulcsa |
-| `RateLimiting:*` | lásd `appsettings.sample.json` | túlterhelés / jelszó-próbálgatás elleni korlát |
-| `MailSend:VerifyCertificate` | `true` | csak helyi teszt SMTP-hez érdemes kikapcsolni |
+| `AppSettings:TimeZone` | `Europe/Budapest` | the "server local time" (the counterpart of .NET `ToLocalTime()`) |
+| `AppSettings:WebRoot` | `../ScheduleLogic.Server/wwwroot` | location of the built Angular client |
+| `AppSettings:ExportDateFormat` | `Y-m-d H:i:s` | date format in the Excel export |
+| `Cors:AllowedOrigins` | dev: `https://localhost:58921`, production: `https://schedulelogic.hu` | CORS |
+| `ForwardedHeaders:KnownProxies` | `127.0.0.1`, `::1` | which proxy's `X-Forwarded-For` header to trust |
+| `Solver:CallbackSecret` | (generated, `storage/solver-callback.key`) | signing key of the solver callback |
+| `RateLimiting:*` | see `appsettings.sample.json` | limits against overload / password guessing |
+| `MailSend:VerifyCertificate` | `true` | only worth turning off for a local test SMTP server |
 
 ---
 
-## Eltérések a .NET backendhez képest
+## Differences from the .NET backend
 
-### Javított biztonsági hibák
+### Fixed security issues
 
 | # | .NET backend | PHP backend |
 |---|---|---|
-| 1 | Az `api/Schedule/answer` csak azt ellenőrizte, hogy a kérés localhostról jön-e. **Reverse proxy (nginx) mögött minden kérés onnan jön**, így bárki beküldhetett hamis eredményt. | A solver-visszahívás URL-jébe eseményhez kötött **HMAC-SHA256 kulcs** kerül (`?key=...`). A solvernek nem kell változnia, mert a kapott `returnURL`-re küld vissza. A kulcs csak az adott eseményhez jó, és a beküldött azonosítóknak is az eseményhez kell tartozniuk. |
-| 2 | Élesben a cookie `SameSite=None` volt, ezzel egy idegen oldal a felhasználó nevében küldhetett kéréseket (CSRF). | `SameSite=Lax`, Domain nélkül. |
-| 3 | A regisztrációnál nem volt ellenőrzés (üres jelszó, rossz e-mail is átment). | Legalább 8 karakteres jelszó, érvényes e-mail, 1–255 karakteres felhasználónév. |
-| 4 | A `SuccessRehashNeeded` eredményt elutasította, így egy Identity-frissítés után a régi felhasználók nem tudtak volna belépni. | Elfogadja, és belépéskor automatikusan frissíti a hash-t. |
-| 5 | Nem volt rate limiting. | Login, regisztráció, e-mail küldés, jelszó-visszaállítás és admin login korlátozva (429 + `Retry-After`). |
-| 6 | Kijelentkezés után a régi cookie (lejáratig) elvileg még érvényes. | Szerveroldali session: kijelentkezéskor vagy fióktörléskor azonnal megszűnik. |
-| 7 | — | Nem létező felhasználónál is lefut egy ál-hash, így a válaszidőből sem derül ki, létezik-e a fiók. |
+| 1 | `api/Schedule/answer` only checked whether the request came from localhost. **Behind a reverse proxy (nginx) every request comes from there**, so anyone could submit a forged result. | The solver callback URL carries a per-event **HMAC-SHA256 key** (`?key=...`). The solver does not change, because it posts back to the `returnURL` it received. The key is only valid for that event, and the submitted ids must belong to the event too. |
+| 2 | In production the cookie was `SameSite=None`, so a foreign site could send requests on behalf of the user (CSRF). | `SameSite=Lax`, no Domain. |
+| 3 | No validation at registration (an empty password or a wrong e-mail got through). | Password of at least 8 characters, valid e-mail, username of 1–255 characters. |
+| 4 | `SuccessRehashNeeded` was rejected, so after an Identity update old users could not have logged in. | Accepted, and the hash is updated automatically at login. |
+| 5 | No rate limiting. | Login, registration, e-mail sending, password reset and admin login are limited (429 + `Retry-After`). |
+| 6 | After logout the old cookie was in principle still valid (until expiry). | Server-side session: ends immediately on logout or account deletion. |
+| 7 | — | A dummy hash also runs for a non-existent user, so the response time does not reveal whether the account exists. |
 
-### Egyéb (kisebb) különbségek
+These have since been fixed in the .NET backend as well (see `ScheduleLogic.Server/SECURITY.md`).
 
-- **`api/Schedule/stop`**: a .NET mindig `false`-t adott vissza, mert a solver kisbetűs `status` kulcsát kis/nagybetű-érzékenyen olvasta. A PHP helyesen `true`-t ad, ha a solver leállt. (A frontend ezt az értéket nem használja.)
-- **`POST api/Schedule/{id}`** válaszában a `returnURL` üres, mert a visszahívási kulcs nem a böngészőre tartozik. (A frontend ezt sem használja.)
-- **Varázsló**: ha az import hibás, a .NET-ben ott maradt egy üres „New Event”. Itt az egész egy tranzakció, így hiba esetén nem marad semmi.
-- **Solver-eredmény mentése**: egy tranzakcióban történik, így részleges állapot nem maradhat.
-- **Excel export**: a dátum `2026-03-01 09:00:00` formátumú. A .NET a szerver nyelvi beállítása szerint írta, ez gépenként más volt.
-- A listák (események, résztvevők stb.) azonosító szerint rendezve jönnek, a .NET-nél a sorrend nem volt garantált.
-- A `DatabaseService.cs` a .NET-ben sehol nincs regisztrálva (régi, holt kód), ezért nem került át.
+### Other (minor) differences
+
+- **`api/Schedule/stop`**: .NET always returned `false`, because it read the solver's lowercase `status` key case-sensitively. PHP correctly returns `true` when the solver stopped. (The frontend does not use this value.)
+- The `returnURL` in the response of **`POST api/Schedule/{id}`** is empty, because the callback key does not belong in the browser. (The frontend does not use it either.)
+- **Wizard**: if the import failed, .NET left an empty "New Event" behind. Here it is one transaction, so nothing is left on error.
+- **Saving the solver result** happens in one transaction, so no partial state can remain.
+- **Excel export**: dates use the `2026-03-01 09:00:00` format. .NET wrote them according to the server's locale, which differed between machines.
+- Lists (events, participants etc.) come sorted by id; with .NET the order was not guaranteed.
+- `DatabaseService.cs` is not registered anywhere in .NET (old, dead code), so it was not ported.
 
 ---
 
-## Éles telepítés (Linux)
+## Production deployment (Linux)
 
 ```bash
 sudo apt install php8.3-fpm php8.3-pgsql php8.3-zip nginx
 ```
 
-- Minta konfiguráció: `deploy/nginx.conf.example`. Az nginx szolgálja ki az Angular buildet, az `/api` és `/admin` kéréseket a PHP-FPM kapja.
-- Az `APP_ENV` alapból `Production`. A jelszavakat környezeti változóként is megadhatod (`Database__Password`, `MailSend__Password`, …).
-- A `storage/` mappa legyen írható a PHP-FPM felhasználójának (`www-data`).
-- Ha a .NET projekt mappája nincs a szerveren, az `SL_SHARED_CONFIG_DIR` környezeti változóval adhatod meg, hol vannak az `appsettings` fájlok, vagy tedd őket a `ScheduleLogic.PhpServer` mappába.
+- Sample configuration: `deploy/nginx.conf.example`. nginx serves the Angular build; `/api` and `/admin` requests go to PHP-FPM.
+- `APP_ENV` defaults to `Production`. Passwords can also be given as environment variables (`Database__Password`, `MailSend__Password`, …).
+- The `storage/` folder must be writable by the PHP-FPM user (`www-data`).
+- If the .NET project folder is not on the server, set `SL_SHARED_CONFIG_DIR` to the folder of the `appsettings` files, or put them into the `ScheduleLogic.PhpServer` folder.
 
 ---
 
-## Tesztelés
+## Testing
 
-Részletek: `tests/README.md`. A fejlesztés során ezek futottak le sikeresen, valódi PHP 8.3 + PostgreSQL 16 környezetben:
+Details: `tests/README.md`. These passed during development, on a real PHP 8.3 + PostgreSQL 16 environment:
 
-- **`test_api.py`**: 142 ellenőrzés mind a 29 végpontra (formátumok, hibakódok, jogosultság, e-mail STARTTLS-sel, hash-kompatibilitás független Python implementációval, régi hash frissítése, CORS, rate limit, admin + CSRF, solver-kulcs, Excel tartalom),
-- **`test_real_solver.py`**: a valódi OR-Tools solverrel; a kapott beosztás minden megkötést betart,
-- **`e2e_frontend.js`**: a valódi Angular kliens végigkattintva headless Chromiumban, a fejlesztői felállásban is (Angular a 58921-en, a PHP Caddy mögött a 7098-on).
+- **`test_api.py`**: 142 checks covering all 29 endpoints (formats, error codes, access control, e-mail with STARTTLS, hash compatibility with an independent Python implementation, upgrading an old hash, CORS, rate limit, admin + CSRF, solver key, Excel content),
+- **`test_real_solver.py`**: with the real OR-Tools solver; the resulting schedule satisfies every constraint,
+- **`e2e_frontend.js`**: the real Angular client clicked through in headless Chromium, also in the development setup (Angular on 58921, PHP behind Caddy on 7098).
 
 ---
 
-## Hibaelhárítás
+## Troubleshooting
 
-| Tünet | Megoldás |
+| Symptom | Fix |
 |---|---|
-| `could not find driver` | Nincs bekapcsolva az `extension=pdo_pgsql` a `php.ini`-ben (`php --ini` mutatja, melyik ini töltődik be). |
-| `password authentication failed` | A `../ScheduleLogic.Server/appsettings.json` `Database` szekciójában lévő adatokkal nem lehet belépni. A .NET `Program.cs`-ben van egy második, beégetett connection string is (`Username=app`), lehet, hogy eddig az működött. |
-| A böngésző nem bízik a `https://localhost:7098` tanúsítványban | `caddy trust` (rendszergazdaként), majd indítsd újra a böngészőt. |
-| `A 7098-as port foglalt` | Fut a .NET backend (Visual Studio), előbb azt állítsd le. |
-| Az admin login mindig hibás | Nincs `AdminAuth` a configban. Készíts egy hash-t a `php dev\hash-password.php` paranccsal. |
-| A naplók | `storage/logs/app-ÉÉÉÉ-HH-NN.log` (fejlesztéskor a konzolra is kiíródnak). |
+| `could not find driver` | `extension=pdo_pgsql` is not enabled in `php.ini` (`php --ini` shows which ini is loaded). |
+| `password authentication failed` | The credentials in the `Database` section (and `Database:Password` in User Secrets) are wrong. See `CONFIGURATION.md` in the repository root. |
+| The browser does not trust the `https://localhost:7098` certificate | `caddy trust` (as administrator), then restart the browser. |
+| `Port 7098 is in use` | The .NET backend (Visual Studio) is running; stop it first. |
+| Admin login always fails | There is no `AdminAuth` in the config. Create a hash with `php dev\hash-password.php`. |
+| Logs | `storage/logs/app-YYYY-MM-DD.log` (also written to the console in development). |

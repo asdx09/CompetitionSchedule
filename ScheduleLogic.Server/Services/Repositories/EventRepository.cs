@@ -40,10 +40,6 @@ namespace ScheduleLogic.Server.Services
         public Task<bool> IsOwnedByUserAsync(long eventId, long userId) =>
             _db.Events.AnyAsync(e => e.EventId == eventId && e.Createdby == userId);
 
-        // Feltételezi, hogy az event alatti táblák ON DELETE CASCADE-del
-        // kapcsolódnak az event(event_id)-hez (lásd a javasolt sémát).
-        // Ha ez nincs beállítva az adatbázisban, ez kivételt fog dobni
-        // idegenkulcs-ütközés miatt.
         public async Task DeleteEventAsync(long eventId)
         {
             var evt = await _db.Events.FirstOrDefaultAsync(e => e.EventId == eventId);
@@ -120,7 +116,10 @@ namespace ScheduleLogic.Server.Services
                     ParticipantName = e.Participantname,
                     CompetitorNumber = e.Competitornumber,
                     EventId = e.EventId.ToString(),
-                    GroupId = e.GroupId.ToString()
+                    // EF Core 9+ translates ToString() on a null value to "" instead of null.
+                    GroupId = e.GroupId.HasValue
+                        ? e.GroupId.Value.ToString()
+                        : null
                 }).ToListAsync();
 
             data.Registrations = await _db.Registrations.AsNoTracking()
@@ -199,7 +198,6 @@ namespace ScheduleLogic.Server.Services
             catch
             {
                 await tx.RollbackAsync();
-                // A sikertelen mentés követett entitásai ne maradjanak a contextben.
                 _db.ChangeTracker.Clear();
                 return false;
             }
@@ -227,16 +225,12 @@ namespace ScheduleLogic.Server.Services
             }
             catch
             {
-                // A verseny létrehozása is visszavonódik, nem marad üres verseny.
                 await tx.RollbackAsync();
                 _db.ChangeTracker.Clear();
                 return false;
             }
         }
 
-        // ON DELETE CASCADE-del is kiváltható, de itt explicit maradt, mert
-        // a Save útvonal a meglévő Event sort megtartja (nem törli), csak a
-        // gyerek sorokat cseréli le teljesen.
         private async Task RemoveChildRowsAsync(long eventId)
         {
             _db.Eventtypes.RemoveRange(_db.Eventtypes.Where(w => w.EventId == eventId));

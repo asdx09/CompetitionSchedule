@@ -8,18 +8,8 @@ use ScheduleLogic\Core\DotNetTime;
 use ScheduleLogic\Core\HttpException;
 use ScheduleLogic\Core\Response;
 
-/**
- * A model binding + automatikus validáció ([ApiController]) megfelelője.
- *
- * A C# DTO-kban a nem-nullable string property-k (pl. "public string
- * TypeName { get; set; } = null!;") implicit [Required]-ek: hiányozhatnak
- * vagy lehetnek üresek -> 400 ProblemDetails "errors" listával. Ez az
- * osztály ugyanilyen hibaüzeneteket gyűjt, ugyanilyen kulcsokkal
- * (pl. "EventTypes[0].TypeName").
- */
 final class InputReader
 {
-    /** @var array<string, list<string>> */
     private array $errors = [];
 
     public function hasErrors(): bool
@@ -39,12 +29,11 @@ final class InputReader
         $this->errors[$path][] = $message;
     }
 
-    /** Kötelező, nem üres string (implicit [Required]). */
     public function requiredString(array $data, string $field, string $path): string
     {
         $value = $data[strtolower($field)] ?? null;
         if (is_int($value) || is_float($value)) {
-            $value = (string)$value; // engedékenyebb a .NET-nél: számot is elfogad
+            $value = (string)$value;
         }
         if (!is_string($value) || trim($value) === '') {
             $this->addError($path, "The {$field} field is required.");
@@ -53,7 +42,6 @@ final class InputReader
         return $value;
     }
 
-    /** Opcionális (nullable) string. */
     public function optionalString(array $data, string $field, string $path, ?string $default = null): ?string
     {
         if (!array_key_exists(strtolower($field), $data) || $data[strtolower($field)] === null) {
@@ -70,7 +58,6 @@ final class InputReader
         return $value;
     }
 
-    /** int mező: hiányzik -> 0 (C# alapérték); a web JSON beállítás stringből is olvas számot. */
     public function int(array $data, string $field, string $path): int
     {
         $key = strtolower($field);
@@ -104,7 +91,6 @@ final class InputReader
         return $data[$key];
     }
 
-    /** DateTime mező, ToUniversalTime()-mal; hiányzik -> null (a hívó dönt). */
     public function dateTime(array $data, string $field, string $path): ?\DateTimeImmutable
     {
         $key = strtolower($field);
@@ -118,7 +104,6 @@ final class InputReader
         return $parsed;
     }
 
-    /** TimeOnly mező ("HH:mm[:ss]"). */
     public function timeOnly(array $data, string $field, string $path): string
     {
         $key = strtolower($field);
@@ -133,7 +118,6 @@ final class InputReader
         return $parsed;
     }
 
-    /** Lista mező; hiányzik -> üres lista (a C# DTO inicializálja). */
     public function list(array $data, string $field, string $path): array
     {
         $key = strtolower($field);

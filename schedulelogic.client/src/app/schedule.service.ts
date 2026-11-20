@@ -4,54 +4,6 @@ import { Router } from '@angular/router';
 import { Observable } from 'rxjs/internal/Observable';
 import { environment } from '../environments/environment';
 
-/*export class ScheduleData{
-  timeZones: ScheduleTimeZone[] = [];
-  eventID: number = 0;
-  eventName: string = "";
-  startDate: Date = new Date();
-  endDate: Date = new Date();
-  eventTypes: ScheduleEventType[] = [];
-  participants: Scheduleparticipants[] = [];
-  locations: ScheduleLocations[] = [];
-  constraints: ScheduleConstraint[] = [];
-}
-
-export class ScheduleTimeZone {
-  scheduleID: number = 0;
-  eventTypeID: number = 0;
-  participantID: number = 0;
-  locationID: number = 0;
-  startTime: number = 0;
-  endTime: number = 0;
-  slot: number = 0;
-}
-
-
-export class ScheduleConstraint{
-  constraintId: number = 0;
-  eventId: number = 0;
-  objectID: number = 0;
-  constraintType: string = "";
-  startTime: number = 0;
-  endTime: number = 0;
-}
-
-
-export class ScheduleEventType{
-  eventTypeID: number = 0;
-  eventTypeName: string = "";
-}
-
-export class Scheduleparticipants{
-  participantID: number = 0;
-  participantName: string = "";
-}
-
-export class ScheduleLocations{
-  locationID: number = 0;
-  locationName: string = "";
-}*/
-
 @Injectable({
   providedIn: 'root'
 })

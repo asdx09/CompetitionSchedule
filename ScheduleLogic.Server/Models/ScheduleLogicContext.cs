@@ -39,11 +39,6 @@ public partial class ScheduleLogicContext : DbContext
 
     public virtual DbSet<User> Users { get; set; }
 
-    // A kapcsolati string NEM lehet a forráskódban (korábban itt egy beégetett
-    // jelszó volt, ami a gitbe is bekerült). A Program.cs állítja be a
-    // konfigurációból. Újra-scaffoldoláskor használd a --no-onconfiguring
-    // kapcsolót, hogy az EF ne generálja vissza ezt a metódust.
-
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasPostgresExtension("citext");

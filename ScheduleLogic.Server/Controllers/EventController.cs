@@ -20,10 +20,6 @@ namespace ScheduleLogic.Server.Controllers
             _eventService = eventService;
         }
 
-        // A UserId a bejelentkezéskor kiállított cookie-ban lévő claimből jön,
-        // nincs hozzá adatbázis-keresés. [Authorize] miatt a claim mindig jelen
-        // van, ha idáig eljutott a kérés, ezért ez itt sosem "Unauthorized",
-        // hanem programozási hiba jele lenne — ezért dob, nem Forbid()-ot ad.
         private long UserId =>
             long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 

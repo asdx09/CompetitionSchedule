@@ -14,12 +14,10 @@ namespace ScheduleLogic.Server.Services.Interfaces
         Task<long?> GetIdByEmailAsync(string email);
         Task DeleteAsync(long userId);
 
-        // Admin
         Task<int> CountAsync();
         Task<List<AdminModels.AdminUserDTO>> SearchAsync(string? query);
         Task<bool> ConfirmByIdAsync(long userId);
 
-        // Pass-reset
         Task SetPasswordResetTokenAsync(long userId, string token, DateTime expiresUtc);
         Task<User?> GetByValidPasswordResetTokenAsync(string token);
         Task SetPasswordAsync(long userId, string hashedPassword);

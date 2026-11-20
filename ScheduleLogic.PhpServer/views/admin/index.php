@@ -1,4 +1,3 @@
-<?php /** @var \ScheduleLogic\Core\Csrf $csrf */ ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>

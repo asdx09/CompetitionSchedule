@@ -4,13 +4,6 @@ declare(strict_types=1);
 
 namespace ScheduleLogic\Core;
 
-/**
- * UseDefaultFiles + UseStaticFiles + MapFallbackToFile("/index.html")
- * megfelelője: kiszolgálja a lebuildelt Angular klienst a wwwroot mappából.
- *
- * Élesben ezt jobb az nginx-re bízni (lásd deploy/nginx.conf.example),
- * de így a beépített PHP szerverrel is teljes az alkalmazás.
- */
 final class StaticFiles
 {
     private const MIME = [
@@ -48,7 +41,6 @@ final class StaticFiles
         return $this->root !== null;
     }
 
-    /** Létező fájlt szolgál ki, vagy null-t ad. */
     public function tryServe(Request $request): ?Response
     {
         if ($this->root === null || !in_array($request->method, ['GET', 'HEAD'], true)) {
@@ -57,14 +49,12 @@ final class StaticFiles
         $path = $request->path === '/' ? '/index.html' : $request->path;
         $file = realpath($this->root . $path);
 
-        // Path traversal védelem: csak a webroot alatti fájl jöhet szóba.
         if ($file === false || !is_file($file) || !str_starts_with($file, $this->root . DIRECTORY_SEPARATOR)) {
             return null;
         }
         return $this->fileResponse($file);
     }
 
-    /** SPA fallback: minden ismeretlen (nem /api, nem /admin) útvonalra az index.html. */
     public function fallback(Request $request): ?Response
     {
         if ($this->root === null || !in_array($request->method, ['GET', 'HEAD'], true)) {

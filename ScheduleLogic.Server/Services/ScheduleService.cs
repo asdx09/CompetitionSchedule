@@ -15,9 +15,7 @@ namespace ScheduleLogic.Server.Services
         private readonly ILogger<ScheduleService> _logger;
         private readonly SolverCallbackSigner _signer;
 
-        // A solver kisbetűs kulcsokat küld ("status", "Running" vegyesen), ezért
-        // kis/nagybetű-érzéketlenül olvasunk. Korábban a StopSolver emiatt
-        // mindig false-t adott vissza.
+        // The solver's JSON keys are not consistently cased.
         private static readonly JsonSerializerOptions SolverJson = new() { PropertyNameCaseInsensitive = true };
 
         public ScheduleService(
@@ -43,10 +41,9 @@ namespace ScheduleLogic.Server.Services
 
             var request = await _schedules.GetScheduleInfoAsync(eventId);
 
-            // A solver erre az URL-re küldi vissza az eredményt. A "key" a
-            // versenyhez kötött HMAC kulcs, ezzel hitelesíti magát az answer végponton.
             var backendForSolver = _configuration["URLS:BackendForSolver"];
             if (string.IsNullOrWhiteSpace(backendForSolver)) backendForSolver = _configuration["URLS:Backend"]!;
+            // The callback URL carries a per-event HMAC key; the answer endpoint only accepts that.
             request.ReturnURL =
                 backendForSolver.TrimEnd('/') +
                 "/api/Schedule/answer?key=" + _signer.KeyFor(eventId);
@@ -65,7 +62,6 @@ namespace ScheduleLogic.Server.Services
                     error);
             }
 
-            // A visszahívási kulcs nem tartozik a böngészőre.
             request.ReturnURL = "";
             return request;
         }
@@ -112,8 +108,6 @@ namespace ScheduleLogic.Server.Services
             return result?.Status == "STOPPED";
         }
 
-        // A solver hívja, felhasználói kontextus (userId) nélkül - a
-        // jogosultságot (HMAC kulcs) a kontroller már ellenőrizte.
         public async Task<bool> ReceiveSolverAnswer(SolverResponse data)
         {
             bool hasSolution = data.Status is "FEASIBLE" or "PARTIAL_SOLUTION" or "OPTIMAL";

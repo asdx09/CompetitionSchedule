@@ -4,23 +4,12 @@ declare(strict_types=1);
 
 namespace ScheduleLogic\Core;
 
-/**
- * Fix időablakos rate limiter fájl-tárolóval (az ASP.NET AddRateLimiter
- * FixedWindowLimiter-ének megfelelője). Nem kell hozzá Redis vagy APCu,
- * így a beépített PHP szerverrel is működik.
- *
- * A .NET backendben ez nem volt - brute force elleni javításként került be
- * a login / regisztráció / jelszó-visszaállítás végpontokra.
- */
 final class RateLimiter
 {
     public function __construct(private readonly string $directory, private readonly bool $enabled = true)
     {
     }
 
-    /**
-     * @return int|null  null, ha a kérés mehet; különben hány másodperc múlva próbálkozhat újra
-     */
     public function hit(string $bucket, string $clientKey, int $limit, int $windowSeconds): ?int
     {
         if (!$this->enabled || $limit <= 0) {
@@ -33,7 +22,7 @@ final class RateLimiter
         $file = $this->directory . '/' . hash('sha256', $bucket . '|' . $clientKey) . '.json';
         $fh = fopen($file, 'c+');
         if ($fh === false) {
-            return null; // tárolási hiba esetén ne zárjuk ki a felhasználót
+            return null;
         }
 
         try {
@@ -60,7 +49,6 @@ final class RateLimiter
         }
     }
 
-    /** Régi bejegyzések takarítása (alkalmanként hívódik). */
     public function cleanup(int $olderThanSeconds = 86400): void
     {
         foreach (glob($this->directory . '/*.json') ?: [] as $file) {

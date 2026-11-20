@@ -9,11 +9,6 @@ use ScheduleLogic\Core\DotNetTime;
 use ScheduleLogic\Core\Logger;
 use ScheduleLogic\Repositories\UserRepository;
 
-/**
- * Felhasználókezelés üzleti logikája (a C# AuthenticationService megfelelője).
- * A session/cookie kezelése a kontrollerben történik, ez a réteg nem ismeri
- * a HTTP kérést.
- */
 final class AuthenticationService
 {
     public function __construct(
@@ -25,16 +20,11 @@ final class AuthenticationService
     ) {
     }
 
-    /**
-     * Hitelesítő adatok ellenőrzése. Nem létező vagy még meg nem erősített
-     * fióknál null.
-     */
     public function loginUser(string $usernameOrEmail, string $password): ?array
     {
         $user = $this->users->getByUsernameOrEmail($usernameOrEmail);
 
         if ($user === null) {
-            // Ál-ellenőrzés, hogy a válaszidőből ne derüljön ki, létezik-e a fiók.
             $this->hasher->verify($this->dummyHash(), $password);
             return null;
         }
@@ -43,8 +33,6 @@ final class AuthenticationService
         if ($result === PasswordHasher::FAILED || $user['validated'] !== '') {
             return null;
         }
-        // Javítás a .NET-es verzióhoz képest: a SuccessRehashNeeded is sikeres
-        // belépés, és ilyenkor a hash-t a mai paraméterekkel frissítjük.
         if ($result === PasswordHasher::SUCCESS_REHASH_NEEDED) {
             $this->users->updatePasswordHash((int)$user['user_id'], $this->hasher->hash($password));
         }
@@ -61,12 +49,8 @@ final class AuthenticationService
         $this->users->delete($userId);
     }
 
-    /**
-     * @return array{success:bool, error:?string, emailSent:bool}
-     */
     public function registerUser(string $username, string $password, string $email): array
     {
-        // --- validáció (a .NET verzióban ez hiányzott) ---
         $username = trim($username);
         $email = trim($email);
 
@@ -90,14 +74,11 @@ final class AuthenticationService
             return self::fail('Email already taken!');
         }
 
-        // Fejlesztői módban kikapcsolható az e-mail-megerősítés (a .NET
-        // AuthenticationService-szel azonos módon): üres token = megerősített fiók.
         $skipConfirmation = $this->skipEmailConfirmation();
         $token = $skipConfirmation ? '' : self::generateToken();
         try {
             $this->users->add($username, $email, $this->hasher->hash($password), $token);
         } catch (\PDOException $e) {
-            // Két egyidejű regisztráció ugyanazzal a névvel: az egyedi index fogja meg.
             if (UserRepository::isUniqueViolation($e)) {
                 return self::fail(str_contains($e->getMessage(), 'email') ? 'Email already taken!' : 'Username already taken!');
             }
@@ -105,21 +86,15 @@ final class AuthenticationService
         }
 
         if ($skipConfirmation) {
-            $this->logger->info('DevOptions:SkipEmailConfirmation - {Username} megerősítés nélkül aktiválva.', ['Username' => $username]);
+            $this->logger->info('DevOptions:SkipEmailConfirmation - {Username} activated without confirmation.', ['Username' => $username]);
             return ['success' => true, 'error' => null, 'emailSent' => true];
         }
 
-        // A fiók innentől létezik akkor is, ha a levélküldés elhasal -
-        // a megerősítés újraküldhető, vagy az admin felületen jóváhagyható.
         $emailSent = $this->trySendValidationEmail($token, $email, $username);
 
         return ['success' => true, 'error' => null, 'emailSent' => $emailSent];
     }
 
-    /**
-     * Ugyanazzal a tokennel küldi újra a levelet, amit regisztrációkor kapott.
-     * A hívó mindig sikert jelez a kliensnek, hogy ne lehessen fiókokat találgatni.
-     */
     public function resendConfirmationEmail(string $usernameOrEmail): bool
     {
         $user = $this->users->getByUsernameOrEmail($usernameOrEmail);
@@ -144,29 +119,23 @@ final class AuthenticationService
     {
         $user = $this->users->getByValidPasswordResetToken($token);
         if ($user === null) {
-            return false; // érvénytelen vagy lejárt token
+            return false;
         }
         $this->users->setPassword((int)$user['user_id'], $this->hasher->hash($newPassword));
         return true;
     }
 
-    /**
-     * Csak Development környezetben lehet igaz, élesben a beállítás értékétől
-     * függetlenül mindig kell az e-mail-megerősítés.
-     */
     private function skipEmailConfirmation(): bool
     {
         return $this->config->isDevelopment()
             && $this->config->bool('DevOptions:SkipEmailConfirmation');
     }
 
-    /** Kriptográfiailag erős, 64 karakteres hexa token (mint a Convert.ToHexString). */
     private static function generateToken(): string
     {
         return strtoupper(bin2hex(random_bytes(32)));
     }
 
-    /** UTF-8 karakterszám mbstring nélkül (Windowson az alapból nincs bekapcsolva). */
     private static function charLength(string $s): int
     {
         return preg_match('//u', $s) ? (int)preg_match_all('/./su', $s) : strlen($s);
@@ -206,16 +175,13 @@ final class AuthenticationService
             $this->email->send($email, 'Email confirmation required - ScheduleLogic', $body);
             return true;
         } catch (\Throwable $ex) {
-            // A fiók már létrejött, ez a hiba csak a kézbesítést érinti.
-            $this->logger->warning('Nem sikerült megerősítő e-mailt küldeni: {Email}', ['Email' => $email], $ex);
+            $this->logger->warning('Failed to send confirmation e-mail: {Email}', ['Email' => $email], $ex);
             return false;
         }
     }
 
     private function trySendPasswordResetEmail(string $token, string $email, string $username): bool
     {
-        // A kliens (Angular) reset-password oldalára mutat, mert ott kell
-        // begépelni az új jelszót.
         $link = $this->publicUrl() . '/reset-password?token=' . rawurlencode($token);
         $safeUsername = htmlspecialchars($username, ENT_QUOTES | ENT_HTML5, 'UTF-8');
         $safeLink = htmlspecialchars($link, ENT_QUOTES | ENT_HTML5, 'UTF-8');
@@ -238,7 +204,7 @@ final class AuthenticationService
             $this->email->send($email, 'Password reset - ScheduleLogic', $body);
             return true;
         } catch (\Throwable $ex) {
-            $this->logger->warning('Nem sikerült jelszó-visszaállító e-mailt küldeni: {Email}', ['Email' => $email], $ex);
+            $this->logger->warning('Failed to send password reset e-mail: {Email}', ['Email' => $email], $ex);
             return false;
         }
     }

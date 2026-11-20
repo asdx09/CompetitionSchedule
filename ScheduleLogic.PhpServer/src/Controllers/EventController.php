@@ -10,9 +10,6 @@ use ScheduleLogic\Core\Request;
 use ScheduleLogic\Core\Response;
 use ScheduleLogic\Models\EventInput;
 
-/**
- * api/Event - a C# EventController megfelelője. Minden végpont [Authorize].
- */
 final class EventController
 {
     private int $userId;
@@ -21,7 +18,6 @@ final class EventController
     {
     }
 
-    // POST api/Event/new-event
     public function newEvent(Request $request): Response
     {
         $this->authorize($request);
@@ -29,7 +25,6 @@ final class EventController
         return Response::ok();
     }
 
-    // DELETE api/Event/delete-event?id=
     public function deleteEvent(Request $request): Response
     {
         $this->authorize($request);
@@ -37,14 +32,12 @@ final class EventController
         return $deleted ? Response::ok() : Response::problem(404);
     }
 
-    // GET api/Event/get-events
     public function getEvents(Request $request): Response
     {
         $this->authorize($request);
         return Response::json($this->app->eventService()->getEvents($this->userId));
     }
 
-    // GET api/Event/get-event?id=
     public function getEvent(Request $request): Response
     {
         $this->authorize($request);
@@ -52,7 +45,6 @@ final class EventController
         return $result !== null ? Response::json($result) : Response::problem(404);
     }
 
-    // POST api/Event/save-event
     public function saveEvent(Request $request): Response
     {
         $this->authorize($request);
@@ -61,7 +53,6 @@ final class EventController
         return $ok ? Response::ok() : Response::problem(400);
     }
 
-    // POST api/Event/new-wizard
     public function newWizardEvent(Request $request): Response
     {
         $this->authorize($request);
@@ -75,10 +66,6 @@ final class EventController
         $this->userId = $this->app->requireUserId($request);
     }
 
-    /**
-     * [FromQuery] long id kötés: hiányzó érték -> 0 (C# alapérték),
-     * nem szám -> 400 validációs hiba.
-     */
     public static function queryLong(Request $request, string $name): int
     {
         $value = $request->query($name);

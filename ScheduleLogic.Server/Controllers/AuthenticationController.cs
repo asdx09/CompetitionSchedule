@@ -39,9 +39,6 @@ namespace ScheduleLogic.Server.Controllers
             };
             var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
 
-            // Az ExpiresUtc-t szándékosan nem adjuk meg: a cookie séma
-            // options.ExpireTimeSpan-je (1 óra) és a SlidingExpiration
-            // már beállítja, itt csak felülírná feleslegesen.
             await HttpContext.SignInAsync(
                 CookieAuthenticationDefaults.AuthenticationScheme,
                 new ClaimsPrincipal(identity),
@@ -58,10 +55,6 @@ namespace ScheduleLogic.Server.Controllers
             var result = await _authService.RegisterUser(data.Username, data.Password, data.Email);
             if (!result.Success) return BadRequest(result.Error);
 
-            // A fiók mindkét esetben létrejött; az emailSent jelzi a
-            // kliensnek, ha a levél kézbesítése nem sikerült, hogy fel
-            // tudja ajánlani az újraküldést, ne csak csendben landoljon
-            // a felhasználó egy soha meg nem erősíthető fiókban.
             return Ok(new { emailSent = result.EmailSent });
         }
 
@@ -69,8 +62,6 @@ namespace ScheduleLogic.Server.Controllers
         [EnableRateLimiting(RateLimitingSetup.EmailSending)]
         public async Task<IActionResult> ResendConfirmation([FromBody] ResendConfirmationModel data)
         {
-            // Szándékosan mindig Ok()-ot adunk vissza, hogy a válaszból ne
-            // lehessen kitalálni, létezik-e a megadott felhasználó/e-mail.
             await _authService.ResendConfirmationEmailAsync(data.UsernameOrEmail);
             return Ok();
         }
@@ -79,8 +70,6 @@ namespace ScheduleLogic.Server.Controllers
         [EnableRateLimiting(RateLimitingSetup.EmailSending)]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordModel data)
         {
-            // Ugyanaz az elv, mint a resend-confirmation-nél: mindig Ok(),
-            // hogy ne lehessen vele felhasználót/e-mailt találgatni.
             await _authService.ForgotPasswordAsync(data.UsernameOrEmail);
             return Ok();
         }
@@ -96,9 +85,6 @@ namespace ScheduleLogic.Server.Controllers
 
             bool success = await _authService.ResetPasswordAsync(data.Token, data.NewPassword);
 
-            // Itt már NEM kell elrejteni, hogy a token érvénytelen/lejárt -
-            // ezt a felhasználó úgyis a saját linkjéről tudja, nem más
-            // fiókjáról szerez vele infót.
             return success ? Ok() : BadRequest("Invalid or expired reset link.");
         }
 
@@ -106,8 +92,6 @@ namespace ScheduleLogic.Server.Controllers
         [HttpGet("check-token")]
         public IActionResult CheckToken()
         {
-            // A felhasználónév már benne van a cookie-ban lévő claimekben,
-            // erre nem kell adatbázist hívni.
             var username = User.FindFirstValue(ClaimTypes.Name);
             return Ok(new { name = username });
         }

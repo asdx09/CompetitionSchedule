@@ -6,7 +6,6 @@ using ScheduleLogic.TestKit.Reporting;
 
 namespace ScheduleLogic.TestRunner;
 
-/// <summary>"Terhelés" fül: lépcsős terheléses mérés élő grafikonnal és CSV-exporttal.</summary>
 internal sealed partial class MainForm
 {
     private ComboBox _scenario = null!;
@@ -25,18 +24,17 @@ internal sealed partial class MainForm
 
     private static readonly (LoadScenario Value, string Text)[] Scenarios =
     {
-        (LoadScenario.CheckToken, "CheckToken – csak munkamenet-ellenőrzés (alapköltség)"),
-        (LoadScenario.GetEvents, "GetEvents – versenylista"),
-        (LoadScenario.GetEvent, "GetEvent – egy nagy verseny összes adata"),
-        (LoadScenario.SaveEvent, "SaveEvent – nagy verseny mentése (tranzakció)"),
-        (LoadScenario.Mixed, "Mixed – vegyes, valószerű használat"),
+        (LoadScenario.CheckToken, "CheckToken – session check only (base cost)"),
+        (LoadScenario.GetEvents, "GetEvents – event list"),
+        (LoadScenario.GetEvent, "GetEvent – all data of a large event"),
+        (LoadScenario.SaveEvent, "SaveEvent – saving a large event (transaction)"),
+        (LoadScenario.Mixed, "Mixed – mixed, realistic usage"),
     };
 
     private TabPage BuildLoadPage()
     {
-        var page = new TabPage("Terhelés");
+        var page = new TabPage("Load");
 
-        // --- bal oldali beállítások ---
         var settings = new TableLayoutPanel
         {
             Dock = DockStyle.Left,
@@ -53,8 +51,8 @@ internal sealed partial class MainForm
         _scenario.SelectedIndex = Math.Max(0, Array.FindIndex(Scenarios, s => s.Value.ToString() == _settings.Scenario));
 
         _mode = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Dock = DockStyle.Fill };
-        _mode.Items.Add("Zárt: párhuzamos felhasználók");
-        _mode.Items.Add("Nyitott: kérés / másodperc");
+        _mode.Items.Add("Closed: concurrent users");
+        _mode.Items.Add("Open: requests / second");
         _mode.SelectedIndex = _settings.Mode == nameof(LoadMode.Open) ? 1 : 0;
 
         _levels = new TextBox { Text = _settings.Levels, Dock = DockStyle.Fill };
@@ -65,26 +63,26 @@ internal sealed partial class MainForm
         _eventSize = Num(1, 5000, _settings.EventSize);
         _processes = new TextBox { Text = _settings.MonitoredProcesses, Dock = DockStyle.Fill };
 
-        AddSetting(settings, "Forgatókönyv:", _scenario);
-        AddSetting(settings, "Terhelési modell:", _mode);
-        AddSetting(settings, "Szintek (vesszővel):", _levels);
-        AddSetting(settings, "Időtartam / szint (s):", _duration);
-        AddSetting(settings, "Bemelegítés (s):", _warmUp);
-        AddSetting(settings, "Szünet a szintek között (s):", _pause);
-        AddSetting(settings, "Tesztfelhasználók:", _users);
-        AddSetting(settings, "Verseny mérete (fő):", _eventSize);
-        AddSetting(settings, "Figyelt folyamatok:", _processes);
+        AddSetting(settings, "Scenario:", _scenario);
+        AddSetting(settings, "Load model:", _mode);
+        AddSetting(settings, "Levels (comma-separated):", _levels);
+        AddSetting(settings, "Duration / level (s):", _duration);
+        AddSetting(settings, "Warm-up (s):", _warmUp);
+        AddSetting(settings, "Pause between levels (s):", _pause);
+        AddSetting(settings, "Test users:", _users);
+        AddSetting(settings, "Event size (competitors):", _eventSize);
+        AddSetting(settings, "Monitored processes:", _processes);
 
         var buttons = new FlowLayoutPanel { AutoSize = true, Dock = DockStyle.Fill, WrapContents = true };
-        var start = MakeButton("▶ Mérés indítása", async (_, _) => await StartLoad());
+        var start = MakeButton("▶ Start measurement", async (_, _) => await StartLoad());
         start.Font = new Font(Font, FontStyle.Bold);
         _runControls.Add(start);
-        var stop = MakeButton("■ Leállítás", (_, _) => _cts?.Cancel());
+        var stop = MakeButton("■ Stop", (_, _) => _cts?.Cancel());
         stop.Enabled = false;
         _stopButtons.Add(stop);
         buttons.Controls.Add(start);
         buttons.Controls.Add(stop);
-        buttons.Controls.Add(MakeButton("Eredmények mappája", (_, _) => OpenFolder(_lastLoadFolder ?? ReportStore.LoadResultsFolder)));
+        buttons.Controls.Add(MakeButton("Results folder", (_, _) => OpenFolder(_lastLoadFolder ?? ReportStore.LoadResultsFolder)));
         settings.Controls.Add(buttons, 0, settings.RowCount);
         settings.SetColumnSpan(buttons, 2);
         settings.RowCount++;
@@ -96,22 +94,21 @@ internal sealed partial class MainForm
             ForeColor = Color.DimGray,
             Margin = new Padding(3, 10, 3, 3),
             Text =
-                "Zárt modell: N felhasználó, mindegyik a válasz után azonnal újra kér (mennyit bír a szerver).\n" +
-                "Nyitott modell: fix kérés/s; a késleltetés a tervezett indítástól számít, így a túlterhelés látszik.\n\n" +
-                "Az előkészítés a megadott számú tesztfelhasználót hoz létre egy-egy nagy versennyel, a mérés " +
-                "végén törli őket. Mentésnél egy felhasználó egyszerre egy mentést küld, ezért SaveEvent-nél " +
-                "legyen legalább annyi tesztfelhasználó, mint a szint.\n\n" +
-                "Figyelt folyamatok: a backend folyamatainak neve ugyanezen a gépen (.NET: ScheduleLogic.Server, " +
-                "PHP: php-cgi / php-fpm / php). Csak akkor pontos, ha a backend ugyanazon a gépen fut.\n\n" +
-                "Méréshez: Release build, PHP-nál bekapcsolt OPcache, kikapcsolt rate limit " +
-                "(RateLimiting:Enabled = false). A PHP beépített szervere (php -S) egyszálú, ezért méréshez " +
-                "php-cgi / php-fpm kell több munkafolyamattal.",
+                "Closed model: N users, each sends the next request right after the response (how much the server can handle).\n" +
+                "Open model: a fixed request rate; latency counts from the scheduled start, so overload becomes visible.\n\n" +
+                "Preparation creates the given number of test users, each with one large event, and deletes them " +
+                "at the end. A user sends only one save at a time, so for SaveEvent use at least as many " +
+                "test users as the level.\n\n" +
+                "Monitored processes: names of the backend processes on this machine (.NET: ScheduleLogic.Server, " +
+                "PHP: php-cgi / php-fpm / php). Only accurate if the backend runs on the same machine.\n\n" +
+                "For measurements: Release build, OPcache enabled for PHP, rate limit disabled " +
+                "(RateLimiting:Enabled = false). PHP's built-in server (php -S) is single-threaded, so measurements " +
+                "need php-cgi / php-fpm with several workers.",
         };
         settings.Controls.Add(help, 0, settings.RowCount);
         settings.SetColumnSpan(help, 2);
         settings.RowCount++;
 
-        // --- jobb oldal: élő állapot, grafikon, eredménytáblázat ---
         _loadLive = new Label
         {
             Dock = DockStyle.Top,
@@ -119,25 +116,25 @@ internal sealed partial class MainForm
             TextAlign = ContentAlignment.MiddleLeft,
             Padding = new Padding(6, 0, 0, 0),
             Font = new Font(Font, FontStyle.Bold),
-            Text = "Nincs futó mérés.",
+            Text = "No measurement running.",
         };
         _chart = new SimpleChart { Dock = DockStyle.Fill };
 
         _loadGrid = MakeGrid();
         AddColumn(_loadGrid, "Backend", "Backend", 70);
-        AddColumn(_loadGrid, "Scenario", "Forgatókönyv", 90);
-        AddColumn(_loadGrid, "Level", "Szint", 55);
-        AddColumn(_loadGrid, "Total", "Kérések", 65);
-        AddColumn(_loadGrid, "Errors", "Hibák", 55);
-        AddColumn(_loadGrid, "Rps", "Kérés/s", 65);
-        AddColumn(_loadGrid, "Mean", "Átlag ms", 70);
+        AddColumn(_loadGrid, "Scenario", "Scenario", 90);
+        AddColumn(_loadGrid, "Level", "Level", 55);
+        AddColumn(_loadGrid, "Total", "Requests", 65);
+        AddColumn(_loadGrid, "Errors", "Errors", 55);
+        AddColumn(_loadGrid, "Rps", "Req/s", 65);
+        AddColumn(_loadGrid, "Mean", "Mean ms", 70);
         AddColumn(_loadGrid, "P50", "p50 ms", 65);
         AddColumn(_loadGrid, "P95", "p95 ms", 65);
         AddColumn(_loadGrid, "P99", "p99 ms", 65);
         AddColumn(_loadGrid, "Max", "Max ms", 65);
-        AddColumn(_loadGrid, "Cpu", "CPU átl. %", 70);
-        AddColumn(_loadGrid, "Mem", "Mem. max MB", 85);
-        AddColumn(_loadGrid, "Codes", "Státuszkódok", 120, fill: true);
+        AddColumn(_loadGrid, "Cpu", "CPU avg %", 70);
+        AddColumn(_loadGrid, "Mem", "Mem max MB", 85);
+        AddColumn(_loadGrid, "Codes", "Status codes", 120, fill: true);
         foreach (DataGridViewColumn c in _loadGrid.Columns)
             if (c.Index >= 2 && c.Name != "Codes") c.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
 
@@ -194,7 +191,7 @@ internal sealed partial class MainForm
         var levels = LoadSeries.ParseLevels(_levels.Text);
         if (levels.Count == 0)
         {
-            ShowError("Adj meg legalább egy terhelési szintet, pl.: 1,5,10,25");
+            ShowError("Enter at least one load level, e.g.: 1,5,10,25");
             return;
         }
         SaveSettings();
@@ -220,7 +217,7 @@ internal sealed partial class MainForm
 
         try
         {
-            _loadLive.Text = "Előkészítés…";
+            _loadLive.Text = "Preparing…";
             var setupLog = new Progress<string>(s => _loadLive.Text = s);
             fx = await Task.Run(() => LoadFixture.CreateAsync(target, users, eventSize, template.RequestTimeout, setupLog, token));
 
@@ -228,10 +225,10 @@ internal sealed partial class MainForm
             {
                 _chart.Add(p);
                 _loadLive.Text =
-                    $"{target.Label} – {levelIndex + 1}/{levels.Count}. szint ({currentLevel}) – {p.Second}. mp" +
-                    (p.WarmUp ? " (bemelegítés)" : "") +
-                    $": {p.Requests} kérés/s, p50 {p.P50Ms:0.0} ms, p95 {p.P95Ms:0.0} ms, hibák {p.Errors}" +
-                    (p.CpuPercent != null ? $", CPU {p.CpuPercent:0.0}%, memória {p.MemoryMb:0} MB" : "");
+                    $"{target.Label} – level {levelIndex + 1}/{levels.Count} ({currentLevel}) – second {p.Second}" +
+                    (p.WarmUp ? " (warm-up)" : "") +
+                    $": {p.Requests} req/s, p50 {p.P50Ms:0.0} ms, p95 {p.P95Ms:0.0} ms, errors {p.Errors}" +
+                    (p.CpuPercent != null ? $", CPU {p.CpuPercent:0.0}%, memory {p.MemoryMb:0} MB" : "");
             });
 
             await Task.Run(() => LoadSeries.RunAsync(fx, template, levels, pause, monitor,
@@ -251,35 +248,34 @@ internal sealed partial class MainForm
         }
         catch (OperationCanceledException)
         {
-            SetStatus("A mérés megszakítva.");
+            SetStatus("Measurement cancelled.");
         }
         catch (Exception ex)
         {
-            ShowError("A mérés megszakadt: " + ex.Message);
+            ShowError("The measurement was interrupted: " + ex.Message);
         }
         finally
         {
             if (fx != null)
             {
-                _loadLive.Text = "Takarítás (tesztfelhasználók törlése)…";
+                _loadLive.Text = "Cleaning up (deleting test users)…";
                 await fx.DisposeAsync();
             }
 
-            // Az utolsó szint eredménye is beérjen (Ui() BeginInvoke-kal fut).
             await Task.Yield();
             if (results.Count > 0)
             {
                 try
                 {
                     _lastLoadFolder = LoadCsv.SaveRun(results);
-                    SetStatus($"Mérés kész ({results.Count} szint). CSV: {_lastLoadFolder}");
+                    SetStatus($"Measurement finished ({results.Count} levels). CSV: {_lastLoadFolder}");
                 }
                 catch (Exception ex)
                 {
-                    ShowError("A CSV mentése nem sikerült: " + ex.Message);
+                    ShowError("Saving the CSV failed: " + ex.Message);
                 }
             }
-            _loadLive.Text = results.Count > 0 ? $"Kész: {results.Count} szint mérve." : "Nincs futó mérés.";
+            _loadLive.Text = results.Count > 0 ? $"Done: {results.Count} levels measured." : "No measurement running.";
             SetBusy(false);
         }
     }
@@ -288,12 +284,12 @@ internal sealed partial class MainForm
     {
         int i = _loadGrid.Rows.Add(
             s.Label, s.Scenario.ToString(),
-            s.Mode == LoadMode.Closed ? $"{s.Level} felh." : $"{s.Level}/s",
+            s.Mode == LoadMode.Closed ? $"{s.Level} users" : $"{s.Level}/s",
             s.Total, s.Errors, s.Rps.ToString("0.0"), s.MeanMs.ToString("0.0"),
             s.P50Ms.ToString("0.0"), s.P95Ms.ToString("0.0"), s.P99Ms.ToString("0.0"), s.MaxMs.ToString("0.0"),
             s.CpuAvgPercent?.ToString("0.0") ?? "–", s.MemoryMaxMb?.ToString("0") ?? "–", s.StatusCounts);
         if (s.Errors > 0) _loadGrid.Rows[i].DefaultCellStyle.BackColor = FailedColor;
         try { _loadGrid.FirstDisplayedScrollingRowIndex = i; }
-        catch (InvalidOperationException) { /* a fül éppen nem látszik */ }
+        catch (InvalidOperationException) {  }
     }
 }

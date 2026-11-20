@@ -94,15 +94,12 @@ namespace ScheduleLogic.Server.Services
             var evt = await _db.Events.FirstOrDefaultAsync(w => w.EventId == eventId);
             if (evt == null) return false;
 
-            // Csak az adott verseny objektumaira hivatkozhat az eredmény.
             var participantIds = (await _db.Participants.Where(p => p.EventId == eventId).Select(p => p.ParticipantId).ToListAsync()).ToHashSet();
             var locationIds = (await _db.Locations.Where(l => l.EventId == eventId).Select(l => l.LocationId).ToListAsync()).ToHashSet();
             var typeIdSet = typeIds.ToHashSet();
             if (schedule.Any(s => !participantIds.Contains(s.ParticipantId) || !typeIdSet.Contains(s.EventTypeId) || !locationIds.Contains(s.LocationId)))
                 return false;
 
-            // Egy tranzakcióban: a régi beosztás törlése és az új mentése vagy
-            // együtt sikerül, vagy egyik sem (nem maradhat félkész állapot).
             await using var tx = await _db.Database.BeginTransactionAsync();
 
             var toRemove = await _db.Schedules.Where(w => typeIds.Contains(w.EventtypeId)).ToListAsync();

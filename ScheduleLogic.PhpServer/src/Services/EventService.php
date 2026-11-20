@@ -7,10 +7,6 @@ namespace ScheduleLogic\Services;
 use ScheduleLogic\Core\Database;
 use ScheduleLogic\Repositories\EventRepository;
 
-/**
- * Események üzleti logikája (a C# EventService megfelelője): minden művelet
- * előtt ellenőrzi, hogy az esemény a bejelentkezett felhasználóé-e.
- */
 final class EventService
 {
     public function __construct(

@@ -4,19 +4,7 @@ using Microsoft.AspNetCore.RateLimiting;
 
 namespace ScheduleLogic.Server.Services.Security
 {
-    /// <summary>
-    /// Jelszó-próbálgatás és tömeges regisztráció / levélküldés elleni
-    /// korlátozás, kliens IP-címenként, fix időablakkal (a PHP backend
-    /// RateLimiter osztályával azonos szabályok és alapértékek).
-    ///
-    /// Beállítás (appsettings / környezeti változó), pl.:
-    ///   "RateLimiting": { "Enabled": true, "Login": { "PermitLimit": 20, "WindowSeconds": 300 } }
-    /// Fejlesztéskor / terheléses méréskor kikapcsolható: RateLimiting:Enabled = false.
-    ///
-    /// Reverse proxy mögött a valódi kliens IP-hez a UseForwardedHeaders kell
-    /// (Program.cs), különben mindenki a proxy IP-jével osztozna egy kereten.
-    /// </summary>
-    public static class RateLimitingSetup
+        public static class RateLimitingSetup
     {
         public const string Login = "Login";
         public const string Register = "Register";

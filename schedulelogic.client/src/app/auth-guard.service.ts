@@ -11,19 +11,11 @@ import { environment } from '../environments/environment';
 export class AuthGuardService implements CanActivate {
   private apiUrl = `${environment.apiUrl}api/Authentication`;
 
-  // A HttpOnly cookie-t JS nem olvashatja, ezért az authentikált
-  // állapotot a szerver válasza alapján tartjuk nyilván, nem token
-  // meglétéből. Publikus, mert több komponens (event, home, schedule,
-  // wizard) is frissíti a saját checkToken()-hívása után.
   usernameSubject = new BehaviorSubject<string | null>(null);
   username$ = this.usernameSubject.asObservable();
 
   constructor(private router: Router, private http: HttpClient) { }
 
-  // Minden route-váltásnál megkérdezi a szervert, érvényes-e még a session.
-  // Ez a cookie sliding expiration miatt is fontos: ha csak a kliens
-  // memóriájára hagyatkoznánk, egy régen betöltött oldalon a kliens
-  // "bejelentkezve" hihetné magát, miközben a cookie már lejárt.
   canActivate(): Observable<boolean> {
     return this.checkToken().pipe(
       tap(res => this.usernameSubject.next(res.name)),

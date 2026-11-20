@@ -1,4 +1,3 @@
-<?php /** @var callable $e @var \ScheduleLogic\Core\Csrf $csrf @var list<string> $errors */ ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>

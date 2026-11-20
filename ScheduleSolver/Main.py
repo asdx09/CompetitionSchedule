@@ -9,6 +9,7 @@ import uvicorn
 import asyncio
 from fastapi import FastAPI
 from ortools.sat.python import cp_model
+from ortools.sat import cp_model_pb2
 from Solver import schedule
 from models import ScheduleRequestForSolver
 
@@ -21,7 +22,6 @@ pending_queue = asyncio.Queue()
 running_count = 0
 queue_lock = threading.Lock()
 
-# -------------------- CALLBACK --------------------
 async def send_callback(url, data):
     ssl_context = ssl.create_default_context()
     ssl_context.check_hostname = False
@@ -34,7 +34,6 @@ async def send_callback(url, data):
     except Exception as e:
         print(f"Callback error: {e}")
 
-# -------------------- PRINTER --------------------
 class DebounceSolutionPrinter(cp_model.CpSolverSolutionCallback):
     def __init__(self, entries, start_vars, end_vars, event_location_vars, return_url, eventId, debounce_sec=5):
         super().__init__()
@@ -91,17 +90,23 @@ class DebounceSolutionPrinter(cp_model.CpSolverSolutionCallback):
             "Schedule": solution
         }))
 
+    # Newer OR-Tools versions return the status as a plain int.
+    @staticmethod
+    def status_name(solver_status):
+        if hasattr(solver_status, "name"):
+            return solver_status.name
+        return cp_model_pb2.CpSolverStatus.Name(int(solver_status))
+
     def send_final_solution(self, solver_status):
         self._stop = True
         if self.last_solution:
             asyncio.run(send_callback(self.return_url, {
-                "Status": solver_status.name,
+                "Status": self.status_name(solver_status),
                 "EventId": self.eventId,
                 "solutionNumber": str(self.solution_count),
                 "Schedule": self.last_solution
             }))
 
-# -------------------- WATCHDOG --------------------
 def memory_watchdog(process, event_id, limit_mb=500):
     try:
         while process.is_alive() and process.pid is None:
@@ -123,7 +128,6 @@ def memory_watchdog(process, event_id, limit_mb=500):
         with processes_lock:
             active_processes.pop(event_id, None)
 
-# -------------------- SOLVER WORKER  --------------------
 def run_solver_isolated(req: ScheduleRequestForSolver):
     container = {"solver": None}
     printer = DebounceSolutionPrinter(
@@ -133,9 +137,8 @@ def run_solver_isolated(req: ScheduleRequestForSolver):
     try:
         schedule(req, printer, container)
     except Exception as e:
-        print(f"Hiba a solverben: {e}")
+        print(f"Solver error: {e}")
 
-# -------------------- QUEUE  --------------------
 def try_start_next():
     global running_count
     with queue_lock:
@@ -164,7 +167,6 @@ def try_start_next():
 
     threading.Thread(target=monitor, daemon=True).start()
 
-# -------------------- API ENDPOINTS --------------------
 @app.post("/schedule")
 async def schedule_endpoint(req: ScheduleRequestForSolver):
     with processes_lock:
@@ -211,7 +213,6 @@ async def is_solver_running_endpoint(EventId: int):
         )
     return {"Running": running, "EventId": EventId}
 
-# -------------------- START --------------------
 if __name__ == "__main__":
     multiprocessing.freeze_support()
     uvicorn.run(app, host="0.0.0.0", port=8000)

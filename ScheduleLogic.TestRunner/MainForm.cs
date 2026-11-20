@@ -4,17 +4,11 @@ using System.Windows.Forms;
 using ScheduleLogic.TestKit.Http;
 using ScheduleLogic.TestKit.Testing;
 
-// A projekt névtere (ScheduleLogic.TestRunner) elfedné a TestKit TestRunner osztályát.
+// The ScheduleLogic.TestRunner namespace would hide this class.
 using Runner = ScheduleLogic.TestKit.Testing.TestRunner;
 
 namespace ScheduleLogic.TestRunner;
 
-/// <summary>
-/// Főablak: felül a tesztelt backend (címke + cím), alatta három fül:
-/// Tesztek, Összehasonlítás, Terhelés. A felület kódból épül (nincs
-/// Designer fájl), hogy egy helyen, olvashatóan legyen minden.
-/// A fülek kódja a MainForm.*.cs részleges osztályokban van.
-/// </summary>
 internal sealed partial class MainForm : Form
 {
     private readonly RunnerSettings _settings = RunnerSettings.Load();
@@ -33,7 +27,7 @@ internal sealed partial class MainForm : Form
 
     public MainForm()
     {
-        Text = "ScheduleLogic – API-tesztek és terheléses mérés";
+        Text = "ScheduleLogic – API tests and load testing";
         Width = 1280;
         Height = 860;
         StartPosition = FormStartPosition.CenterScreen;
@@ -45,10 +39,9 @@ internal sealed partial class MainForm : Form
         tabs.TabPages.Add(BuildLoadPage());
 
         var statusStrip = new StatusStrip();
-        _status = new ToolStripStatusLabel("Kész.") { Spring = true, TextAlign = ContentAlignment.MiddleLeft };
+        _status = new ToolStripStatusLabel("Ready.") { Spring = true, TextAlign = ContentAlignment.MiddleLeft };
         statusStrip.Items.Add(_status);
 
-        // Dokkolás: előbb a kitöltő (Fill) vezérlő, utána a szélekre tapadók.
         Controls.Add(tabs);
         Controls.Add(BuildTargetBar());
         Controls.Add(statusStrip);
@@ -64,10 +57,6 @@ internal sealed partial class MainForm : Form
             SaveSettings();
         };
     }
-
-    // ------------------------------------------------------------------
-    // Felső sáv: melyik backendet teszteljük
-    // ------------------------------------------------------------------
 
     private Control BuildTargetBar()
     {
@@ -86,22 +75,22 @@ internal sealed partial class MainForm : Form
         _url = new TextBox { Width = 260, Text = _settings.Url };
         _ignoreCert = new CheckBox
         {
-            Text = "Tanúsítványhiba figyelmen kívül (fejlesztői tanúsítvány)",
+            Text = "Ignore certificate errors (development certificate)",
             Checked = _settings.IgnoreCertificateErrors,
             AutoSize = true,
             Margin = new Padding(10, 6, 3, 3),
         };
 
-        var check = MakeButton("Kapcsolat ellenőrzése", async (_, _) => await CheckConnection());
+        var check = MakeButton("Check connection", async (_, _) => await CheckConnection());
         _runControls.Add(check);
 
         bar.Controls.Add(MakeLabel("Backend:"));
         bar.Controls.Add(_label);
-        bar.Controls.Add(MakeLabel("Cím:"));
+        bar.Controls.Add(MakeLabel("Address:"));
         bar.Controls.Add(_url);
         bar.Controls.Add(_ignoreCert);
         bar.Controls.Add(check);
-        bar.Controls.Add(MakeLabel("A .NET és a PHP backend ugyanazon a porton fut: a címke mondja meg, melyik indult el.",
+        bar.Controls.Add(MakeLabel("The .NET and PHP backends run on the same port: the label tells which one was started.",
                                    Color.DimGray));
         return bar;
     }
@@ -111,7 +100,7 @@ internal sealed partial class MainForm : Form
         var label = string.IsNullOrWhiteSpace(_label.Text) ? "backend" : _label.Text.Trim();
         var url = _url.Text.Trim();
         if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || (uri.Scheme != "http" && uri.Scheme != "https"))
-            throw new ArgumentException($"Érvénytelen cím: '{url}'. Példa: https://localhost:7098");
+            throw new ArgumentException($"Invalid address: '{url}'. Example: https://localhost:7098");
         return new BackendTarget(label, url, _ignoreCert.Checked);
     }
 
@@ -127,9 +116,9 @@ internal sealed partial class MainForm : Form
             var smoke = ApiTests.All.First(t => t.Id == "SMK-01");
             var r = await Task.Run(() => Runner.RunAsync(smoke, target));
             if (r.Status == TestStatus.Passed)
-                SetStatus($"A backend elérhető: {target}.");
+                SetStatus($"The backend is reachable: {target}.");
             else
-                ShowError($"A backend nem válaszol megfelelően ({target}):\n\n{r.Message}");
+                ShowError($"The backend does not respond correctly ({target}):\n\n{r.Message}");
         }
         finally
         {
@@ -137,12 +126,7 @@ internal sealed partial class MainForm : Form
         }
     }
 
-    // ------------------------------------------------------------------
-    // Közös segédfüggvények
-    // ------------------------------------------------------------------
-
-    /// <summary>Futás közben a futtató gombok tiltva, a megszakítás gombok engedélyezve.</summary>
-    private void SetBusy(bool busy)
+        private void SetBusy(bool busy)
     {
         _busy = busy;
         foreach (var c in _runControls) c.Enabled = !busy;
@@ -156,8 +140,7 @@ internal sealed partial class MainForm : Form
         }
     }
 
-    /// <summary>Művelet a felület szálán (háttérszálról hívva is).</summary>
-    private void Ui(Action action)
+        private void Ui(Action action)
     {
         if (IsDisposed || Disposing) return;
         if (InvokeRequired) BeginInvoke(action);
@@ -167,7 +150,7 @@ internal sealed partial class MainForm : Form
     private void SetStatus(string text) => Ui(() => _status.Text = text);
 
     private void ShowError(string message) =>
-        Ui(() => MessageBox.Show(this, message, "ScheduleLogic tesztelő", MessageBoxButtons.OK, MessageBoxIcon.Warning));
+        Ui(() => MessageBox.Show(this, message, "ScheduleLogic test runner", MessageBoxButtons.OK, MessageBoxIcon.Warning));
 
     private void SaveSettings()
     {
@@ -246,17 +229,13 @@ internal sealed partial class MainForm : Form
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"A mappa nem nyitható meg: {folder}\n{ex.Message}");
+            MessageBox.Show($"Cannot open the folder: {folder}\n{ex.Message}");
         }
     }
 
     private static readonly List<(SplitContainer Split, double Ratio)> Splitters = new();
 
-    /// <summary>
-    /// A SplitContainer arányait csak akkor lehet beállítani, amikor már van
-    /// valódi mérete (az ablak megjelenése után).
-    /// </summary>
-    private static void RegisterSplitter(SplitContainer split, double ratio) => Splitters.Add((split, ratio));
+        private static void RegisterSplitter(SplitContainer split, double ratio) => Splitters.Add((split, ratio));
 
     private static void InitSplitters()
     {
@@ -269,7 +248,6 @@ internal sealed partial class MainForm : Form
             }
             catch (InvalidOperationException)
             {
-                // Túl kicsi ablak: marad az alapértelmezett elosztás.
             }
         }
     }

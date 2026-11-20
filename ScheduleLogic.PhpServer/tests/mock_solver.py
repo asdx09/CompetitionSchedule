@@ -1,6 +1,3 @@
-"""A Python solver (ScheduleSolver/Main.py) API-jának egyszerű utánzata a gyors tesztekhez.
-POST /schedule, GET /is_solver_running, GET /stop_solver - ugyanazokkal a válaszokkal.
-GET /_last: az utoljára kapott ütemezési kérés (a teszt ebből ellenőrzi a JSON-t)."""
 import json, http.server, threading
 STATE={'requests':[], 'running':set()}
 class H(http.server.BaseHTTPRequestHandler):

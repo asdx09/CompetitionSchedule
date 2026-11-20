@@ -103,9 +103,6 @@ export class EventComponent {
     this.CheckSolver();
   }
 
-
-  //NEW OBJECTS ----------------------------------------------------------------------
-
   NewEventType()
   {
     let temp:EventType = new EventType();
@@ -191,8 +188,6 @@ export class EventComponent {
     this.condition = 2;
   }
 
-  //REMOVE OBJECTS -----------------------------------------------------------------------
-
   removeEventType(index: number) {
     this.data.registrations = this.data.registrations.filter( reg => reg.eventTypeId !== this.data.eventTypes[index].eventTypeId );
 
@@ -243,8 +238,6 @@ export class EventComponent {
     this.data.pauseTable.splice(index, 1);
     this.condition = 2;
   }
-
-  //GET OBJECTS -----------------------------------------------------------------------
 
   search_EventTypeName = "";
   GetEventTypes()
@@ -299,8 +292,6 @@ export class EventComponent {
     else return this.data.constraints;
   }
 
-  //SAVE -----------------------------------------------------------------------
-
   SaveEvent()
   {
     if (confirm("Current solution will be deleted. Are you sure?")) {
@@ -322,8 +313,6 @@ export class EventComponent {
       });
     }
   }
-
-  //CHECK OBJECTS -----------------------------------------------------------------------
 
   isDuplicateNumber(number: number): boolean {
     if (!number) return false;
@@ -413,7 +402,6 @@ export class EventComponent {
     
   }
 
-  // DATE conversions
   getDateString(date?: Date | string | null): string {
     let d: Date;
 
@@ -429,7 +417,7 @@ export class EventComponent {
     const m = (d.getMonth() + 1).toString().padStart(2, '0');
     const day = d.getDate().toString().padStart(2, '0');
 
-    return `${y}-${m}-${day}`; // HELYI dátum
+    return `${y}-${m}-${day}`;
   }
 
   getTimeString(date?: Date | string | null): string {

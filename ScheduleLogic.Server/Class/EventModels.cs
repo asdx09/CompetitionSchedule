@@ -2,8 +2,6 @@
 
 namespace ScheduleLogic.Server.Class
 {
-    // A [Required] üres és csak szóközből álló szöveget sem enged át (pl. üres
-    // helyszínnév), így az ilyen kérés 400-as validációs hibát kap, mint a PHP-ban.
     public class EventModels
     {
         public class EventsData

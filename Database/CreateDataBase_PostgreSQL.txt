@@ -46,7 +46,7 @@ CREATE TABLE event (
     groupweight       INT          NOT NULL DEFAULT 1,
     CONSTRAINT event_createdby_foreign
         FOREIGN KEY (createdby) REFERENCES users (user_id) ON DELETE CASCADE,
-    -- A solver feladatmérete a napok számától függ, ezért felső korlát kell.
+    -- The size of the solver problem depends on the number of days, so an upper bound is needed.
     CONSTRAINT event_dates_chk
         CHECK (enddate >= startdate AND enddate - startdate <= INTERVAL '366 days'),
     CONSTRAINT event_pause_chk
@@ -214,5 +214,5 @@ CREATE INDEX log_user_id_idx ON log (user_id);
 COMMIT;
 
 -- dotnet ef dbcontext scaffold "Name=ConnectionStrings:Scaffold" Npgsql.EntityFrameworkCore.PostgreSQL -o Models -f --no-onconfiguring
--- (a kapcsolati stringet előtte: dotnet user-secrets set "ConnectionStrings:Scaffold" "Host=localhost;Database=scheduleLogic;Username=<user>;Password=<jelszó>";
---  a --no-onconfiguring miatt nem kerül jelszó a generált ScheduleLogicContext.cs-be)
+-- (set the connection string first: dotnet user-secrets set "ConnectionStrings:Scaffold" "Host=localhost;Database=scheduleLogic;Username=<user>;Password=<password>";
+--  thanks to --no-onconfiguring no password is written into the generated ScheduleLogicContext.cs)

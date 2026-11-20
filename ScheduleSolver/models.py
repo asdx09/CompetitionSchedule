@@ -25,7 +25,7 @@ class EntryModel(BaseModel):
 class ConstraintModel(BaseModel):
     id: int
     objectId: int
-    constraintType: str  # 'L', 'C', 'E', 'G'
+    constraintType: str
     startTime: int
     endTime: int
 

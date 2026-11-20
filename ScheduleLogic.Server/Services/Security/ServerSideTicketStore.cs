@@ -6,28 +6,12 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace ScheduleLogic.Server.Services.Security
 {
-    /// <summary>
-    /// Szerveroldali munkamenet-tároló a cookie-s bejelentkezéshez.
-    ///
-    /// Alapból az ASP.NET a teljes bejelentkezési jegyet (claimeket) titkosítva
-    /// a sütiben tárolja, ezért kijelentkezés után a régi süti a lejáratáig még
-    /// érvényes maradt: ha valaki megszerezte, használni tudta. Ezzel a
-    /// tárolóval a sütiben csak egy véletlen munkamenet-azonosító van, a jegy a
-    /// szerveren marad, így kijelentkezéskor, fióktörléskor és jelszócserekor
-    /// azonnal megszűnik (a PHP backend szerveroldali sessionjével azonos
-    /// viselkedés).
-    ///
-    /// Memóriában tárol: az alkalmazás újraindításakor mindenkinek újra be kell
-    /// lépnie. Több szerverpéldány esetén IDistributedCache-re (pl. Redis)
-    /// kell cserélni.
-    /// </summary>
-    public sealed class ServerSideTicketStore : ITicketStore
+        public sealed class ServerSideTicketStore : ITicketStore
     {
         private const string KeyPrefix = "auth-ticket:";
 
         private readonly IMemoryCache _cache;
 
-        // felhasználó -> munkamenet-kulcsai (a "minden munkamenet visszavonása" miatt)
         private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, byte>> _byUser = new();
 
         public ServerSideTicketStore(IMemoryCache cache)
@@ -62,8 +46,7 @@ namespace ScheduleLogic.Server.Services.Security
             return Task.CompletedTask;
         }
 
-        /// <summary>A felhasználó összes munkamenetének azonnali visszavonása.</summary>
-        public void RemoveAllForUser(long userId)
+                public void RemoveAllForUser(long userId)
         {
             if (_byUser.TryRemove(UserKey(CookieAuthenticationDefaults.AuthenticationScheme, userId.ToString()), out var keys))
             {

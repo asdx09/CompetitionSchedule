@@ -40,7 +40,7 @@ namespace ScheduleLogic.Server.Controllers
         {
             if (!IsValidCredential(username, password))
             {
-                ModelState.AddModelError("", "Hibás felhasználónév vagy jelszó.");
+                ModelState.AddModelError("", "Invalid username or password.");
                 return View();
             }
 

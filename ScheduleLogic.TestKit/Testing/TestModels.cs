@@ -11,7 +11,6 @@ public enum TestStatus
     Skipped,
 }
 
-/// <summary>Egy teszt definíciója. A törzs egy TestContext-et kap, abból dolgozik.</summary>
 public sealed class TestCase
 {
     public required string Id { get; init; }
@@ -19,8 +18,7 @@ public sealed class TestCase
     public required string Name { get; init; }
     public string Description { get; init; } = "";
 
-    /// <summary>A teszthez futó Python solver is kell (beosztás készítése).</summary>
-    public bool RequiresSolver { get; init; }
+        public bool RequiresSolver { get; init; }
 
     public TimeSpan Timeout { get; init; } = TimeSpan.FromSeconds(60);
 
@@ -30,14 +28,9 @@ public sealed class TestCase
     public override string ToString() => $"{Id} {Name}";
 }
 
-/// <summary>
-/// Egy kérés összefoglalója a két backend összehasonlításához. Azonosítók és
-/// időpontok nélkül: csak a végpont, a státuszkód és a válasz szerkezete.
-/// </summary>
 public sealed record ExchangeRecord(string Method, string Path, int Status, string Shape, double ElapsedMs)
 {
-    /// <summary>Ezt hasonlítja össze a két futás között (az időt nem).</summary>
-    [JsonIgnore]
+        [JsonIgnore]
     public string Signature => $"{Method} {Path} -> {Status} {Shape}";
 }
 
@@ -54,8 +47,6 @@ public sealed class TestResult
     public List<ExchangeRecord> Exchanges { get; set; } = new();
 }
 
-/// <summary>A teszt elbukott: egy ellenőrzés nem teljesült.</summary>
 public sealed class TestFailedException(string message) : Exception(message);
 
-/// <summary>A teszt nem futtatható ebben a környezetben (pl. nem fut a solver).</summary>
 public sealed class TestSkippedException(string message) : Exception(message);

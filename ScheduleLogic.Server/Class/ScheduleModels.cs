@@ -38,7 +38,7 @@
         {
             public long Id { get; set; }
             public long ObjectId { get; set; }
-            public string ConstraintType { get; set; } = null!; //'L' location, 'C' competitor, 'E' event, 'G' Group
+            public string ConstraintType { get; set; } = null!;
             public int StartTime { get; set; }
             public int EndTime { get; set; }
         }

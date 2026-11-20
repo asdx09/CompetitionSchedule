@@ -478,8 +478,6 @@ export class WizardComponent {
   }
 
 
-
-  // DATE conversions
   getDateString(date?: Date | string | null): string {
     let d: Date;
 

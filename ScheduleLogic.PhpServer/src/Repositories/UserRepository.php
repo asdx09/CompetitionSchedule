@@ -8,11 +8,6 @@ use PDO;
 use ScheduleLogic\Core\Database;
 use ScheduleLogic\Core\DotNetTime;
 
-/**
- * A "users" tábla kezelése (a C# UserRepository megfelelője).
- * A username és email oszlop citext, így az összehasonlítások
- * kis/nagybetű-érzéketlenek az adatbázisban.
- */
 final class UserRepository
 {
     private const COLUMNS = 'user_id, username, email, password, validated, registrationdate, passwordresettoken, passwordresetexpires';
@@ -44,7 +39,6 @@ final class UserRepository
         return (bool)$stmt->fetchColumn();
     }
 
-    /** @return int az új user_id */
     public function add(string $username, string $email, string $passwordHash, string $validationToken): int
     {
         $stmt = $this->db->pdo()->prepare(
@@ -56,7 +50,6 @@ final class UserRepository
 
     public function confirmEmail(string $token): bool
     {
-        // Üres tokennel ne lehessen "megerősíteni" (az a már megerősített állapot).
         if ($token === '') {
             return false;
         }
@@ -67,7 +60,6 @@ final class UserRepository
 
     public function delete(int $userId): void
     {
-        // Az event és alattuk minden tábla ON DELETE CASCADE-del törlődik.
         $stmt = $this->db->pdo()->prepare('DELETE FROM users WHERE user_id = :id');
         $stmt->execute(['id' => $userId]);
     }
@@ -77,17 +69,12 @@ final class UserRepository
         return (int)$this->db->pdo()->query('SELECT COUNT(*) FROM users')->fetchColumn();
     }
 
-    /**
-     * Admin keresés felhasználónévre, e-mailre vagy azonosítóra.
-     * Legfeljebb 100 találat, hogy ne lehessen egy kérésben a teljes táblát lekérni.
-     */
     public function search(?string $query): array
     {
         $sql = 'SELECT user_id, username, email, registrationdate, validated FROM users';
         $params = [];
 
         if ($query !== null && trim($query) !== '') {
-            // LIKE helyett strpos: a felhasználó által beírt % és _ ne legyen joker
             $sql .= ' WHERE strpos(lower(username::text), lower(:q1)) > 0 OR strpos(lower(email::text), lower(:q2)) > 0';
             $params['q1'] = $query;
             $params['q2'] = $query;
@@ -105,7 +92,7 @@ final class UserRepository
             'userId' => (int)$u['user_id'],
             'username' => $u['username'],
             'email' => $u['email'],
-            'registrationDate' => $u['registrationdate'],   // DateOnly -> "2026-10-26"
+            'registrationDate' => $u['registrationdate'],
             'emailConfirmed' => $u['validated'] === '',
         ], $stmt->fetchAll());
     }
@@ -141,7 +128,6 @@ final class UserRepository
         return $stmt->fetch() ?: null;
     }
 
-    /** Új jelszó beállítása; a visszaállító token egyszer használatos, ezért törlődik. */
     public function setPassword(int $userId, string $passwordHash): void
     {
         $stmt = $this->db->pdo()->prepare(
@@ -150,7 +136,6 @@ final class UserRepository
         $stmt->execute(['p' => $passwordHash, 'id' => $userId]);
     }
 
-    /** Csak a hash cseréje (pl. régi formátumú hash frissítése belépéskor). */
     public function updatePasswordHash(int $userId, string $passwordHash): void
     {
         $stmt = $this->db->pdo()->prepare('UPDATE users SET password = :p WHERE user_id = :id');

@@ -8,26 +8,16 @@ use PDO;
 use ScheduleLogic\Core\Database;
 use ScheduleLogic\Core\DotNetTime;
 
-/**
- * Ütemezéssel kapcsolatos adatbázis-műveletek (a C# ScheduleRepository megfelelője).
- */
 final class ScheduleRepository
 {
-    /** A C# kódban is 1: minden idő percben értendő. */
     private const MINUTE_CONVERSION = 1;
 
-    /** Két egymást követő foglalás között ennyi perc kell, hogy ugyanazt a slotot kapják. */
     private const SLOT_GAP_MINUTES = 5;
 
     public function __construct(private readonly Database $db)
     {
     }
 
-    /**
-     * A solvernek küldött kérés összeállítása (ScheduleRequestForSolver).
-     * A JSON kulcsok camelCase-ek, ahogy a .NET PostAsJsonAsync küldi őket,
-     * és ahogy a Python oldali pydantic modell (models.py) várja.
-     */
     public function getScheduleInfo(int $eventId): array
     {
         $pdo = $this->db->pdo();
@@ -81,7 +71,6 @@ final class ScheduleRepository
             'pause' => DotNetTime::timeOnlyToMinutes($p['pause']),
         ], $this->fetchAll($pdo, 'SELECT * FROM pausetable WHERE event_id = :e ORDER BY pause_id', $eventId));
 
-        // (int)TimeSpan.TotalMinutes: nulla felé csonkol
         $minutesFromStart = static fn(string $ts) => (int)((
             (float)DotNetTime::fromDb($ts)->format('U.u') - (float)$start->format('U.u')
         ) / 60);
@@ -94,7 +83,6 @@ final class ScheduleRepository
             'endTime' => intdiv($minutesFromStart($c['endtime']), self::MINUTE_CONVERSION),
         ], $this->fetchAll($pdo, 'SELECT * FROM eventconstraint WHERE event_id = :e ORDER BY constraint_id', $eventId));
 
-        // (Enddate - Startdate).Days + 1  (a TimeSpan.Days egész napokra csonkol)
         $totalSeconds = (float)$end->format('U.u') - (float)$start->format('U.u');
         $maxDays = (int)($totalSeconds / 86400) + 1;
 
@@ -118,13 +106,6 @@ final class ScheduleRepository
         ];
     }
 
-    /**
-     * A solver (rész)eredményének mentése: a régi beosztás törlődik, az új
-     * bekerül, majd minden helyszínen kiosztjuk a slotokat (párhuzamos
-     * pályák) időrendben - ugyanazzal az algoritmussal, mint a C# kód.
-     *
-     * @param list<array{participantId:int,eventTypeId:int,locationId:int,start:int,end:int,slot:int}> $schedule
-     */
     public function saveSolverResult(array $schedule, int $eventId): bool
     {
         return $this->db->transaction(function (PDO $pdo) use ($schedule, $eventId): bool {
@@ -143,7 +124,6 @@ final class ScheduleRepository
                 $slotsByLocation[(int)$l['location_id']] = (int)$l['slots'];
             }
 
-            // Sorok előkészítése + időpontok kiszámítása
             $rows = [];
             foreach ($schedule as $i => $item) {
                 $rows[] = [
@@ -157,8 +137,6 @@ final class ScheduleRepository
                 ];
             }
 
-            // Slot-kiosztás helyszínenként, kezdési idő szerint (stabil rendezés,
-            // mint a LINQ OrderBy).
             $byLocation = [];
             foreach ($rows as $idx => $row) {
                 $byLocation[$row['locationId']][] = $idx;
@@ -211,10 +189,6 @@ final class ScheduleRepository
         });
     }
 
-    /**
-     * A beosztás nézet adatai: a DataDTO + a TimeZones lista, ahol a kezdés
-     * és befejezés az esemény első napjának helyi éjfélétől számított perc.
-     */
     public function getScheduleData(int $eventId): array
     {
         $pdo = $this->db->pdo();
@@ -223,7 +197,6 @@ final class ScheduleRepository
             throw new \RuntimeException("Event {$eventId} not found.");
         }
 
-        // startDate.Date helyi időben (ToLocalTime().Date)
         $localStart = DotNetTime::fromDb($evt['startdate'])->setTimezone(DotNetTime::local());
         $localMidnight = new \DateTimeImmutable($localStart->format('Y-m-d') . ' 00:00:00', DotNetTime::local());
 
@@ -243,7 +216,6 @@ final class ScheduleRepository
         ));
 
         $data = EventRepository::buildDataDto($pdo, $evt, $timeZones);
-        // A C# GetScheduleDataAsync a csoport nélküli résztvevőnél null-t ad
         foreach ($data['participants'] as &$p) {
             if ($p['groupId'] === '') {
                 $p['groupId'] = null;
@@ -253,7 +225,6 @@ final class ScheduleRepository
         return $data;
     }
 
-    /** Az Excel exporthoz szükséges, már feloldott (nevekkel kitöltött) sorok. */
     public function getExportData(int $eventId): ?array
     {
         $pdo = $this->db->pdo();
@@ -296,12 +267,6 @@ final class ScheduleRepository
         ];
     }
 
-    /**
-     * A solvertől jött azonosítók ellenőrzéséhez: az esemény saját
-     * résztvevői, versenyszámai és helyszínei.
-     *
-     * @return array{participants: array<int,true>, eventTypes: array<int,true>, locations: array<int,true>}
-     */
     public function getEventObjectIds(int $eventId): array
     {
         $pdo = $this->db->pdo();
@@ -313,7 +278,6 @@ final class ScheduleRepository
         ];
     }
 
-    /** Convert.ToInt32(double): legközelebbi egészre, .5-nél párosra kerekít. */
     private static function roundToInt(float $value): int
     {
         return (int)round($value, 0, PHP_ROUND_HALF_EVEN);

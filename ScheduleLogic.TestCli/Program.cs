@@ -4,29 +4,28 @@ using ScheduleLogic.TestKit.Load;
 using ScheduleLogic.TestKit.Reporting;
 using ScheduleLogic.TestKit.Testing;
 
-// ScheduleLogic parancssoros tesztelő. Használat: sltest help
 return await Cli.RunAsync(args);
 
 internal static class Cli
 {
     private const string Help = """
-        ScheduleLogic tesztelő (parancssor)
+        ScheduleLogic test runner (command line)
 
-          sltest test    --url <cím> [--label <név>] [--group <csoport>] [--id <tesztazonosító>] [--strict-tls]
-                         Lefuttatja az API-teszteket, és elmenti a riportot.
-                         Kilépési kód: 0 = minden sikeres, 1 = van hibás teszt.
+          sltest test    --url <address> [--label <name>] [--group <group>] [--id <test id>] [--strict-tls]
+                         Runs the API tests and saves the report.
+                         Exit code: 0 = all passed, 1 = there is a failed test.
 
-          sltest list    A tesztek listája.
+          sltest list    Lists the tests.
 
-          sltest compare <riport-A.json> <riport-B.json>
-                         Két futás (pl. .NET és PHP) összehasonlítása.
+          sltest compare <report-A.json> <report-B.json>
+                         Compares two runs (e.g. .NET and PHP).
 
-          sltest load    --url <cím> [--label <név>] [--scenario CheckToken|GetEvents|GetEvent|SaveEvent|Mixed]
+          sltest load    --url <address> [--label <name>] [--scenario CheckToken|GetEvents|GetEvent|SaveEvent|Mixed]
                          [--mode closed|open] [--levels 1,5,10,25] [--duration 30] [--warmup 5] [--pause 5]
                          [--users 10] [--event-size 100] [--monitor ScheduleLogic.Server,dotnet,php-cgi] [--strict-tls]
-                         Lépcsős terheléses mérés; az eredmény CSV-be kerül.
+                         Stepped load test; the results are saved as CSV.
 
-        Alapértelmezett cím: https://localhost:7098. A riportok helye: Dokumentumok\ScheduleLogic.
+        Default address: https://localhost:7098. Reports are saved to Documents\ScheduleLogic.
         """;
 
     public static async Task<int> RunAsync(string[] args)
@@ -55,7 +54,7 @@ internal static class Cli
         catch (Exception ex) when (ex is InvalidOperationException or ArgumentException or IOException)
         {
             Console.ForegroundColor = ConsoleColor.Red;
-            Console.Error.WriteLine("Hiba: " + ex.Message);
+            Console.Error.WriteLine("Error: " + ex.Message);
             Console.ResetColor();
             return 2;
         }
@@ -63,15 +62,13 @@ internal static class Cli
 
     private static int Unknown(string cmd)
     {
-        Console.Error.WriteLine($"Ismeretlen parancs: {cmd}\n\n{Help}");
+        Console.Error.WriteLine($"Unknown command: {cmd}\n\n{Help}");
         return 2;
     }
 
     private static BackendTarget Target(Dictionary<string, string> o) =>
         new(o.GetValueOrDefault("label", "backend"), o.GetValueOrDefault("url", "https://localhost:7098"),
             IgnoreCertificateErrors: !o.ContainsKey("strict-tls"));
-
-    // ------------------------------------------------------------------
 
     private static int ListTests()
     {
@@ -95,9 +92,9 @@ internal static class Cli
             tests = tests.Where(t => set.Contains(t.Id));
         }
         var list = tests.ToList();
-        if (list.Count == 0) throw new ArgumentException("Nincs a feltételnek megfelelő teszt.");
+        if (list.Count == 0) throw new ArgumentException("No test matches the filter.");
 
-        Console.WriteLine($"{list.Count} teszt futtatása: {target}\n");
+        Console.WriteLine($"Running {list.Count} tests: {target}\n");
         var report = new TestRunReport { Label = target.Label, BaseUrl = target.BaseUrl, StartedAt = DateTime.Now };
         report.Results = await TestRunner.RunManyAsync(list, target,
             onStarted: t => Console.Write($"  {t.Id,-8} {t.Name,-55} "),
@@ -109,7 +106,7 @@ internal static class Cli
                     TestStatus.Failed => ConsoleColor.Red,
                     _ => ConsoleColor.Yellow,
                 };
-                Console.Write(r.Status switch { TestStatus.Passed => "OK  ", TestStatus.Failed => "HIBA", _ => "KIHAGYVA" });
+                Console.Write(r.Status switch { TestStatus.Passed => "OK  ", TestStatus.Failed => "FAIL", _ => "SKIP" });
                 Console.ResetColor();
                 Console.WriteLine($" {r.DurationMs,6:0} ms");
                 if (r.Status != TestStatus.Passed) Console.WriteLine($"           {r.Message}");
@@ -117,14 +114,14 @@ internal static class Cli
         report.FinishedAt = DateTime.Now;
         var file = ReportStore.Save(report);
 
-        Console.WriteLine($"\nSikeres: {report.Passed}, hibás: {report.Failed}, kihagyva: {report.Skipped}");
-        Console.WriteLine($"Riport: {file}");
+        Console.WriteLine($"\nPassed: {report.Passed}, failed: {report.Failed}, skipped: {report.Skipped}");
+        Console.WriteLine($"Report: {file}");
         return report.Failed > 0 ? 1 : 0;
     }
 
     private static int Compare(List<string> files)
     {
-        if (files.Count != 2) throw new ArgumentException("Két riportfájl kell: sltest compare a.json b.json");
+        if (files.Count != 2) throw new ArgumentException("Two report files are needed: sltest compare a.json b.json");
         var a = ReportStore.Load(files[0]);
         var b = ReportStore.Load(files[1]);
         var rows = ReportComparer.Compare(a, b);
@@ -136,7 +133,7 @@ internal static class Cli
             Console.ResetColor();
             foreach (var d in r.Differences) Console.WriteLine("           " + d);
         }
-        Console.WriteLine($"\n{rows.Count(r => r.HasDifference)} tesztben van eltérés, {rows.Count(r => !r.HasDifference)} azonos.");
+        Console.WriteLine($"\n{rows.Count(r => r.HasDifference)} tests differ, {rows.Count(r => !r.HasDifference)} are identical.");
         return 0;
     }
 
@@ -151,42 +148,40 @@ internal static class Cli
             WarmUp = TimeSpan.FromSeconds(int.Parse(o.GetValueOrDefault("warmup", "5"))),
         };
         var levels = LoadSeries.ParseLevels(o.GetValueOrDefault("levels", "1,5,10,25"));
-        if (levels.Count == 0) throw new ArgumentException("Adj meg legalább egy szintet: --levels 1,5,10");
+        if (levels.Count == 0) throw new ArgumentException("Specify at least one level: --levels 1,5,10");
         int users = int.Parse(o.GetValueOrDefault("users", "10"));
         int eventSize = int.Parse(o.GetValueOrDefault("event-size", "100"));
         var monitor = ProcessMonitor.FromList(o.GetValueOrDefault("monitor", ""));
         var pause = TimeSpan.FromSeconds(int.Parse(o.GetValueOrDefault("pause", "5")));
 
-        Console.WriteLine($"Előkészítés: {users} felhasználó, {eventSize} fős verseny ({target})");
+        Console.WriteLine($"Preparing: {users} users, an event with {eventSize} competitors ({target})");
         await using var fx = await LoadFixture.CreateAsync(target, users, eventSize, template.RequestTimeout,
             new Progress<string>(_ => { }), ct);
-        Console.WriteLine($"Kész. Egy mentés mérete: {fx.SavePayloadBytes / 1024.0:0.0} KB" +
-                          (monitor != null ? $", figyelt folyamatok: {string.Join(", ", monitor.Names)}" : ""));
+        Console.WriteLine($"Ready. Size of one save: {fx.SavePayloadBytes / 1024.0:0.0} KB" +
+                          (monitor != null ? $", monitored processes: {string.Join(", ", monitor.Names)}" : ""));
 
         var results = await LoadSeries.RunAsync(fx, template, levels, pause, monitor,
             onLevelStarted: (i, lo) => Console.WriteLine($"\n[{i + 1}/{levels.Count}] {lo.Describe()}"),
             progress: new Progress<TimelinePoint>(p =>
-                Console.WriteLine($"  {p.Second,4}s {(p.WarmUp ? "(bemel.)" : "        ")} {p.Requests,6} kérés  " +
-                                  $"p50 {p.P50Ms,7:0.0} ms  p95 {p.P95Ms,7:0.0} ms  hiba {p.Errors,4}" +
+                Console.WriteLine($"  {p.Second,4}s {(p.WarmUp ? "(warm-up)" : "         ")} {p.Requests,6} req  " +
+                                  $"p50 {p.P50Ms,7:0.0} ms  p95 {p.P95Ms,7:0.0} ms  errors {p.Errors,4}" +
                                   (p.CpuPercent != null ? $"  CPU {p.CpuPercent,5:0.0}%  mem {p.MemoryMb,7:0} MB" : ""))),
             onLevelFinished: r =>
             {
                 var s = r.Summary;
-                Console.WriteLine($"  => {s.Rps:0.0} kérés/s, átlag {s.MeanMs:0.0} ms, p50 {s.P50Ms:0.0}, p95 {s.P95Ms:0.0}, " +
-                                  $"p99 {s.P99Ms:0.0} ms, hibák {s.Errors}/{s.Total} ({s.StatusCounts})");
+                Console.WriteLine($"  => {s.Rps:0.0} req/s, mean {s.MeanMs:0.0} ms, p50 {s.P50Ms:0.0}, p95 {s.P95Ms:0.0}, " +
+                                  $"p99 {s.P99Ms:0.0} ms, errors {s.Errors}/{s.Total} ({s.StatusCounts})");
             },
             ct: ct);
 
         if (results.Count > 0)
         {
             var dir = LoadCsv.SaveRun(results);
-            Console.WriteLine($"\nEredmények: {dir}");
+            Console.WriteLine($"\nResults: {dir}");
         }
-        Console.WriteLine("Takarítás (tesztfelhasználók törlése)...");
+        Console.WriteLine("Cleaning up (deleting test users)...");
         return 0;
     }
-
-    // ------------------------------------------------------------------
 
     private static Dictionary<string, string> ParseOptions(string[] args, out List<string> positional)
     {

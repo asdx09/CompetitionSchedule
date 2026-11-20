@@ -1,15 +1,15 @@
-# Helyi beállítások (jelszavak!) - a minta az appsettings.sample.json
+# Local settings (passwords!) - the sample is appsettings.sample.json
 appsettings.json
 appsettings.*.json
 !appsettings.sample.json
 
-# Futásidejű adatok: session-ök, naplók, rate limit, solver kulcs
+# Runtime data: sessions, logs, rate limit, solver key
 storage/*
 !storage/.gitkeep
 
-# Caddy fejlesztői adatok
+# Caddy development data
 dev/caddy-data/
 
-# Teszt segédfájlok
+# Test helper files
 tests/_mail/
 tests/_smtp.*

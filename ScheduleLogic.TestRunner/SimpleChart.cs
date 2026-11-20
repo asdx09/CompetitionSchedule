@@ -5,11 +5,6 @@ using ScheduleLogic.TestKit.Load;
 
 namespace ScheduleLogic.TestRunner;
 
-/// <summary>
-/// Egyszerű élő grafikon a terheléses méréshez: másodpercenként a p95
-/// késleltetés (bal tengely, ms) és a kérés/másodperc (jobb tengely).
-/// Külső grafikonkönyvtár nélkül, GDI+-szal rajzolva.
-/// </summary>
 internal sealed class SimpleChart : Control
 {
     private readonly List<TimelinePoint> _points = new();
@@ -17,7 +12,7 @@ internal sealed class SimpleChart : Control
     private static readonly Color RpsColor = Color.FromArgb(40, 110, 200);
     private static readonly Color WarmUpColor = Color.FromArgb(245, 245, 245);
 
-    public string Title { get; set; } = "";
+    public string Title { get; private set; } = "";
 
     public SimpleChart()
     {
@@ -56,7 +51,7 @@ internal sealed class SimpleChart : Control
         if (_points.Count == 0)
         {
             g.DrawRectangle(axisPen, plot);
-            g.DrawString("A mérés indítása után itt jelenik meg a másodpercenkénti p95 késleltetés és a kérés/s.",
+            g.DrawString("After the measurement starts, the per-second p95 latency and requests/s appear here.",
                 Font, textBrush, plot.Left + 10, plot.Top + 10);
             return;
         }
@@ -69,17 +64,15 @@ internal sealed class SimpleChart : Control
         float YLat(double v) => plot.Bottom - (float)(v / maxLat) * plot.Height;
         float YRps(double v) => plot.Bottom - (float)(v / maxRps) * plot.Height;
 
-        // bemelegítés sávja
         var warm = _points.Where(p => p.WarmUp).ToList();
         if (warm.Count > 0)
         {
             using var warmBrush = new SolidBrush(WarmUpColor);
             float right = X(warm.Max(p => p.Second));
             g.FillRectangle(warmBrush, plot.Left, plot.Top, Math.Max(1, right - plot.Left), plot.Height);
-            g.DrawString("bemelegítés", Font, textBrush, plot.Left + 4, plot.Bottom - 18);
+            g.DrawString("warm-up", Font, textBrush, plot.Left + 4, plot.Bottom - 18);
         }
 
-        // rácsvonalak és tengelyfeliratok
         for (int i = 0; i <= 4; i++)
         {
             float y = plot.Bottom - i * plot.Height / 4f;
@@ -99,9 +92,8 @@ internal sealed class SimpleChart : Control
         DrawSeries(g, _points.Select(p => new PointF(X(p.Second), YRps(p.Requests))).ToArray(), RpsColor);
         DrawSeries(g, _points.Select(p => new PointF(X(p.Second), YLat(p.P95Ms))).ToArray(), LatencyColor);
 
-        // jelmagyarázat
-        using (var b1 = new SolidBrush(LatencyColor)) g.DrawString("■ p95 késleltetés (ms, bal)", Font, b1, plot.Right - 330, 8);
-        using (var b2 = new SolidBrush(RpsColor)) g.DrawString("■ kérés/s (jobb)", Font, b2, plot.Right - 140, 8);
+        using (var b1 = new SolidBrush(LatencyColor)) g.DrawString("■ p95 latency (ms, left)", Font, b1, plot.Right - 330, 8);
+        using (var b2 = new SolidBrush(RpsColor)) g.DrawString("■ requests/s (right)", Font, b2, plot.Right - 140, 8);
     }
 
     private static void DrawSeries(Graphics g, PointF[] pts, Color color)
@@ -112,8 +104,7 @@ internal sealed class SimpleChart : Control
         foreach (var p in pts) g.FillEllipse(brush, p.X - 2.5f, p.Y - 2.5f, 5, 5);
     }
 
-    /// <summary>"Szép" tengelymaximum: 1, 2, 5 × 10^n.</summary>
-    private static double NiceMax(double v)
+        private static double NiceMax(double v)
     {
         if (v <= 0) return 1;
         double exp = Math.Pow(10, Math.Floor(Math.Log10(v)));

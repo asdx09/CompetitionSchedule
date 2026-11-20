@@ -4,16 +4,8 @@ declare(strict_types=1);
 
 namespace ScheduleLogic\Core;
 
-/**
- * Minimális router az ASP.NET attribútum-routing megfelelőjeként.
- *
- *  - az útvonalak kis/nagybetű-érzéketlenek (/api/Authentication == /api/authentication)
- *  - paraméterek: {id} vagy típusmegkötéssel {id:long}
- *  - ha az útvonal stimmel, de a metódus nem: 405
- */
 final class Router
 {
-    /** @var list<array{method:string, regex:string, params:list<string>, handler:callable}> */
     private array $routes = [];
 
     public function get(string $pattern, callable $handler): void
@@ -56,10 +48,6 @@ final class Router
         ];
     }
 
-    /**
-     * @return array{0: callable, 1: array<string,string>}|null  null, ha nincs ilyen útvonal
-     * @throws HttpException 405 esetén
-     */
     public function match(string $method, string $path): ?array
     {
         $pathMatched = false;
@@ -74,7 +62,6 @@ final class Router
             $values = array_slice($m, 1);
             $params = $route['params'] ? array_combine($route['params'], $values) : [];
 
-            // long megkötés: a 64 biten túlcsorduló számot ne fogadjuk el
             foreach ($params as $v) {
                 if (preg_match('/^-?\d+$/', $v) && !self::fitsInLong($v)) {
                     continue 2;

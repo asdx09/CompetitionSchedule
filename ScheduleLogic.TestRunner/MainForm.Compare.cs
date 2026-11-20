@@ -6,11 +6,6 @@ using ScheduleLogic.TestKit.Testing;
 
 namespace ScheduleLogic.TestRunner;
 
-/// <summary>
-/// "Összehasonlítás" fül: két mentett futás (pl. .NET és PHP) egymás mellett.
-/// Mivel a két backend ugyanazon a porton fut, a menete: futtatás az egyikkel,
-/// backend csere, futtatás a másikkal, majd itt a két riport összevetése.
-/// </summary>
 internal sealed partial class MainForm
 {
     private ComboBox _reportA = null!;
@@ -23,26 +18,26 @@ internal sealed partial class MainForm
 
     private TabPage BuildComparePage()
     {
-        var page = new TabPage("Összehasonlítás");
+        var page = new TabPage("Compare");
 
         var bar = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, Padding = new Padding(4), WrapContents = true };
         _reportA = new ComboBox { Width = 380, DropDownStyle = ComboBoxStyle.DropDownList };
         _reportB = new ComboBox { Width = 380, DropDownStyle = ComboBoxStyle.DropDownList };
-        _onlyDifferences = new CheckBox { Text = "Csak az eltérések", AutoSize = true, Margin = new Padding(10, 7, 3, 3) };
+        _onlyDifferences = new CheckBox { Text = "Differences only", AutoSize = true, Margin = new Padding(10, 7, 3, 3) };
         _onlyDifferences.CheckedChanged += (_, _) => FillComparisonGrid();
 
         bar.Controls.Add(MakeLabel("A:"));
         bar.Controls.Add(_reportA);
         bar.Controls.Add(MakeLabel("B:"));
         bar.Controls.Add(_reportB);
-        bar.Controls.Add(MakeButton("Összehasonlítás", (_, _) => CompareSelected()));
-        bar.Controls.Add(MakeButton("Lista frissítése", (_, _) => RefreshReportLists()));
+        bar.Controls.Add(MakeButton("Compare", (_, _) => CompareSelected()));
+        bar.Controls.Add(MakeButton("Refresh list", (_, _) => RefreshReportLists()));
         bar.Controls.Add(_onlyDifferences);
 
         var help = MakeLabel(
-            "Menete: 1) futtasd az összes tesztet a .NET backenddel, 2) állítsd le, indítsd el a PHP-t, 3) futtasd újra " +
-            "PHP címkével, 4) itt válaszd ki a két riportot. Az összevetés a teszt eredményén túl minden kérés " +
-            "státuszkódját és a válasz JSON-szerkezetét is nézi (azonosítók és időpontok nélkül).", Color.DimGray);
+            "Workflow: 1) run all tests against the .NET backend, 2) stop it and start the PHP one, 3) run again " +
+            "with the PHP label, 4) select the two reports here. Besides the test result, the comparison also checks " +
+            "the status code and the JSON structure of every response (ignoring ids and timestamps).", Color.DimGray);
         help.MaximumSize = new Size(1200, 0);
 
         var top = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, FlowDirection = FlowDirection.TopDown, WrapContents = false };
@@ -50,11 +45,11 @@ internal sealed partial class MainForm
         top.Controls.Add(help);
 
         _cmpGrid = MakeGrid();
-        AddColumn(_cmpGrid, "Id", "Azonosító", 75);
-        AddColumn(_cmpGrid, "Name", "Teszt", 330);
+        AddColumn(_cmpGrid, "Id", "Id", 75);
+        AddColumn(_cmpGrid, "Name", "Test", 330);
         AddColumn(_cmpGrid, "A", "A", 110);
         AddColumn(_cmpGrid, "B", "B", 110);
-        AddColumn(_cmpGrid, "Diff", "Eltérés", 200, fill: true);
+        AddColumn(_cmpGrid, "Diff", "Difference", 200, fill: true);
         _cmpGrid.SelectionChanged += (_, _) => ShowComparisonDetails();
 
         _cmpDetails = MakeDetailsBox();
@@ -69,8 +64,7 @@ internal sealed partial class MainForm
         return page;
     }
 
-    /// <summary>A mentett riportok újraolvasása; alapból A = legújabb, B = a legújabb más címkéjű.</summary>
-    private void RefreshReportLists()
+        private void RefreshReportLists()
     {
         var reports = ReportStore.List();
         var prevA = (_reportA.SelectedItem as TestRunReport)?.FilePath;
@@ -99,7 +93,7 @@ internal sealed partial class MainForm
     {
         if (_reportA.SelectedItem is not TestRunReport a || _reportB.SelectedItem is not TestRunReport b)
         {
-            ShowError("Válassz ki két riportot. Riport a Tesztek fülön való futtatáskor készül.");
+            ShowError("Select two reports. A report is created when tests are run on the Tests tab.");
             return;
         }
         _cmpA = a;
@@ -111,8 +105,8 @@ internal sealed partial class MainForm
 
         int diff = _cmpRows.Count(r => r.HasDifference);
         int statusDiff = _cmpRows.Count(r => r.StatusDiffers);
-        SetStatus($"{_cmpRows.Count} teszt: {_cmpRows.Count - diff} azonos, {statusDiff} eltérő eredményű, " +
-                  $"{diff - statusDiff} eltérő válaszú.");
+        SetStatus($"{_cmpRows.Count} tests: {_cmpRows.Count - diff} identical, {statusDiff} with a different result, " +
+                  $"{diff - statusDiff} with different responses.");
     }
 
     private void FillComparisonGrid()
@@ -130,10 +124,10 @@ internal sealed partial class MainForm
 
     private static string StatusText(TestStatus? s) => s switch
     {
-        TestStatus.Passed => "✔ sikeres",
-        TestStatus.Failed => "✖ hibás",
-        TestStatus.Skipped => "– kihagyva",
-        null => "(nem futott)",
+        TestStatus.Passed => "✔ passed",
+        TestStatus.Failed => "✖ failed",
+        TestStatus.Skipped => "– skipped",
+        null => "(not run)",
         _ => s.ToString()!,
     };
 
@@ -154,13 +148,13 @@ internal sealed partial class MainForm
         sb.AppendLine($"A ({_cmpA.Label}): {StatusText(r.StatusA)} – {r.MessageA}");
         sb.AppendLine($"B ({_cmpB.Label}): {StatusText(r.StatusB)} – {r.MessageB}");
         if (ra != null && rb != null)
-            sb.AppendLine($"Átlagos válaszidő a tesztben: A {ReportComparer.AverageMs(ra):0.0} ms, B {ReportComparer.AverageMs(rb):0.0} ms " +
-                          "(tájékoztató, a terheléses mérés a pontos)");
+            sb.AppendLine($"Average response time in the test: A {ReportComparer.AverageMs(ra):0.0} ms, B {ReportComparer.AverageMs(rb):0.0} ms " +
+                          "(indicative only; use the load test for accurate numbers)");
         sb.AppendLine();
 
         if (r.Differences.Count > 0)
         {
-            sb.AppendLine("Eltérő kérések (metódus, útvonal, státusz, válaszszerkezet):");
+            sb.AppendLine("Differing requests (method, path, status, response structure):");
             foreach (var d in r.Differences) sb.AppendLine("  " + d);
             sb.AppendLine();
         }
@@ -168,13 +162,13 @@ internal sealed partial class MainForm
         void Exchanges(string title, TestResult? res)
         {
             sb.AppendLine(title);
-            if (res == null) { sb.AppendLine("  (nem futott)"); return; }
+            if (res == null) { sb.AppendLine("  (not run)"); return; }
             foreach (var e in res.Exchanges)
                 sb.AppendLine($"  {e.Method,-6} {e.Path,-45} {e.Status,3}  {e.ElapsedMs,7:0.0} ms  {Shorten(e.Shape, 110)}");
         }
-        Exchanges($"Kérések – A ({_cmpA.Label}):", ra);
+        Exchanges($"Requests – A ({_cmpA.Label}):", ra);
         sb.AppendLine();
-        Exchanges($"Kérések – B ({_cmpB.Label}):", rb);
+        Exchanges($"Requests – B ({_cmpB.Label}):", rb);
 
         _cmpDetails.Text = sb.ToString().Replace("\r\n", "\n").Replace("\n", Environment.NewLine);
     }

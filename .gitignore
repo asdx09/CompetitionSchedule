@@ -361,12 +361,12 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
-# Konfiguráció és titkok (lásd KONFIGURACIO.md):
-#  - az appsettings.json és az appsettings.Development.json NEM tartalmaz titkot, ezért
-#    verziókezelt; jelszó/kulcs/token csak User Secretsbe (fejlesztés) vagy környezeti
-#    változóba (éles) kerülhet,
-#  - a szerverenkénti éles beállítások nem kerülnek a gitbe,
-#  - az App_Data a futás közben generált kulcsokat tárolja (pl. solver-callback.key).
+# Configuration and secrets (see CONFIGURATION.md):
+#  - appsettings.json and appsettings.Development.json contain NO secrets, so they are
+#    version-controlled; passwords/keys/tokens only go into User Secrets (development) or
+#    environment variables (production),
+#  - per-server production settings are not committed,
+#  - App_Data holds keys generated at runtime (e.g. solver-callback.key).
 /ScheduleLogic.Server/appsettings.Production.json
 /ScheduleLogic.Server/appsettings.*.local.json
 /ScheduleLogic.Server/App_Data/

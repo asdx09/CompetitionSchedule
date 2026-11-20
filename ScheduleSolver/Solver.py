@@ -1,11 +1,6 @@
 ﻿from ortools.sat.python import cp_model
 from models import ScheduleRequestForSolver
 
-
-# ============================================================
-# Helpers
-# ============================================================
-
 def add_forbidden_interval(
     model,
     start_var,
@@ -50,21 +45,11 @@ def add_span(model, starts, ends, name, horizon):
 
 
 class TravelLookup:
-    """
-    Pre-flattened location x location -> travel time matrix, looked up with
-    a single AddElement call per (entry, entry) pair instead of rebuilding
-    an AND/OR boolvar chain over every travel-table row for every pair.
-
-    Works on *compact* location indices (0..n-1). Callers that only have the
-    real event_location variable (domain = actual location ids) should use
-    `idx_var_for(event_id)`, which channels the real-id variable to its
-    compact-index twin exactly once per event (not once per pair).
-    """
 
     def __init__(self, model, req: ScheduleRequestForSolver):
         self._model = model
-        self.loc_ids = sorted(l.id for l in req.locations)          # index -> real id
-        self.idx = {lid: i for i, lid in enumerate(self.loc_ids)}   # real id -> index
+        self.loc_ids = sorted(l.id for l in req.locations)
+        self.idx = {lid: i for i, lid in enumerate(self.loc_ids)}
         self.n = len(self.loc_ids)
 
         matrix = [[req.basePauseTime] * self.n for _ in range(self.n)]
@@ -81,7 +66,6 @@ class TravelLookup:
         self._pair_cache = {}
 
     def idx_var_for(self, event_id, real_loc_var, allowed_real_ids):
-        """Compact-index twin of a real-location-id IntVar, built once per event."""
         cached = self._idx_var_cache.get(event_id)
         if cached is not None:
             return cached
@@ -90,16 +74,12 @@ class TravelLookup:
         idx_var = self._model.NewIntVarFromDomain(
             cp_model.Domain.FromValues(allowed_idx), f"event_{event_id}_loc_idx"
         )
-        # channel: loc_ids[idx_var] == real_loc_var  (one AddElement per event)
         self._model.AddElement(idx_var, self.loc_ids, real_loc_var)
 
         self._idx_var_cache[event_id] = idx_var
         return idx_var
 
     def time_between(self, event_id1, idx_var1, event_id2, idx_var2):
-        """Travel time between two events' locations, cached per unordered
-        event-id pair so repeated calls (e.g. from different constraint
-        sections) reuse the same AddElement lookup."""
         key = (event_id1, event_id2) if event_id1 <= event_id2 else (event_id2, event_id1)
         cached = self._pair_cache.get(key)
         if cached is not None:
@@ -115,11 +95,6 @@ class TravelLookup:
         self._pair_cache[key] = t
         return t
 
-
-# ============================================================
-# Main solve
-# ============================================================
-
 def schedule(req: ScheduleRequestForSolver, printer, container):
     print("Solver started!")
     horizon = req.dayLength * req.maxDays
@@ -132,10 +107,9 @@ def schedule(req: ScheduleRequestForSolver, printer, container):
     travel = TravelLookup(model, req)
 
     start, end, interval = {}, {}, {}
-    event_location = {}       # event_id -> IntVar, domain = real location ids (unchanged externally)
-    event_location_idx = {}   # event_id -> IntVar, compact index twin (for fast travel lookups)
+    event_location = {}
+    event_location_idx = {}
 
-    # ---------------- Event location ----------------
     for ev in req.events:
         event_location[ev.id] = model.NewIntVarFromDomain(
             cp_model.Domain.FromValues(ev.possibleLocations),
@@ -145,7 +119,6 @@ def schedule(req: ScheduleRequestForSolver, printer, container):
             ev.id, event_location[ev.id], ev.possibleLocations
         )
 
-    # ---------------- Entry intervals ----------------
     for e in req.entries:
         ev = event_by_id[e.eventId]
         possible_starts = list(range(0, horizon - ev.duration, 5))
@@ -157,7 +130,6 @@ def schedule(req: ScheduleRequestForSolver, printer, container):
     printer.end_vars.update(end)
     printer.event_location_vars.update(event_location)
 
-    # ---------------- Per-competitor no-overlap + travel ordering ----------------
     for comp in req.competitors:
         comp_entries = [e for e in req.entries if e.competitorId == comp.id]
         intervals = [interval[e.id] for e in comp_entries]
@@ -179,7 +151,6 @@ def schedule(req: ScheduleRequestForSolver, printer, container):
                 model.Add(start[e2.id] >= end[e1.id] + travel_time).OnlyEnforceIf(order)
                 model.Add(start[e1.id] >= end[e2.id] + travel_time).OnlyEnforceIf(order.Not())
 
-    # ---------------- Location capacity + break_time ----------------
     for loc in req.locations:
         loc_intervals = []
         for e in req.entries:
@@ -199,13 +170,6 @@ def schedule(req: ScheduleRequestForSolver, printer, container):
         if loc_intervals:
             model.AddCumulative(loc_intervals, [1] * len(loc_intervals), loc.capacity)
 
-    # ---------------- Same-location wave/ordering (de-duplicated) ----------------
-    # The original version looped per-location and re-derived "is this pair
-    # at location X" for every location the pair could jointly use, which
-    # silently duplicated constraints whenever two events shared more than
-    # one possible location. Looping over entry pairs once and comparing
-    # their event_location variables directly removes that duplication and
-    # collapses an O(locations x entries^2) block down to O(entries^2).
     for i in range(len(req.entries)):
         e1 = req.entries[i]
         ev1 = event_by_id[e1.eventId]
@@ -213,14 +177,10 @@ def schedule(req: ScheduleRequestForSolver, printer, container):
             e2 = req.entries[j]
             ev2 = event_by_id[e2.eventId]
 
-            # Can never share a location -> nothing to constrain.
             if not (set(ev1.possibleLocations) & set(ev2.possibleLocations)):
                 continue
 
             if e1.eventId == e2.eventId:
-                # Same event => same event_location variable by construction,
-                # "both at this location" is trivially true, no boolvar needed
-                # to prove it.
                 same_start = model.NewBoolVar(f"same_start_{e1.id}_{e2.id}")
                 model.Add(start[e1.id] == start[e2.id]).OnlyEnforceIf(same_start)
                 model.Add(start[e1.id] != start[e2.id]).OnlyEnforceIf(same_start.Not())
@@ -233,14 +193,10 @@ def schedule(req: ScheduleRequestForSolver, printer, container):
                 model.Add(event_location[e1.eventId] == event_location[e2.eventId]).OnlyEnforceIf(same_loc)
                 model.Add(event_location[e1.eventId] != event_location[e2.eventId]).OnlyEnforceIf(same_loc.Not())
 
-                # Different event types sharing a location can't start together
-                # (this mirrors the original rule: same_start forced to 0
-                # whenever e1.eventId != e2.eventId).
                 e1_before_e2 = model.NewBoolVar(f"e{e1.id}_before_e{e2.id}")
                 model.Add(end[e1.id] <= start[e2.id]).OnlyEnforceIf([e1_before_e2, same_loc])
                 model.Add(end[e2.id] <= start[e1.id]).OnlyEnforceIf([e1_before_e2.Not(), same_loc])
 
-    # ---------------- Group-level single-location-at-a-time constraint ----------------
     groups = {}
     for comp in req.competitors:
         if comp.groupId != -1:
@@ -267,7 +223,6 @@ def schedule(req: ScheduleRequestForSolver, printer, container):
                 model.Add(start[e2.id] >= end[e1.id] + travel_time).OnlyEnforceIf([e1_before_e2, same_loc.Not()])
                 model.Add(start[e1.id] >= end[e2.id] + travel_time).OnlyEnforceIf([e1_before_e2.Not(), same_loc.Not()])
 
-    # ---------------- Constraints ----------------
     for cons in req.constraints:
         affected_entries = []
         if cons.constraintType == 'C':
@@ -276,9 +231,6 @@ def schedule(req: ScheduleRequestForSolver, printer, container):
         elif cons.constraintType == 'L':
             for e in req.entries:
                 ev = event_by_id[e.eventId]
-                # If this event can never be placed at cons.objectId, the
-                # constraint can never bind for this entry — skip it, no
-                # variable needed.
                 if cons.objectId not in ev.possibleLocations:
                     continue
 
@@ -293,10 +245,6 @@ def schedule(req: ScheduleRequestForSolver, printer, container):
                 )
 
         elif cons.constraintType == 'T':
-            # event_by_id[e.eventId].id is always equal to e.eventId by
-            # definition (that's what the dict key is), so the original
-            # per-entry boolvar that "checked" this was verifying a Python
-            # constant at solve time. A plain filter is equivalent and free.
             affected_entries = [e for e in req.entries if e.eventId == cons.objectId]
 
         elif cons.constraintType == 'G':
@@ -306,7 +254,6 @@ def schedule(req: ScheduleRequestForSolver, printer, container):
         for e in affected_entries:
             add_forbidden_interval(model, start[e.id], end[e.id], cons.startTime, cons.endTime, e.id)
 
-    # ---------------- Group-level span ----------------
     group_event_entries = {}
     for comp in req.competitors:
         if comp.groupId != -1:
@@ -370,7 +317,6 @@ def schedule(req: ScheduleRequestForSolver, printer, container):
             span = add_span(model, loc_starts, loc_ends, f"location_{loc.id}", horizon)
             location_spans.append(span)
 
-    # ---------------- Objective: minimize makespan & global end ----------------
     global_start = model.NewIntVar(0, horizon, "global_start")
     global_end = model.NewIntVar(0, horizon, "global_end")
     global_makespan = model.NewIntVar(0, horizon, "global_makespan")
@@ -393,7 +339,6 @@ def schedule(req: ScheduleRequestForSolver, printer, container):
     )
     model.Minimize(total_span)
 
-    # ---------------- Solve ----------------
     solver = cp_model.CpSolver()
     solver.parameters.max_time_in_seconds = 60 * 60
     solver.parameters.num_search_workers = 4

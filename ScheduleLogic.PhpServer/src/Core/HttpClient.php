@@ -4,10 +4,6 @@ declare(strict_types=1);
 
 namespace ScheduleLogic\Core;
 
-/**
- * Egyszerű HTTP kliens (az IHttpClientFactory "Solver" nevű kliense helyett).
- * PHP stream-eket használ, így nem kell hozzá a curl kiterjesztés.
- */
 final class HttpClient
 {
     public function __construct(
@@ -16,10 +12,6 @@ final class HttpClient
     ) {
     }
 
-    /**
-     * @return array{status:int, body:string}
-     * @throws \RuntimeException ha a szerver nem érhető el (mint a HttpRequestException)
-     */
     public function request(string $method, string $relativeUrl, ?string $jsonBody = null, ?int $timeout = null): array
     {
         $url = rtrim($this->baseUrl, '/') . '/' . ltrim($relativeUrl, '/');
@@ -34,7 +26,7 @@ final class HttpClient
                 'header' => implode("\r\n", $headers),
                 'content' => $jsonBody ?? '',
                 'timeout' => $timeout ?? $this->timeoutSeconds,
-                'ignore_errors' => true, // 4xx/5xx-nél is kapjuk meg a törzset
+                'ignore_errors' => true,
                 'follow_location' => 0,
             ],
         ]);
@@ -46,14 +38,12 @@ final class HttpClient
         }
 
         $status = 0;
-        // PHP 8.4+: http_get_last_response_headers(); régebben a
-        // $http_response_header változót tölti ki a file_get_contents.
         $responseHeaders = function_exists('http_get_last_response_headers')
             ? (http_get_last_response_headers() ?? [])
             : ($http_response_header ?? []);
         foreach ($responseHeaders as $line) {
             if (preg_match('#^HTTP/\S+\s+(\d{3})#', $line, $m)) {
-                $status = (int)$m[1]; // átirányításnál az utolsó számít
+                $status = (int)$m[1];
             }
         }
 

@@ -9,16 +9,12 @@ use ScheduleLogic\Core\Request;
 use ScheduleLogic\Core\Response;
 use ScheduleLogic\Models\InputReader;
 
-/**
- * api/Authentication - a C# AuthenticationController megfelelője.
- */
 final class AuthenticationController
 {
     public function __construct(private readonly App $app)
     {
     }
 
-    // POST api/Authentication/login
     public function login(Request $request): Response
     {
         $this->app->rateLimit($request, 'Login', 20, 300);
@@ -41,7 +37,6 @@ final class AuthenticationController
         return Response::ok();
     }
 
-    // POST api/Authentication/register
     public function register(Request $request): Response
     {
         $this->app->rateLimit($request, 'Register', 5, 900);
@@ -57,11 +52,9 @@ final class AuthenticationController
         if (!$result['success']) {
             return Response::text((string)$result['error'], 400);
         }
-        // Az emailSent jelzi a kliensnek, ha a levél kézbesítése nem sikerült.
         return Response::json(['emailSent' => $result['emailSent']]);
     }
 
-    // POST api/Authentication/resend-confirmation
     public function resendConfirmation(Request $request): Response
     {
         $this->app->rateLimit($request, 'EmailSending', 5, 900);
@@ -69,14 +62,12 @@ final class AuthenticationController
         $body = $request->requireJsonBody();
         $value = (new InputReader())->optionalString($body, 'UsernameOrEmail', 'UsernameOrEmail', '') ?? '';
 
-        // Mindig Ok(), hogy a válaszból ne derüljön ki, létezik-e a fiók.
         if ($value !== '') {
             $this->app->authService()->resendConfirmationEmail($value);
         }
         return Response::ok();
     }
 
-    // POST api/Authentication/forgot-password
     public function forgotPassword(Request $request): Response
     {
         $this->app->rateLimit($request, 'EmailSending', 5, 900);
@@ -90,7 +81,6 @@ final class AuthenticationController
         return Response::ok();
     }
 
-    // POST api/Authentication/reset-password
     public function resetPassword(Request $request): Response
     {
         $this->app->rateLimit($request, 'ResetPassword', 10, 900);
@@ -109,7 +99,6 @@ final class AuthenticationController
         return $success ? Response::ok() : Response::text('Invalid or expired reset link.', 400);
     }
 
-    // GET api/Authentication/check-token   [Authorize]
     public function checkToken(Request $request): Response
     {
         $this->app->requireUserId($request);
@@ -117,7 +106,6 @@ final class AuthenticationController
         return Response::json(['name' => $identity['name'] ?? null]);
     }
 
-    // GET api/Authentication/confirm?token=...
     public function confirmEmail(Request $request): Response
     {
         $token = $request->query('token') ?? '';
@@ -130,7 +118,6 @@ final class AuthenticationController
         return Response::redirect($confirmed ? $frontendUrl : $frontendUrl . '?confirm=failed');
     }
 
-    // DELETE api/Authentication/delete   [Authorize]
     public function deleteAccount(Request $request): Response
     {
         $userId = $this->app->requireUserId($request);
@@ -139,7 +126,6 @@ final class AuthenticationController
         return Response::ok();
     }
 
-    // POST api/Authentication/logout   [Authorize]
     public function logout(Request $request): Response
     {
         $this->app->requireUserId($request);

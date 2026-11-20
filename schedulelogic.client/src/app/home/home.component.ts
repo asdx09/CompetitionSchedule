@@ -76,7 +76,7 @@ export class HomeComponent {
         error: (err) => {
           this.alertService.error("Something went wrong!");
           if (environment.production == false) 
-          {console.error('Delete event hiba!', err);}
+          {console.error('Delete event failed!', err);}
           window.location.reload();
         }
       });

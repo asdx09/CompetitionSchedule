@@ -2,7 +2,6 @@ using System.Text.Json;
 
 namespace ScheduleLogic.TestRunner;
 
-/// <summary>A felület utolsó beállításai (%AppData%\ScheduleLogic\testrunner.json).</summary>
 internal sealed class RunnerSettings
 {
     public string Label { get; set; } = ".NET";
@@ -31,7 +30,6 @@ internal sealed class RunnerSettings
         }
         catch (Exception)
         {
-            // Sérült beállításfájl: alapértékekkel indulunk.
         }
         return new RunnerSettings();
     }
@@ -45,7 +43,6 @@ internal sealed class RunnerSettings
         }
         catch (Exception)
         {
-            // A beállítások mentése nem kritikus.
         }
     }
 }

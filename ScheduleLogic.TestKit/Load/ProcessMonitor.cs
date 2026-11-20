@@ -2,15 +2,6 @@ using System.Diagnostics;
 
 namespace ScheduleLogic.TestKit.Load;
 
-/// <summary>
-/// A szerver folyamatainak CPU- és memóriahasználata (ugyanazon a gépen).
-/// Név szerint figyel, és összeadja az azonos nevű folyamatokat, mert a PHP
-/// több munkafolyamattal fut (php-fpm / php-cgi), a .NET pedig eggyel
-/// (ScheduleLogic.Server vagy dotnet).
-///
-/// A CPU% a teljes gépre vetített érték (100% = minden mag teljesen
-/// terhelve); a magok számával szorozva kapjuk, hány magnyi munkát végzett.
-/// </summary>
 public sealed class ProcessMonitor
 {
     private readonly string[] _names;
@@ -36,11 +27,7 @@ public sealed class ProcessMonitor
         return names.Count == 0 ? null : new ProcessMonitor(names);
     }
 
-    /// <summary>
-    /// Pillanatnyi memória és az előző hívás óta eltelt idő átlagos CPU-ja.
-    /// Az első hívás CPU-értéke 0 (nincs mihez viszonyítani).
-    /// </summary>
-    public ResourceSample Sample()
+        public ResourceSample Sample()
     {
         var now = _wall.Elapsed;
         double wallMs = (now - _lastWall).TotalMilliseconds;
@@ -60,7 +47,6 @@ public sealed class ProcessMonitor
             {
                 using (p)
                 {
-                    // A mérőprogram maga is lehet "dotnet" nevű folyamat: azt nem számoljuk.
                     if (p.Id == Environment.ProcessId) continue;
                     try
                     {
@@ -74,7 +60,6 @@ public sealed class ProcessMonitor
                     }
                     catch
                     {
-                        // Közben kilépett, vagy nincs jogunk olvasni (pl. más felhasználó szolgáltatása).
                     }
                 }
             }

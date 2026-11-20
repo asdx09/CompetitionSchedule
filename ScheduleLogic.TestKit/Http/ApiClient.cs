@@ -8,12 +8,6 @@ using System.Text.Json.Nodes;
 
 namespace ScheduleLogic.TestKit.Http;
 
-/// <summary>
-/// HTTP kliens a ScheduleLogic API-hoz. Minden példány egy külön böngészőt
-/// utánoz: saját süti-tárolója van, így két ApiClient két különböző
-/// bejelentkezett felhasználó lehet. Szálbiztos, a terheléses teszt több
-/// szálról is használhatja ugyanazt a példányt.
-/// </summary>
 public sealed class ApiClient : IDisposable
 {
     public static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
@@ -24,10 +18,7 @@ public sealed class ApiClient : IDisposable
     public BackendTarget Target { get; }
     public CookieContainer Cookies { get; } = new();
 
-    /// <param name="target">A tesztelt backend.</param>
-    /// <param name="onResponse">Minden válasz után meghívódik (a tesztek naplójához).</param>
-    /// <param name="timeout">Egy kérés maximális ideje.</param>
-    public ApiClient(BackendTarget target, Action<ApiResponse>? onResponse = null, TimeSpan? timeout = null)
+        public ApiClient(BackendTarget target, Action<ApiResponse>? onResponse = null, TimeSpan? timeout = null)
     {
         Target = target;
         _onResponse = onResponse;
@@ -36,8 +27,6 @@ public sealed class ApiClient : IDisposable
         {
             CookieContainer = Cookies,
             UseCookies = true,
-            // A /api/Authentication/confirm átirányít a frontendre; a teszt a
-            // 302-es választ magát akarja látni, nem a frontend oldalát.
             AllowAutoRedirect = false,
             AutomaticDecompression = DecompressionMethods.None,
             PooledConnectionLifetime = TimeSpan.FromMinutes(5),
@@ -59,15 +48,7 @@ public sealed class ApiClient : IDisposable
         _http.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
     }
 
-    // ------------------------------------------------------------------
-    // Általános küldés
-    // ------------------------------------------------------------------
-
-    /// <summary>
-    /// Kérés küldése. Nem dob kivételt hálózati hibára sem: ilyenkor a válasz
-    /// StatusCode-ja 0, az Error mezőben az ok.
-    /// </summary>
-    public async Task<ApiResponse> SendAsync(
+        public async Task<ApiResponse> SendAsync(
         HttpMethod method,
         string path,
         object? json = null,
@@ -126,7 +107,7 @@ public sealed class ApiClient : IDisposable
                 RequestBody = bodyText,
                 StatusCode = 0,
                 ElapsedMs = sw.Elapsed.TotalMilliseconds,
-                Error = ex is TaskCanceledException ? "időtúllépés" : ex.GetBaseException().Message,
+                Error = ex is TaskCanceledException ? "timeout" : ex.GetBaseException().Message,
             };
         }
 
@@ -145,10 +126,6 @@ public sealed class ApiClient : IDisposable
 
     public Task<ApiResponse> DeleteAsync(string path, CancellationToken ct = default) =>
         SendAsync(HttpMethod.Delete, path, ct: ct);
-
-    // ------------------------------------------------------------------
-    // Végpontok (api/Authentication)
-    // ------------------------------------------------------------------
 
     public Task<ApiResponse> RegisterAsync(string username, string password, string email, CancellationToken ct = default) =>
         PostAsync("api/Authentication/register", new { username, password, email }, ct);
@@ -174,10 +151,6 @@ public sealed class ApiClient : IDisposable
     public Task<ApiResponse> ResetPasswordAsync(string token, string newPassword, CancellationToken ct = default) =>
         PostAsync("api/Authentication/reset-password", new { token, newPassword }, ct);
 
-    // ------------------------------------------------------------------
-    // Végpontok (api/Event)
-    // ------------------------------------------------------------------
-
     public Task<ApiResponse> NewEventAsync(CancellationToken ct = default) =>
         PostAsync("api/Event/new-event", ct: ct);
 
@@ -196,10 +169,6 @@ public sealed class ApiClient : IDisposable
     public Task<ApiResponse> DeleteEventAsync(long id, CancellationToken ct = default) =>
         DeleteAsync($"api/Event/delete-event?id={id}", ct);
 
-    // ------------------------------------------------------------------
-    // Végpontok (api/Schedule)
-    // ------------------------------------------------------------------
-
     public Task<ApiResponse> StartScheduleAsync(long id, CancellationToken ct = default) =>
         PostAsync($"api/Schedule/{id}", ct: ct);
 
@@ -215,12 +184,7 @@ public sealed class ApiClient : IDisposable
     public Task<ApiResponse> ExportAsync(long id, CancellationToken ct = default) =>
         GetAsync($"api/Schedule/export?id={id}", ct);
 
-    // ------------------------------------------------------------------
-    // Sütik
-    // ------------------------------------------------------------------
-
-    /// <summary>Átmásolja egy másik kliens összes sütijét (munkamenet-visszajátszás teszthez).</summary>
-    public void CopyCookiesFrom(ApiClient other)
+        public void CopyCookiesFrom(ApiClient other)
     {
         foreach (Cookie c in other.Cookies.GetAllCookies())
             Cookies.Add(Target.BaseUri, new Cookie(c.Name, c.Value, string.IsNullOrEmpty(c.Path) ? "/" : c.Path));

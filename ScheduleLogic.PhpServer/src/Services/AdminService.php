@@ -9,9 +9,6 @@ use ScheduleLogic\Core\HttpClient;
 use ScheduleLogic\Core\Logger;
 use ScheduleLogic\Repositories\UserRepository;
 
-/**
- * Admin felület logikája (a C# AdminService megfelelője).
- */
 final class AdminService
 {
     public function __construct(
@@ -30,7 +27,7 @@ final class AdminService
             $dbAvailable = $this->db->canConnect(3);
             $userCount = $dbAvailable ? $this->users->count() : 0;
         } catch (\Throwable $ex) {
-            $this->logger->warning('Admin health check: az adatbázis nem érhető el.', [], $ex);
+            $this->logger->warning('Admin health check: the database is not reachable.', [], $ex);
             $dbAvailable = false;
         }
 
@@ -41,17 +38,13 @@ final class AdminService
         ];
     }
 
-    /**
-     * A solvernek nincs /health végpontja, ezért azt nézzük, fogad-e
-     * kapcsolatot: bármilyen HTTP válasz (akár 404) azt jelenti, hogy fut.
-     */
     private function checkSolverAvailable(): bool
     {
         try {
             $this->solver->request('GET', '', null, 3);
             return true;
         } catch (\Throwable $ex) {
-            $this->logger->warning('Admin health check: a solver nem érhető el.', [], $ex);
+            $this->logger->warning('Admin health check: the solver is not reachable.', [], $ex);
             return false;
         }
     }

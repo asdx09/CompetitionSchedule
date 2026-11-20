@@ -9,16 +9,12 @@ use ScheduleLogic\Core\Request;
 use ScheduleLogic\Core\Response;
 use ScheduleLogic\Models\InputReader;
 
-/**
- * api/Schedule - a C# ScheduleController megfelelője.
- */
 final class ScheduleController
 {
     public function __construct(private readonly App $app)
     {
     }
 
-    // POST api/Schedule/{id:long}   [Authorize]
     public function generateSchedule(Request $request): Response
     {
         $userId = $this->app->requireUserId($request);
@@ -26,7 +22,6 @@ final class ScheduleController
         return $result !== null ? Response::json($result) : Response::problem(404);
     }
 
-    // GET api/Schedule/{id:long}   [Authorize]
     public function getSchedule(Request $request): Response
     {
         $userId = $this->app->requireUserId($request);
@@ -34,7 +29,6 @@ final class ScheduleController
         return $result !== null ? Response::json($result) : Response::problem(404);
     }
 
-    // GET api/Schedule/isRunning?id=   [Authorize]
     public function checkSolver(Request $request): Response
     {
         $userId = $this->app->requireUserId($request);
@@ -42,7 +36,6 @@ final class ScheduleController
         return $result === null ? Response::problem(404) : Response::json($result);
     }
 
-    // POST api/Schedule/stop?id=   [Authorize]
     public function stopSolver(Request $request): Response
     {
         $userId = $this->app->requireUserId($request);
@@ -50,14 +43,6 @@ final class ScheduleController
         return $result === null ? Response::problem(404) : Response::json($result);
     }
 
-    /**
-     * POST api/Schedule/answer?key=...
-     *
-     * A solver hívja vissza, bejelentkezett felhasználó nélkül. Jogosultság:
-     * a returnURL-be tett, eseményhez kötött HMAC kulcs (SolverCallbackSigner).
-     * A .NET verzió csak a localhost IP-t nézte, ami reverse proxy mögött
-     * bárkit átengedett.
-     */
     public function solverAnswer(Request $request): Response
     {
         $body = $request->requireJsonBody();
@@ -97,7 +82,6 @@ final class ScheduleController
         return $accepted ? Response::ok() : Response::problem(400);
     }
 
-    // GET api/Schedule/export?id=   [Authorize]
     public function getExport(Request $request): Response
     {
         $userId = $this->app->requireUserId($request);

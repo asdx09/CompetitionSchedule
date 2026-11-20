@@ -3,18 +3,6 @@ using ScheduleLogic.TestKit.Http;
 
 namespace ScheduleLogic.TestKit.Load;
 
-/// <summary>
-/// Terheléses mérés egy előkészített LoadFixture-ön.
-///
-/// Két modellt támogat:
-///  - Zárt (Closed): N virtuális felhasználó, mindegyik a válasz megérkezése
-///    után azonnal küldi a következő kérést. Az áteresztőképesség a szerver
-///    sebességétől függ, ezért a "mennyit bír" kérdésre jó.
-///  - Nyitott (Open): rögzített kérés/másodperc, a válaszoktól függetlenül
-///    (mint a valódi, egymástól független felhasználók). A késleltetést a
-///    tervezett indítási időponttól mérjük, így ha a szerver lelassul, az
-///    látszik is az eredményben (nem "szépül" a mérés).
-/// </summary>
 public static class LoadEngine
 {
     public static async Task<LoadResult> RunAsync(
@@ -24,7 +12,7 @@ public static class LoadEngine
         IProgress<TimelinePoint>? progress = null,
         CancellationToken ct = default)
     {
-        if (fx.Users.Count == 0) throw new InvalidOperationException("Nincs előkészített felhasználó.");
+        if (fx.Users.Count == 0) throw new InvalidOperationException("There are no prepared users.");
 
         var startedAt = DateTime.Now;
         var samples = new List<Sample>(capacity: 100_000);
@@ -35,7 +23,6 @@ public static class LoadEngine
         double warmMs = o.WarmUp.TotalMilliseconds;
         double totalMs = warmMs + o.Duration.TotalMilliseconds;
 
-        // Tétlen állapot: a mérés előtti pillanatnyi memória (és CPU-alapérték).
         ResourceSample? idle = null;
         if (monitor != null)
         {
@@ -70,7 +57,6 @@ public static class LoadEngine
             lock (samples) samples.Add(s);
         }
 
-        // --- másodpercenkénti összesítő (élő grafikon + timeline) ---
         var ticker = Task.Run(async () =>
         {
             int lastIndex = 0, second = 0;
@@ -135,9 +121,6 @@ public static class LoadEngine
                     double now = sw.Elapsed.TotalMilliseconds;
                     if (now < due)
                     {
-                        // Windows alatt a Task.Delay felbontása ~15 ms, ezért a
-                        // kérések kis csomagokban indulnak; a késleltetést viszont
-                        // a tervezett időponttól mérjük, így ez nem torzít.
                         await Task.Delay(TimeSpan.FromMilliseconds(Math.Max(1, due - now)), runCts.Token);
                         continue;
                     }
@@ -161,7 +144,6 @@ public static class LoadEngine
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
-            // Megszakítás: a már beérkezett mintákból összesítünk.
         }
         finally
         {
@@ -255,12 +237,11 @@ public static class LoadEngine
             MemoryAvgMb = res.Count == 0 ? null : Math.Round(res.Average(r => r.MemoryMb), 1),
             MemoryMaxMb = res.Count == 0 ? null : res.Max(r => r.MemoryMb),
             StatusCounts = string.Join(" ", measured.GroupBy(s => s.Status).OrderBy(g => g.Key)
-                                                    .Select(g => $"{(g.Key == -1 ? "eldobva" : g.Key == 0 ? "hálózati_hiba" : g.Key.ToString())}:{g.Count()}")),
+                                                    .Select(g => $"{(g.Key == -1 ? "dropped" : g.Key == 0 ? "network_error" : g.Key.ToString())}:{g.Count()}")),
         };
     }
 
-    /// <summary>Percentilis "nearest rank" módszerrel, rendezett tömbből.</summary>
-    public static double Percentile(double[] sorted, double p)
+        public static double Percentile(double[] sorted, double p)
     {
         if (sorted.Length == 0) return 0;
         int rank = (int)Math.Ceiling(p / 100.0 * sorted.Length);

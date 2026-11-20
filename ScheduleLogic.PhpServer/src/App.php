@@ -32,11 +32,6 @@ use ScheduleLogic\Services\ScheduleService;
 use ScheduleLogic\Services\SmtpEmailSender;
 use ScheduleLogic\Services\SolverCallbackSigner;
 
-/**
- * Az alkalmazás "Program.cs"-e: itt történik a szolgáltatások összerakása
- * (egyszerű, kézi dependency injection), az útvonalak regisztrálása és a
- * kérés teljes életciklusa (CORS -> statikus fájlok -> routing -> hibakezelés).
- */
 final class App
 {
     public readonly Config $config;
@@ -49,7 +44,6 @@ final class App
     private Cors $cors;
     private StaticFiles $staticFiles;
     private Router $router;
-    /** @var array<string, object> lusta "scoped" szolgáltatások */
     private array $services = [];
 
     public function __construct(string $root)
@@ -67,9 +61,6 @@ final class App
 
         $isDev = $this->config->isDevelopment();
 
-        // Felhasználói cookie - 1 óra, sliding, perzisztens (mint a .NET-ben).
-        // Javítás: élesben is SameSite=Lax (a .NET-ben None volt, ami
-        // CSRF-et tett lehetővé), és nincs Domain, így csak a saját hosztra megy.
         $this->userAuth = new SessionAuth(
             cookieName: 'sl_auth',
             savePath: $storage . '/sessions/user',
@@ -79,7 +70,6 @@ final class App
             secure: $isDev ? null : true,
         );
 
-        // Admin cookie - 2 óra, sliding, böngésző-session, Strict, mindig Secure.
         $this->adminAuth = new SessionAuth(
             cookieName: 'sl_admin_auth',
             savePath: $storage . '/sessions/admin',
@@ -95,7 +85,6 @@ final class App
         }
         $this->cors = new Cors($origins);
 
-        // Alapból a .NET projekt wwwroot mappája (oda buildeli az Angular klienst a Visual Studio).
         $webRoot = $this->config->string('AppSettings:WebRoot')
             ?: ($this->config->sharedDir() ?? $root . '/../ScheduleLogic.Server') . '/wwwroot';
         $this->staticFiles = new StaticFiles($webRoot);
@@ -104,15 +93,10 @@ final class App
         $this->registerRoutes();
     }
 
-    // =====================================================================
-    //  Útvonalak (a C# kontrollerek [Route] attribútumai alapján)
-    // =====================================================================
-
     private function registerRoutes(): void
     {
         $r = $this->router;
 
-        // ---- api/Authentication ----
         $auth = fn() => new AuthenticationController($this);
         $r->post('/api/Authentication/login', fn(Request $q) => $auth()->login($q));
         $r->post('/api/Authentication/register', fn(Request $q) => $auth()->register($q));
@@ -124,7 +108,6 @@ final class App
         $r->delete('/api/Authentication/delete', fn(Request $q) => $auth()->deleteAccount($q));
         $r->post('/api/Authentication/logout', fn(Request $q) => $auth()->logout($q));
 
-        // ---- api/Event ----
         $event = fn() => new EventController($this);
         $r->post('/api/Event/new-event', fn(Request $q) => $event()->newEvent($q));
         $r->delete('/api/Event/delete-event', fn(Request $q) => $event()->deleteEvent($q));
@@ -133,7 +116,6 @@ final class App
         $r->post('/api/Event/save-event', fn(Request $q) => $event()->saveEvent($q));
         $r->post('/api/Event/new-wizard', fn(Request $q) => $event()->newWizardEvent($q));
 
-        // ---- api/Schedule ----
         $schedule = fn() => new ScheduleController($this);
         $r->get('/api/Schedule/isRunning', fn(Request $q) => $schedule()->checkSolver($q));
         $r->post('/api/Schedule/stop', fn(Request $q) => $schedule()->stopSolver($q));
@@ -142,7 +124,6 @@ final class App
         $r->post('/api/Schedule/{id:long}', fn(Request $q) => $schedule()->generateSchedule($q));
         $r->get('/api/Schedule/{id:long}', fn(Request $q) => $schedule()->getSchedule($q));
 
-        // ---- admin ----
         $admin = fn() => new AdminController($this);
         $r->get('/admin', fn(Request $q) => $admin()->index($q));
         $r->get('/admin/login', fn(Request $q) => $admin()->loginPage($q));
@@ -153,10 +134,6 @@ final class App
         $r->post('/admin/api/users/{id:long}/confirm', fn(Request $q) => $admin()->confirmUser($q));
         $r->delete('/admin/api/users/{id:long}', fn(Request $q) => $admin()->deleteUser($q));
     }
-
-    // =====================================================================
-    //  Kérés feldolgozása
-    // =====================================================================
 
     public function handle(Request $request): Response
     {
@@ -174,7 +151,6 @@ final class App
         $this->cors->apply($request, $response);
         $response->withHeader('X-Content-Type-Options', 'nosniff');
 
-        // A rate limiter fájljait alkalmanként takarítjuk.
         if (random_int(1, 200) === 1) {
             $this->rateLimiter->cleanup();
         }
@@ -189,7 +165,6 @@ final class App
 
         $isBackendPath = (bool)preg_match('#^/(api|admin)(/|$)#i', $request->path);
 
-        // UseStaticFiles: a lebuildelt Angular kliens fájljai
         if (!$isBackendPath && ($static = $this->staticFiles->tryServe($request))) {
             return $static;
         }
@@ -201,19 +176,12 @@ final class App
             return $handler($request);
         }
 
-        // MapFallbackToFile("/index.html"): az Angular router útvonalai
         if (!$isBackendPath && ($fallback = $this->staticFiles->fallback($request))) {
             return $fallback;
         }
         return Response::problem(404);
     }
 
-    /**
-     * Végzetes PHP hiba (pl. időtúllépés, memóriahiány) esetén a normál
-     * hibakezelés nem fut le. Ilyenkor a shutdown függvényből ezzel küldünk
-     * egy 500-as választ CORS fejlécekkel, hogy a böngészőben a valódi hiba
-     * látsszon, ne egy félrevezető "CORS error".
-     */
     public function handleFatalError(Request $request, array $error): void
     {
         $this->logger->error('Fatal PHP error: {Message} in {File}:{Line}', [
@@ -232,7 +200,6 @@ final class App
         $response->send();
     }
 
-    /** A C# ExceptionHandler megfelelője. */
     private function handleException(\Throwable $e): Response
     {
         $this->logger->error('Unhandled exception', [], $e);
@@ -250,14 +217,6 @@ final class App
         return Response::json(['title' => $title, 'status' => $status], $status);
     }
 
-    // =====================================================================
-    //  Segédfüggvények a kontrollereknek
-    // =====================================================================
-
-    /**
-     * [Authorize] megfelelője: a bejelentkezett felhasználó azonosítója,
-     * különben 401 (a .NET OnRedirectToLogin is 401-et ad, átirányítás nélkül).
-     */
     public function requireUserId(Request $request): int
     {
         $identity = $this->userAuth->identity($request);
@@ -267,7 +226,6 @@ final class App
         return (int)$identity['userId'];
     }
 
-    /** 429-et dob, ha a kliens túllépte a keretet. */
     public function rateLimit(Request $request, string $bucket, int $defaultLimit, int $defaultWindowSeconds): void
     {
         $limit = $this->config->int("RateLimiting:{$bucket}:PermitLimit", $defaultLimit);
@@ -281,8 +239,6 @@ final class App
             );
         }
     }
-
-    // ---- szolgáltatások (lusta példányosítás) ----
 
     public function users(): UserRepository
     {

@@ -59,10 +59,6 @@ namespace ScheduleLogic.Server.Controllers
             return Ok(result);
         }
 
-        // A solver hívja vissza, nincs bejelentkezett felhasználó. A
-        // jogosultságot a visszahívási URL-ben kapott, versenyhez kötött HMAC
-        // kulcs adja (lásd SolverCallbackSigner). Korábban csak a localhost IP-t
-        // néztük, ami reverse proxy mögött bárkit átengedett.
         [HttpPost("answer")]
         public async Task<IActionResult> SolverAnswer([FromBody] SolverResponse data, [FromQuery] string? key)
         {
@@ -73,8 +69,6 @@ namespace ScheduleLogic.Server.Controllers
                 return StatusCode(StatusCodes.Status403Forbidden);
             }
 
-            // Az eredmény csak az adott verseny versenyzőire, versenyszámaira és
-            // helyszíneire hivatkozhat; ha nem így van, elutasítjuk.
             var accepted = await _scheduleService.ReceiveSolverAnswer(data);
             return accepted ? Ok() : Problem(statusCode: StatusCodes.Status400BadRequest);
         }

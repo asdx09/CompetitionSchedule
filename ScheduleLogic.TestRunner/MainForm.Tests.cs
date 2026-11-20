@@ -4,12 +4,10 @@ using System.Windows.Forms;
 using ScheduleLogic.TestKit.Reporting;
 using ScheduleLogic.TestKit.Testing;
 
-// A projekt névtere (ScheduleLogic.TestRunner) elfedné a TestKit TestRunner osztályát.
 using Runner = ScheduleLogic.TestKit.Testing.TestRunner;
 
 namespace ScheduleLogic.TestRunner;
 
-/// <summary>"Tesztek" fül: gombok csoportonként, táblázat, részletes napló.</summary>
 internal sealed partial class MainForm
 {
     private DataGridView _testGrid = null!;
@@ -24,10 +22,10 @@ internal sealed partial class MainForm
 
     private TabPage BuildTestsPage()
     {
-        var page = new TabPage("Tesztek");
+        var page = new TabPage("Tests");
 
         var bar = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, Padding = new Padding(4), WrapContents = true };
-        var all = MakeButton("▶ Összes teszt", async (_, _) => await RunTests(ApiTests.All));
+        var all = MakeButton("▶ All tests", async (_, _) => await RunTests(ApiTests.All));
         all.Font = new Font(Font, FontStyle.Bold);
         bar.Controls.Add(all);
         _runControls.Add(all);
@@ -40,28 +38,28 @@ internal sealed partial class MainForm
             _runControls.Add(b);
         }
 
-        var selected = MakeButton("▶ Kijelöltek", async (_, _) => await RunTests(SelectedTests()));
+        var selected = MakeButton("▶ Selected", async (_, _) => await RunTests(SelectedTests()));
         bar.Controls.Add(selected);
         _runControls.Add(selected);
 
-        var stop = MakeButton("■ Megszakítás", (_, _) => _cts?.Cancel());
+        var stop = MakeButton("■ Stop", (_, _) => _cts?.Cancel());
         stop.Enabled = false;
         bar.Controls.Add(stop);
         _stopButtons.Add(stop);
 
-        bar.Controls.Add(MakeButton("Riportok mappája", (_, _) => OpenFolder(ReportStore.TestResultsFolder)));
+        bar.Controls.Add(MakeButton("Reports folder", (_, _) => OpenFolder(ReportStore.TestResultsFolder)));
 
-        _testSummary = MakeLabel("Dupla kattintás egy soron: csak az a teszt fut le. Minden teszt saját, ideiglenes " +
-                                 "felhasználót hoz létre, és a végén törli.", Color.DimGray);
+        _testSummary = MakeLabel("Double-click a row to run only that test. Every test creates its own temporary " +
+                                 "user and deletes it at the end.", Color.DimGray);
         bar.Controls.Add(_testSummary);
 
         _testGrid = MakeGrid();
-        AddColumn(_testGrid, "Id", "Azonosító", 75);
-        AddColumn(_testGrid, "Group", "Csoport", 130);
-        AddColumn(_testGrid, "Name", "Teszt", 330);
-        AddColumn(_testGrid, "Status", "Eredmény", 95);
-        AddColumn(_testGrid, "Time", "Idő (ms)", 70);
-        AddColumn(_testGrid, "Message", "Üzenet", 200, fill: true);
+        AddColumn(_testGrid, "Id", "Id", 75);
+        AddColumn(_testGrid, "Group", "Group", 130);
+        AddColumn(_testGrid, "Name", "Test", 330);
+        AddColumn(_testGrid, "Status", "Result", 95);
+        AddColumn(_testGrid, "Time", "Time (ms)", 70);
+        AddColumn(_testGrid, "Message", "Message", 200, fill: true);
         _testGrid.Columns["Time"]!.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
 
         foreach (var t in ApiTests.All)
@@ -108,35 +106,35 @@ internal sealed partial class MainForm
         SetBusy(true);
         _cts = new CancellationTokenSource();
         var token = _cts.Token;
-        foreach (var t in list) SetRow(t.Id, "várakozik", "", "", null);
-        SetStatus($"{list.Count} teszt futtatása: {target} …");
+        foreach (var t in list) SetRow(t.Id, "waiting", "", "", null);
+        SetStatus($"Running {list.Count} tests: {target} …");
 
         var report = new TestRunReport { Label = target.Label, BaseUrl = target.BaseUrl, StartedAt = DateTime.Now };
         try
         {
             report.Results = await Task.Run(() => Runner.RunManyAsync(
                 list, target,
-                onStarted: t => Ui(() => SetRow(t.Id, "… fut", "", "", RunningColor)),
+                onStarted: t => Ui(() => SetRow(t.Id, "… running", "", "", RunningColor)),
                 onFinished: r => Ui(() => ShowResult(r)),
                 ct: token));
             report.FinishedAt = DateTime.Now;
 
             foreach (var t in list.Where(t => report.Results.All(r => r.TestId != t.Id)))
-                SetRow(t.Id, "", "", "Nem futott (megszakítva).", null);
+                SetRow(t.Id, "", "", "Not run (cancelled).", null);
 
             if (report.Results.Count > 0)
             {
                 var file = ReportStore.Save(report);
                 RefreshReportLists();
-                var summary = $"{report.Passed} sikeres, {report.Failed} hibás, {report.Skipped} kihagyva – {target.Label}";
-                _testSummary.Text = summary + $"  (riport: {Path.GetFileName(file)})";
+                var summary = $"{report.Passed} passed, {report.Failed} failed, {report.Skipped} skipped – {target.Label}";
+                _testSummary.Text = summary + $"  (report: {Path.GetFileName(file)})";
                 _testSummary.ForeColor = report.Failed > 0 ? Color.Firebrick : report.Skipped > 0 ? Color.DarkGoldenrod : Color.DarkGreen;
-                SetStatus(summary + " – riport mentve: " + file);
+                SetStatus(summary + " – report saved: " + file);
             }
         }
         catch (Exception ex)
         {
-            ShowError("A tesztek futtatása megszakadt: " + ex.Message);
+            ShowError("The test run was interrupted: " + ex.Message);
         }
         finally
         {
@@ -149,9 +147,9 @@ internal sealed partial class MainForm
         _lastResults[r.TestId] = r;
         var (text, color) = r.Status switch
         {
-            TestStatus.Passed => ("✔ sikeres", PassedColor),
-            TestStatus.Failed => ("✖ hibás", FailedColor),
-            TestStatus.Skipped => ("– kihagyva", SkippedColor),
+            TestStatus.Passed => ("✔ passed", PassedColor),
+            TestStatus.Failed => ("✖ failed", FailedColor),
+            TestStatus.Skipped => ("– skipped", SkippedColor),
             _ => ("", Color.Empty),
         };
         SetRow(r.TestId, text, r.DurationMs.ToString("0"), r.Status == TestStatus.Passed ? "" : r.Message, color);
@@ -186,27 +184,27 @@ internal sealed partial class MainForm
         var sb = new StringBuilder();
         sb.AppendLine($"{t.Id} – {t.Name}   [{t.Group}]");
         sb.AppendLine(t.Description);
-        if (t.RequiresSolver) sb.AppendLine("(A teszthez futó Python solver kell: ScheduleSolver/Main.py)");
+        if (t.RequiresSolver) sb.AppendLine("(This test needs the Python solver running: ScheduleSolver/Main.py)");
         sb.AppendLine();
 
         if (_lastResults.TryGetValue(t.Id, out var r))
         {
             var status = r.Status switch
             {
-                TestStatus.Passed => "SIKERES",
-                TestStatus.Failed => "HIBÁS",
-                TestStatus.Skipped => "KIHAGYVA",
+                TestStatus.Passed => "PASSED",
+                TestStatus.Failed => "FAILED",
+                TestStatus.Skipped => "SKIPPED",
                 _ => r.Status.ToString(),
             };
-            sb.AppendLine($"Eredmény: {status} – {r.Message}");
-            sb.AppendLine($"Idő: {r.DurationMs:0} ms, indítva: {r.StartedAt:HH:mm:ss}");
+            sb.AppendLine($"Result: {status} – {r.Message}");
+            sb.AppendLine($"Time: {r.DurationMs:0} ms, started: {r.StartedAt:HH:mm:ss}");
             sb.AppendLine();
-            sb.AppendLine("Napló (kérések, válaszok):");
+            sb.AppendLine("Log (requests, responses):");
             foreach (var line in r.Log) sb.AppendLine(line);
         }
         else
         {
-            sb.AppendLine("Még nem futott.");
+            sb.AppendLine("Not run yet.");
         }
         _testDetails.Text = sb.ToString().Replace("\r\n", "\n").Replace("\n", Environment.NewLine);
     }

@@ -1,10 +1,5 @@
 namespace ScheduleLogic.TestKit.Load;
 
-/// <summary>
-/// Lépcsős mérés: ugyanazon az előkészített adaton egymás után több
-/// terhelési szint (pl. 1, 5, 10, 25, 50 felhasználó). A szakdolgozat
-/// "válaszidő a terhelés függvényében" grafikonjához ez kell.
-/// </summary>
 public static class LoadSeries
 {
     public static List<int> ParseLevels(string text) =>
@@ -42,8 +37,6 @@ public static class LoadSeries
             results.Add(r);
             onLevelFinished?.Invoke(r);
 
-            // Szünet a szintek között, hogy az előző szint utóhatása (pl. a
-            // PHP-FPM munkafolyamatok, GC) ne csússzon át a következőbe.
             if (i + 1 < levels.Count && pauseBetween > TimeSpan.Zero)
             {
                 try { await Task.Delay(pauseBetween, ct); }

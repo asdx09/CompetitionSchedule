@@ -1,18 +1,13 @@
-"""End-to-end API teszt a PHP backendhez (valódi PostgreSQL, valódi SMTP STARTTLS, mock solver).
-
-Futtatás: lásd tests/README.md. A teszt a C# backend viselkedését (válaszkódok,
-JSON formátum, hibaüzenetek) és a PHP-ban elvégzett biztonsági javításokat ellenőrzi.
-"""
 import base64, hashlib, email, glob, io, json, os, re, subprocess, sys, time, uuid
 from email import policy
 import requests, openpyxl
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-BASE = os.environ.get('SL_BASE', 'http://127.0.0.1:7099')          # a PHP backend (közvetlenül, Caddy nélkül)
-SOLVER = os.environ.get('SL_MOCK_SOLVER', 'http://127.0.0.1:8000')  # mock_solver.py
-MAILDIR = os.environ.get('SL_MAILDIR', os.path.join(HERE, '_mail'))  # test_smtpd.py ide menti a leveleket
-FRONTEND = os.environ.get('SL_FRONTEND', 'https://localhost:58921/')  # URLS:Frontend
-PUBLIC_URL = os.environ.get('SL_PUBLIC_URL', 'https://localhost:58921')  # AppSettings:PublicUrl
+BASE = os.environ.get('SL_BASE', 'http://127.0.0.1:7099')
+SOLVER = os.environ.get('SL_MOCK_SOLVER', 'http://127.0.0.1:8000')
+MAILDIR = os.environ.get('SL_MAILDIR', os.path.join(HERE, '_mail'))
+FRONTEND = os.environ.get('SL_FRONTEND', 'https://localhost:58921/')
+PUBLIC_URL = os.environ.get('SL_PUBLIC_URL', 'https://localhost:58921')
 ADMIN_USER = os.environ.get('SL_ADMIN_USER', 'admin')
 ADMIN_PASSWORD = os.environ.get('SL_ADMIN_PASSWORD', 'AdminPass123!')
 FAILS = []
@@ -29,7 +24,6 @@ def check(cond, msg):
 
 
 def psql(sql):
-    # a PGHOST / PGUSER / PGPASSWORD / PGDATABASE környezeti változókat használja
     out = subprocess.run(['psql', '-tA', '-c', sql], capture_output=True, text=True)
     if out.returncode:
         raise RuntimeError(out.stderr)
@@ -37,7 +31,6 @@ def psql(sql):
 
 
 class Client:
-    """Kézi cookie-kezelés (a Secure cookie-kat http-n is visszaküldi, mint ha https lenne)."""
     def __init__(self):
         self.cookies = {}
         self.last_set_cookies = []
@@ -75,7 +68,7 @@ def body_of(msg):
 uid = uuid.uuid4().hex[:6]
 USER, EMAIL, PW = f'Tester_{uid}', f'tester_{uid}@example.com', 'Secret123!'
 
-print('== Regisztráció / validáció')
+print('== Registration / validation')
 c = Client()
 r = c.req('POST', '/api/Authentication/register', json={'Username': '', 'Password': 'x', 'Email': ''})
 check(r.status_code == 400 and r.headers['content-type'].startswith('application/problem+json')
@@ -97,7 +90,6 @@ stored = psql(f"select password, validated, registrationdate from users where us
 raw = base64.b64decode(stored[0])
 check(raw[0] == 1 and int.from_bytes(raw[1:5], 'big') == 2 and int.from_bytes(raw[5:9], 'big') == 100000
       and int.from_bytes(raw[9:13], 'big') == 16 and len(raw) == 13 + 16 + 32, 'hash is Identity V3 SHA512/100k/16/32')
-# független Python ellenőrzés: a PHP által készített hash a .NET algoritmusával ellenőrizhető
 check(hashlib.pbkdf2_hmac('sha512', PW.encode(), raw[13:29], 100000, 32) == raw[29:], 'hash verifies with independent PBKDF2')
 check(re.fullmatch(r'[0-9A-F]{64}', stored[1]) is not None, f'validation token format {stored[1]}')
 
@@ -112,7 +104,7 @@ link = m.group(1).replace('&amp;', '&')
 check(link.startswith(PUBLIC_URL + '/api/authentication/confirm?token='), f'confirm link {link}')
 token = link.split('token=')[1]
 
-print('== Belépés megerősítés előtt / megerősítés')
+print('== Login before confirmation / confirmation')
 r = c.req('POST', '/api/Authentication/login', json={'Username': USER, 'Password': PW})
 check(r.status_code == 401 and r.text == 'Invalid username/email and password or not verified email!', f'login unconfirmed {r.status_code} {r.text}')
 r = c.req('POST', '/api/Authentication/resend-confirmation', json={'UsernameOrEmail': USER})
@@ -128,7 +120,7 @@ r = c.req('GET', '/api/authentication/confirm?token=' + token)
 check(r.status_code == 302 and r.headers['Location'] == FRONTEND, f'confirm ok {r.headers.get("Location")}')
 check(psql(f"select validated from users where username='{USER}'") == '', 'validated cleared')
 
-print('== Belépés')
+print('== Login')
 r = c.req('POST', '/api/Authentication/login', json={'Username': USER, 'Password': 'wrong-pass'})
 check(r.status_code == 401, 'wrong pw 401')
 r = c.req('POST', '/api/Authentication/login', json={'Username': '', 'Password': ''})
@@ -140,8 +132,6 @@ check(len(sc) == 1 and 'httponly' in sc[0].lower() and 'samesite=lax' in sc[0].l
 r = c.req('GET', '/api/Authentication/check-token')
 check(r.status_code == 200 and r.json() == {'name': USER}, f'check-token {r.text}')
 
-# Régi (.NET Core 3-6 féle SHA256/10k) hash -> sikeres belépés + automatikus frissítés
-# .NET Core 3-6 formátum: V3, HMAC-SHA256, 10 000 iteráció - független Python implementációval
 import struct
 _salt = os.urandom(16)
 legacy_hash = base64.b64encode(b'\x01' + struct.pack('>III', 1, 10000, 16) + _salt
@@ -156,7 +146,7 @@ check(int.from_bytes(newhash[1:5], 'big') == 2 and int.from_bytes(newhash[5:9], 
 r = lc.req('POST', '/api/Authentication/login', json={'Username': legacy_user, 'Password': 'OldUser123!'})
 check(r.status_code == 200, 'login again after rehash')
 
-print('== Események')
+print('== Events')
 r = c.req('GET', '/api/Event/get-events')
 check(r.status_code == 200 and r.json() == [], f'no events {r.text}')
 r = c.req('POST', '/api/Event/new-event')
@@ -170,20 +160,19 @@ check(ed['eventId'] == str(eid) and ed['isPrivate'] is True and ed['basePauseTim
 check(re.fullmatch(r'\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?Z', ed['startDate']) is not None, f'date format {ed["startDate"]}')
 check(set(ev.keys()) == {'eventData', 'eventTypes', 'groups', 'locations', 'participants', 'registrations', 'pauseTable', 'locationTable', 'constraints', 'timeZones'}, f'keys {ev.keys()}')
 
-# A frontend által küldött formátum: ideiglenes UUID azonosítók, eventId "0", "HH:mm" és "HH:mm:ss" idők
 T1, T2, G1, L1, L2, P1, P2, P3 = (str(uuid.uuid4()) for _ in range(8))
 payload = {
-    'eventData': {'eventId': str(eid), 'eventName': 'Úszóverseny 2026', 'startDate': '2026-03-01T07:00:00.000Z',
+    'eventData': {'eventId': str(eid), 'eventName': 'Swim meet 2026', 'startDate': '2026-03-01T07:00:00.000Z',
                   'endDate': '2026-03-02T16:00:00.000Z', 'isPrivate': False, 'basePauseTime': 10, 'locationPauseTime': 7,
                   'locWeight': 3, 'groupWeight': 2, 'typeWeight': 1, 'compWeight': 450},
-    'eventTypes': [{'eventTypeId': T1, 'eventId': '0', 'typeName': '100m gyors', 'timeRange': '00:05:00'},
-                   {'eventTypeId': T2, 'eventId': '0', 'typeName': '200m hát', 'timeRange': '01:30'}],
+    'eventTypes': [{'eventTypeId': T1, 'eventId': '0', 'typeName': '100m freestyle', 'timeRange': '00:05:00'},
+                   {'eventTypeId': T2, 'eventId': '0', 'typeName': '200m backstroke', 'timeRange': '01:30'}],
     'groups': [{'groupId': G1, 'eventId': '0', 'groupName': 'Junior'}],
-    'locations': [{'locationId': L1, 'eventId': '0', 'locationName': 'Medence A', 'slots': 2},
-                  {'locationId': L2, 'eventId': '0', 'locationName': 'Medence B', 'slots': 1}],
-    'participants': [{'participantId': P1, 'eventId': '0', 'competitorNumber': 1, 'participantName': 'Kiss Anna', 'groupId': G1},
-                     {'participantId': P2, 'eventId': '0', 'competitorNumber': 2, 'participantName': 'Nagy Béla', 'groupId': ''},
-                     {'participantId': P3, 'eventId': '0', 'competitorNumber': '3', 'participantName': 'Tóth Cili', 'groupId': None}],
+    'locations': [{'locationId': L1, 'eventId': '0', 'locationName': 'Pool A', 'slots': 2},
+                  {'locationId': L2, 'eventId': '0', 'locationName': 'Pool B', 'slots': 1}],
+    'participants': [{'participantId': P1, 'eventId': '0', 'competitorNumber': 1, 'participantName': 'Anna Smith', 'groupId': G1},
+                     {'participantId': P2, 'eventId': '0', 'competitorNumber': 2, 'participantName': 'Ben Taylor', 'groupId': ''},
+                     {'participantId': P3, 'eventId': '0', 'competitorNumber': '3', 'participantName': 'Cecil Brown', 'groupId': None}],
     'registrations': [{'registrationId': 'r1', 'eventId': '0', 'participantId': P1, 'eventTypeId': T1},
                       {'registrationId': 'r2', 'eventId': '0', 'participantId': P2, 'eventTypeId': T1},
                       {'registrationId': 'r3', 'eventId': '0', 'participantId': P3, 'eventTypeId': T2}],
@@ -199,31 +188,29 @@ payload = {
 r = c.req('POST', '/api/Event/save-event', json=payload)
 check(r.status_code == 200, f'save-event {r.status_code} {r.text}')
 ev = c.req('GET', f'/api/Event/get-event?id={eid}').json()
-check(ev['eventData']['eventName'] == 'Úszóverseny 2026' and ev['eventData']['compWeight'] == 450, f'saved eventdata {ev["eventData"]}')
+check(ev['eventData']['eventName'] == 'Swim meet 2026' and ev['eventData']['compWeight'] == 450, f'saved eventdata {ev["eventData"]}')
 check(ev['eventData']['startDate'] == '2026-03-01T07:00:00Z', f'startDate roundtrip {ev["eventData"]["startDate"]}')
 check([t['timeRange'] for t in ev['eventTypes']] == ['00:05:00', '01:30:00'], f'timeRange {ev["eventTypes"]}')
 check(ev['pauseTable'][0]['pause'] == '00:10:00', 'pause normalized')
 db_group = ev['groups'][0]['groupId']
 parts = {p['participantName']: p for p in ev['participants']}
-check(parts['Kiss Anna']['groupId'] == db_group, 'participant group mapped to new id')
-check(parts['Nagy Béla']['groupId'] is None and parts['Tóth Cili']['groupId'] is None, f'no group -> null {parts}')
-check(parts['Tóth Cili']['competitorNumber'] == 3, 'number from string accepted')
+check(parts['Anna Smith']['groupId'] == db_group, 'participant group mapped to new id')
+check(parts['Ben Taylor']['groupId'] is None and parts['Cecil Brown']['groupId'] is None, f'no group -> null {parts}')
+check(parts['Cecil Brown']['competitorNumber'] == 3, 'number from string accepted')
 locs = {l['locationName']: l['locationId'] for l in ev['locations']}
 cons = {c_['constraintType']: c_ for c_ in ev['constraints']}
-check(cons['L']['objectId'] == locs['Medence B'], 'constraint L mapped')
+check(cons['L']['objectId'] == locs['Pool B'], 'constraint L mapped')
 check(cons['G']['objectId'] == db_group, 'constraint G mapped')
-# helyi idő (Europe/Budapest, télen +01:00): "08:00:00" zóna nélkül = 07:00Z
 check(cons['G']['startTime'] == '2026-03-01T07:00:00Z' and cons['G']['endTime'] == '2026-03-01T08:00:00Z', f'local time conversion {cons["G"]}')
 check(all(isinstance(x['eventId'], str) for x in ev['registrations']), 'ids are strings')
 
-# Hibás hivatkozás -> 400 és változatlan adatok (rollback)
 bad = json.loads(json.dumps(payload))
 bad['eventData']['eventName'] = 'SHOULD NOT SAVE'
 bad['registrations'].append({'registrationId': 'rx', 'eventId': '0', 'participantId': 'nope', 'eventTypeId': T1})
 r = c.req('POST', '/api/Event/save-event', json=bad)
 check(r.status_code == 400 and r.json()['status'] == 400, f'bad ref -> 400 {r.status_code}')
 ev2 = c.req('GET', f'/api/Event/get-event?id={eid}').json()
-check(ev2['eventData']['eventName'] == 'Úszóverseny 2026' and len(ev2['registrations']) == 3, 'rollback kept old data')
+check(ev2['eventData']['eventName'] == 'Swim meet 2026' and len(ev2['registrations']) == 3, 'rollback kept old data')
 bad = json.loads(json.dumps(payload)); bad['locations'][0]['locationName'] = ''
 r = c.req('POST', '/api/Event/save-event', json=bad)
 check(r.status_code == 400 and 'Locations[0].LocationName' in r.json().get('errors', {}), f'empty name -> validation {r.text[:200]}')
@@ -231,7 +218,6 @@ bad = json.loads(json.dumps(payload)); bad['eventData']['startDate'] = 'garbage'
 r = c.req('POST', '/api/Event/save-event', json=bad)
 check(r.status_code == 400 and 'EventData.StartDate' in r.json().get('errors', {}), 'bad date -> validation')
 
-# Más felhasználó nem fér hozzá
 c2 = Client()
 u2 = f'other_{uid}'
 c2.req('POST', '/api/Authentication/register', json={'Username': u2, 'Password': PW, 'Email': u2 + '@example.com'})
@@ -245,7 +231,7 @@ check(c2.req('GET', f'/api/Schedule/export?id={eid}').status_code == 404, 'forei
 check(Client().req('GET', '/api/Event/get-events').status_code == 401, 'anonymous 401')
 check(c.req('GET', '/api/Event/get-event?id=abc').status_code == 400, 'non-numeric id 400')
 
-print('== Varázsló')
+print('== Wizard')
 wiz = json.loads(json.dumps(payload)); wiz['eventData']['eventId'] = '0'; wiz['eventData']['eventName'] = 'Wizard event'
 r = c.req('POST', '/api/Event/new-wizard', json=wiz)
 check(r.status_code == 200, f'wizard ok {r.status_code} {r.text}')
@@ -257,7 +243,7 @@ badwiz = json.loads(json.dumps(wiz)); badwiz['constraints'][0]['objectId'] = 'mi
 r = c.req('POST', '/api/Event/new-wizard', json=badwiz)
 check(r.status_code == 400 and len(c.req('GET', '/api/Event/get-events').json()) == 2, 'failed wizard leaves no orphan event')
 
-print('== Ütemezés / solver')
+print('== Scheduling / solver')
 r = c.req('POST', f'/api/Schedule/{eid}')
 check(r.status_code == 200 and r.json()['returnURL'] == '', f'generate -> returnURL hidden {r.status_code}')
 sreq = requests.get(SOLVER + '/_last').json()
@@ -273,14 +259,14 @@ lids = {l['locationName']: int(l['locationId']) for l in ev['locations']}
 pids = {p['participantName']: int(p['participantId']) for p in ev['participants']}
 gid = int(ev['groups'][0]['groupId'])
 check(sorted(sreq['events'], key=lambda e: e['id']) == sorted([
-    {'id': tids['100m gyors'], 'name': '100m gyors', 'duration': 5, 'possibleLocations': [lids['Medence A']]},
-    {'id': tids['200m hát'], 'name': '200m hát', 'duration': 90, 'possibleLocations': [lids['Medence B']]}], key=lambda e: e['id']), f'events {sreq["events"]}')
-check({(x['name'], x['groupId']) for x in sreq['competitors']} == {('Kiss Anna', gid), ('Nagy Béla', -1), ('Tóth Cili', -1)}, 'competitors groupId -1')
-check(sreq['travel'] == [{'id': sreq['travel'][0]['id'], 'locationID1': lids['Medence A'], 'locationID2': lids['Medence B'], 'pause': 10}], f'travel {sreq["travel"]}')
+    {'id': tids['100m freestyle'], 'name': '100m freestyle', 'duration': 5, 'possibleLocations': [lids['Pool A']]},
+    {'id': tids['200m backstroke'], 'name': '200m backstroke', 'duration': 90, 'possibleLocations': [lids['Pool B']]}], key=lambda e: e['id']), f'events {sreq["events"]}')
+check({(x['name'], x['groupId']) for x in sreq['competitors']} == {('Anna Smith', gid), ('Ben Taylor', -1), ('Cecil Brown', -1)}, 'competitors groupId -1')
+check(sreq['travel'] == [{'id': sreq['travel'][0]['id'], 'locationID1': lids['Pool A'], 'locationID2': lids['Pool B'], 'pause': 10}], f'travel {sreq["travel"]}')
 cL = [x for x in sreq['constraints'] if x['constraintType'] == 'L'][0]
-check(cL['startTime'] == 240 and cL['endTime'] == 330 and cL['objectId'] == lids['Medence B'], f'constraint minutes {cL}')
+check(cL['startTime'] == 240 and cL['endTime'] == 330 and cL['objectId'] == lids['Pool B'], f'constraint minutes {cL}')
 check(sorted((e['competitorId'], e['eventId']) for e in sreq['entries']) ==
-      sorted([(pids['Kiss Anna'], tids['100m gyors']), (pids['Nagy Béla'], tids['100m gyors']), (pids['Tóth Cili'], tids['200m hát'])]), 'entries')
+      sorted([(pids['Anna Smith'], tids['100m freestyle']), (pids['Ben Taylor'], tids['100m freestyle']), (pids['Cecil Brown'], tids['200m backstroke'])]), 'entries')
 
 r = c.req('GET', f'/api/Schedule/isRunning?id={eid}')
 check(r.status_code == 200 and r.json() is True, f'isRunning true {r.text}')
@@ -291,9 +277,9 @@ check(r.json() is False, 'isRunning false after stop')
 
 answer_url = '/api/Schedule/answer?' + sreq['returnURL'].split('?', 1)[1]
 sol = {'Status': 'PARTIAL_SOLUTION', 'EventId': eid, 'SolutionNumber': '3', 'Schedule': [
-    {'ParticipantId': pids['Kiss Anna'], 'EventTypeId': tids['100m gyors'], 'Start': 60, 'End': 65, 'LocationId': lids['Medence A'], 'Slot': 0},
-    {'ParticipantId': pids['Nagy Béla'], 'EventTypeId': tids['100m gyors'], 'Start': 60, 'End': 65, 'LocationId': lids['Medence A'], 'Slot': 0},
-    {'ParticipantId': pids['Tóth Cili'], 'EventTypeId': tids['200m hát'], 'Start': 1500, 'End': 1590, 'LocationId': lids['Medence B'], 'Slot': 0},
+    {'ParticipantId': pids['Anna Smith'], 'EventTypeId': tids['100m freestyle'], 'Start': 60, 'End': 65, 'LocationId': lids['Pool A'], 'Slot': 0},
+    {'ParticipantId': pids['Ben Taylor'], 'EventTypeId': tids['100m freestyle'], 'Start': 60, 'End': 65, 'LocationId': lids['Pool A'], 'Slot': 0},
+    {'ParticipantId': pids['Cecil Brown'], 'EventTypeId': tids['200m backstroke'], 'Start': 1500, 'End': 1590, 'LocationId': lids['Pool B'], 'Slot': 0},
 ]}
 anon = Client()
 check(anon.req('POST', '/api/Schedule/answer', json=sol).status_code == 403, 'answer without key 403')
@@ -302,7 +288,6 @@ wrong_event = dict(sol, EventId=evs[1]['eventId'])
 check(anon.req('POST', answer_url, json=wrong_event).status_code == 403, 'key bound to event id')
 r = anon.req('POST', answer_url, json=sol)
 check(r.status_code == 200 and r.text == '', f'answer ok {r.status_code} {r.text}')
-# idegen objektum -> 400, régi eredmény marad
 foreign = json.loads(json.dumps(sol)); foreign['Schedule'][0]['ParticipantId'] = int(wiz_ev['participants'][0]['participantId'])
 check(anon.req('POST', answer_url, json=foreign).status_code == 400, 'foreign ids rejected')
 infeasible = {'Status': 'INFEASIBLE', 'EventId': eid, 'Schedule': []}
@@ -311,11 +296,10 @@ check(anon.req('POST', answer_url, json=infeasible).status_code == 200, 'infeasi
 sd = c.req('GET', f'/api/Schedule/{eid}').json()
 tz = sorted(sd['timeZones'], key=lambda t: (t['startTime'], t['participantId']))
 check(len(tz) == 3, f'timeZones {sd["timeZones"]}')
-# 07:00Z = 08:00 helyi -> +60 perc = 09:00 helyi = 540 perc éjféltől
 check([(t['startTime'], t['endTime']) for t in tz] == [(540, 545), (540, 545), (1980, 2070)], f'tz minutes {tz}')
 check(sorted(t['slot'] for t in tz[:2]) == [1, 2] and tz[2]['slot'] == 1, f'slot assignment {tz}')
 check(all(isinstance(t['scheduleId'], int) for t in tz), 'tz ints')
-check([p['groupId'] for p in sd['participants'] if p['participantName'] == 'Nagy Béla'] == [None], 'schedule participants groupId null')
+check([p['groupId'] for p in sd['participants'] if p['participantName'] == 'Ben Taylor'] == [None], 'schedule participants groupId null')
 
 r = c.req('GET', f'/api/Schedule/export?id={eid}')
 check(r.status_code == 200 and r.headers['content-type'] == 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -326,7 +310,7 @@ rows = list(ws.iter_rows(values_only=True))
 check(rows[0] == ('Competitor', 'Group', 'Event Type', 'Location', 'Slot', 'Start', 'End'), f'header {rows[0]}')
 check(ws.freeze_panes == 'A2', f'freeze {ws.freeze_panes}')
 check(ws['A1'].fill.fgColor.rgb == 'FFADD8E6' and ws['A2'].fill.fgColor.rgb == 'FFADD8E6' and ws['A3'].fill.fgColor.rgb == 'FFE0FFFF', 'fills')
-check([r_[0] for r_ in rows[1:]] == ['Kiss Anna (1)', 'Nagy Béla (2)', 'Tóth Cili (3)'], f'sorted by group+name {[r_[0] for r_ in rows[1:]]}')
+check([r_[0] for r_ in rows[1:]] == ['Anna Smith (1)', 'Ben Taylor (2)', 'Cecil Brown (3)'], f'sorted by group+name {[r_[0] for r_ in rows[1:]]}')
 check(rows[1][1] == 'Junior' and rows[3][1] == '' and rows[1][5] == '2026-03-01 09:00:00' and isinstance(rows[1][4], int), f'row content {rows[1]} {rows[3]}')
 
 print('== CORS')
@@ -338,7 +322,7 @@ check('Access-Control-Allow-Origin' not in r.headers, 'evil origin denied')
 r = c.req('GET', '/api/Event/get-events', headers={'Origin': 'https://localhost:58921'})
 check(r.headers.get('Access-Control-Allow-Origin') == 'https://localhost:58921', 'simple request CORS')
 
-print('== Elfelejtett jelszó')
+print('== Forgot password')
 r = c.req('POST', '/api/Authentication/forgot-password', json={'UsernameOrEmail': USER})
 check(r.status_code == 200, 'forgot ok')
 msg = mails_to(EMAIL)[-1][0]
@@ -357,13 +341,12 @@ r = c.req('POST', '/api/Authentication/reset-password', json={'Token': rtoken, '
 check(r.status_code == 400, 'reset token single-use')
 check(Client().req('POST', '/api/Authentication/login', json={'Username': USER, 'Password': 'NewSecret456!'}).status_code == 200, 'login with new pw')
 check(Client().req('POST', '/api/Authentication/login', json={'Username': USER, 'Password': PW}).status_code == 401, 'old pw rejected')
-# lejárt token
 c.req('POST', '/api/Authentication/forgot-password', json={'UsernameOrEmail': USER})
 etok = re.search(r'token=([0-9A-F]+)', body_of(mails_to(EMAIL)[-1][0])).group(1)
 psql(f"update users set passwordresetexpires = now() - interval '1 minute' where username='{USER}'")
 check(c.req('POST', '/api/Authentication/reset-password', json={'Token': etok, 'NewPassword': 'Expired123!'}).status_code == 400, 'expired token rejected')
 
-print('== Kijelentkezés / fióktörlés')
+print('== Logout / account deletion')
 old_cookie = dict(c.cookies)
 r = c.req('POST', '/api/Authentication/logout')
 check(r.status_code == 200 and any('sl_auth=;' in s and '1970' in s for s in c.last_set_cookies), 'logout clears cookie')
@@ -390,7 +373,7 @@ check('sl_admin_csrf' in a.cookies and a.cookies['sl_admin_csrf'] == csrf, 'csrf
 r = a.req('POST', '/admin/login', data={'username': ADMIN_USER, 'password': ADMIN_PASSWORD})
 check(r.status_code == 400, 'admin login without csrf 400')
 r = a.req('POST', '/admin/login', data={'username': ADMIN_USER, 'password': 'nope', '__RequestVerificationToken': csrf})
-check(r.status_code == 200 and 'Hibás felhasználónév vagy jelszó.' in r.text, 'admin wrong pw')
+check(r.status_code == 200 and 'Invalid username or password.' in r.text, 'admin wrong pw')
 r = a.req('POST', '/admin/login', data={'username': ADMIN_USER, 'password': ADMIN_PASSWORD, '__RequestVerificationToken': csrf})
 check(r.status_code == 302 and r.headers['Location'] == '/admin', f'admin login ok {r.status_code} {r.text[:200]}')
 asc = [s for s in a.last_set_cookies if s.startswith('sl_admin_auth=')][0].lower()
@@ -421,7 +404,6 @@ check(r.status_code == 400, 'logout bad csrf')
 r = a.req('POST', '/admin/logout', data={'__RequestVerificationToken': a.cookies['sl_admin_csrf']})
 check(r.status_code == 302 and r.headers['Location'] == '/admin/login', 'admin logout')
 check(a.req('GET', '/admin/api/stats').status_code == 401, 'after admin logout 401')
-# a felhasználói session nem nyit admin felületet
 check(c2.req('GET', '/admin/api/stats').status_code == 401, 'user cookie != admin')
 
 print('== Rate limit')
@@ -432,7 +414,7 @@ check(codes.count(429) >= 1 and codes[-1] == 429, f'login rate limited {codes}')
 r = rl.req('POST', '/api/Authentication/login', json={'Username': 'x', 'Password': 'y'})
 check(r.text == 'Too many requests. Please try again later.' and int(r.headers['Retry-After']) > 0, 'retry-after')
 
-print('== Egyéb')
+print('== Other')
 r = requests.get(BASE + '/api/Schedule/answer')
 check(r.status_code == 405, f'wrong method 405 {r.status_code}')
 r = requests.get(BASE + '/API/EVENT/GET-EVENTS')

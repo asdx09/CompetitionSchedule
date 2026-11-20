@@ -1,8 +1,3 @@
-"""Teszt SMTP szerver STARTTLS-sel és AUTH LOGIN-nal (felhasználó: mailuser / mailpass).
-A leveleket a tests/_mail mappába menti. Indítás: python tests/test_smtpd.py
-Kell hozzá: pip install aiosmtpd   és egy self-signed tanúsítvány:
-  openssl req -x509 -newkey rsa:2048 -nodes -keyout tests/_smtp.key -out tests/_smtp.crt -days 30 -subj "/CN=localhost"
-"""
 import os
 HERE = os.path.dirname(os.path.abspath(__file__))
 MAILDIR = os.environ.get('SL_MAILDIR', os.path.join(HERE, '_mail'))

@@ -4,13 +4,6 @@ declare(strict_types=1);
 
 namespace ScheduleLogic\Models;
 
-/**
- * A C# EventModels.DataDTO beolvasása a kérés törzséből (save-event, new-wizard).
- *
- * A visszaadott tömb szerkezete megegyezik a DataDTO-val, csak a dátumok
- * már UTC DateTimeImmutable-ök, az időtartamok pedig normalizált
- * "HH:mm:ss" stringek.
- */
 final class EventInput
 {
     public static function parse(array $body): array
@@ -92,8 +85,6 @@ final class EventInput
             'startTime' => self::requiredDate($in, $r, 'StartTime', "$p.StartTime"),
             'endTime' => self::requiredDate($in, $r, 'EndTime', "$p.EndTime"),
         ]);
-
-        // A TimeZones listát a kliens visszaküldi, de a mentés nem használja.
 
         $in->throwIfInvalid();
         return $result;
